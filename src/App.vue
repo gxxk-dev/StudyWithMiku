@@ -50,9 +50,10 @@ const onMouseLeave = () => {
 }
 
 const videoRef = ref(null)
+const R2_BASE_URL = 'https://studycdn.mikugame.icu'
 const videos = [
-  './mp4/1.mp4',
-  './mp4/2.mp4'
+  `${R2_BASE_URL}/mp4/1.mp4`,
+  `${R2_BASE_URL}/mp4/2.mp4`
 ]
 const currentVideo = ref(videos[0])
 
