@@ -27,6 +27,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import { getAllSongs } from './data/songs.js'
+import { loadScript, loadStyle, preloadVideos } from './utils/cache.js'
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
@@ -96,30 +97,29 @@ watch(showControls, (newValue) => {
 })
 
 onMounted(() => {
-  // 动态加载 APlayer CSS 和 JS
-  const loadAPlayer = () => {
-    // 检查是否已加载
+  const preloadAllVideos = async () => {
+    try {
+      await preloadVideos(videos)
+      console.log('所有视频预加载完成')
+    } catch (error) {
+      console.error('视频预加载失败:', error)
+    }
+  }
+  const loadAPlayer = async () => {
     if (window.APlayer) {
       initAPlayer()
       return
     }
     
-    // 加载 CSS
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = './APlayer.min.css'
-    document.head.appendChild(link)
-    
-    // 加载 JS
-    const script = document.createElement('script')
-    script.src = './APlayer.min.js'
-    script.onload = () => {
+    try {
+      await loadStyle('./APlayer.min.css')
+      await loadScript('./APlayer.min.js')
       initAPlayer()
+    } catch (error) {
+      console.error('加载 APlayer 资源失败:', error)
     }
-    document.head.appendChild(script)
   }
   
-  // 初始化 APlayer
   const initAPlayer = () => {
     const songs = getAllSongsForAPlayer()
     
@@ -154,6 +154,7 @@ onMounted(() => {
     }
     aplayerInitialized.value = true
   }
+  preloadAllVideos()
   setTimeout(() => {
     loadAPlayer()
   }, 500)
