@@ -153,18 +153,13 @@ onMounted(() => {
       volume: 0.7,
       mutex: true,
       listFolded: false,
-      listMaxHeight: '90px'
+      listMaxHeight: '200px',
+      width: '300px'
     })
     
     // 设置播放器样式
     const playerElement = document.getElementById('aplayer')
     if (playerElement) {
-      playerElement.style.position = 'fixed'
-      playerElement.style.bottom = '20px'
-      playerElement.style.left = '20px'
-      playerElement.style.zIndex = '1000'
-      playerElement.style.width = '300px'
-      playerElement.style.maxWidth = '400px'
       playerElement.style.transition = 'opacity 0.3s ease'
       playerElement.style.opacity = '1'
       playerElement.style.pointerEvents = 'auto'
