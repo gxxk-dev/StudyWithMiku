@@ -4,8 +4,21 @@ const cache = {
   videos: new Map(),
   audios: new Map()
 }
+const ALLOWED_SCRIPT_SOURCES = [
+  './APlayer.min.js',
+]
+
+const isScriptSourceAllowed = (src) => {
+  return ALLOWED_SCRIPT_SOURCES.some(allowed => src.includes(allowed))
+}
+
 export const loadScript = (src) => {
   return new Promise((resolve, reject) => {
+    if (!isScriptSourceAllowed(src)) {
+      reject(new Error(`Script source not allowed: ${src}`))
+      return
+    }
+
     if (cache.scripts.has(src)) {
       resolve()
       return
@@ -22,8 +35,21 @@ export const loadScript = (src) => {
   })
 }
 
+const ALLOWED_STYLE_SOURCES = [
+  './APlayer.min.css',
+]
+
+const isStyleSourceAllowed = (href) => {
+  return ALLOWED_STYLE_SOURCES.some(allowed => href.includes(allowed))
+}
+
 export const loadStyle = (href) => {
   return new Promise((resolve, reject) => {
+    if (!isStyleSourceAllowed(href)) {
+      reject(new Error(`Style source not allowed: ${href}`))
+      return
+    }
+
     if (cache.styles.has(href)) {
       resolve()
       return

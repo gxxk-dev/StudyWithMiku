@@ -1,5 +1,9 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
+const getWsToken = () => {
+  return import.meta.env.VITE_WS_TOKEN || ''
+}
+
 export function useOnlineCount(wsUrl) {
   const onlineCount = ref(0)
   const isConnected = ref(false)
@@ -9,7 +13,10 @@ export function useOnlineCount(wsUrl) {
 
   const connect = () => {
     try {
-      ws = new WebSocket(wsUrl)
+      const token = getWsToken()
+      const urlWithAuth = new URL(wsUrl)
+      urlWithAuth.searchParams.append('token', token)
+      ws = new WebSocket(urlWithAuth.toString())
 
       ws.onopen = () => {
         isConnected.value = true
