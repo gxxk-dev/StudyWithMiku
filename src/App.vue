@@ -139,27 +139,7 @@ watch(showControls, (newValue) => {
   }
 })
 
-const reportVisit = () => {
-  fetch('/api/visit', { method: 'POST' }).catch(() => {})
-}
-
-const load51LaAnalytics = () => {
-  if (document.getElementById('LA_COLLECT')) return
-  const script = document.createElement('script')
-  script.charset = 'UTF-8'
-  script.id = 'LA_COLLECT'
-  script.src = '//sdk.51.la/js-sdk-pro.min.js'
-  script.onload = () => {
-    if (window.LA) {
-      window.LA.init({id:"3OFbo4ER8B3QNm7x",ck:"3OFbo4ER8B3QNm7x",autoTrack:true,hashMode:true})
-    }
-  }
-  document.head.appendChild(script)
-}
-
 onMounted(() => {
-  load51LaAnalytics()
-  reportVisit()
   const preloadAllVideos = async () => {
     try {
       await preloadVideos(videos)
