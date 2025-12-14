@@ -1,16 +1,13 @@
 name = "study-with-miku"
+main = "workers/index.js"
 compatibility_date = "2023-10-01"
 
-[site]
-bucket = "./dist"
-entry-point = "."
+assets = { directory = "./dist", binding = "ASSETS" }
 
-[env.production]
+[[durable_objects.bindings]]
+name = "ONLINE_COUNTER"
+class_name = "OnlineCounter"
 
-[[routes]]
-pattern = "https://study.mikugame.icu/*"
-custom_domain = true
-
-[[routes]]
-pattern = "https://study.mikumod.com/*"
-custom_domain = true
+[[migrations]]
+tag = "v1"
+new_classes = ["OnlineCounter"]

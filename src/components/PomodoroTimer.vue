@@ -163,7 +163,14 @@ import { useMusic } from '../composables/useMusic.js'
 import { duckMusicForNotification, setHoveringUI, getAPlayerInstance } from '../utils/eventBus.js'
 import { getPomodoroSettings, savePomodoroSettings } from '../utils/userSettings.js'
 
-const WS_URL = 'wss://online.study.mikugame.icu/ws'
+const resolveWsUrl = () => {
+  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
+  if (typeof window === 'undefined') return 'ws://localhost:8787/ws'
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws`
+}
+
+const WS_URL = resolveWsUrl()
 const { onlineCount, isConnected } = useOnlineCount(WS_URL)
 const { playlistId, platform, applyCustomPlaylist, resetToLocal, songs, DEFAULT_PLAYLIST_ID, PLATFORMS } = useMusic()
 

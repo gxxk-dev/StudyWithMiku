@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npm run copy-assets",
+    "vite:build": "vite build",
+    "build": "npm run vite:build && npm run copy-assets",
     "preview": "vite preview",
     "copy-assets": "copyfiles -u 1 public/**/* dist/",
-    "deploy:worker": "wrangler deploy --config wrangler-worker.toml"
+    "dev:worker": "npm run build && wrangler dev --local",
+    "deploy:worker": "wrangler deploy"
   },
   "dependencies": {
     "@vueuse/core": "^10.1.2",
+    "hono": "^4.11.0",
     "vue": "^3.3.4"
   },
   "devDependencies": {
