@@ -10,4 +10,4 @@ class_name = "OnlineCounter"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["OnlineCounter"]
+new_sqlite_classes = ["OnlineCounter"]
