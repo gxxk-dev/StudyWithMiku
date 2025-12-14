@@ -166,9 +166,36 @@ onMounted(() => {
     }
     
     try {
-      await loadStyle('./APlayer.min.css')
-      await loadScript('./APlayer.min.js')
-      await initAPlayer()
+      await loadSongs()
+      const container = document.getElementById('aplayer')
+      if (!container || !songs.value.length) return
+
+      const savedMusicIndex = getMusicIndex()
+      aplayer.value = new APlayer({
+        container,
+        fixed: true,
+        autoplay: true,
+        audio: songs.value,
+        lrcType: 0,
+        theme: '#83a4ff',
+        loop: 'all',
+        order: 'list',
+        preload: 'auto',
+        volume: 0.7,
+        mutex: true,
+        listFolded: true,
+        listMaxHeight: '200px'
+      })
+
+      if (savedMusicIndex >= 0 && savedMusicIndex < songs.value.length) {
+        aplayer.value.list.switch(savedMusicIndex)
+      }
+
+      aplayer.value.on('listswitch', (e) => {
+        saveMusicIndex(e.index)
+      })
+
+      setAPlayerInstance(aplayer.value)
     } catch (error) {
       console.error('加载 APlayer 资源失败:', error)
     }
@@ -332,13 +359,23 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.aplayer-container {
+.aplayer-wrapper {
+  position: relative;
+  z-index: 1000;
   transition: opacity 0.3s ease;
 }
 
 .aplayer-container.hidden {
   opacity: 0;
   pointer-events: none;
+}
+
+.aplayer-wrapper.hidden :deep(.aplayer) {
+  pointer-events: none;
+}
+
+.aplayer-container {
+  width: 100%;
 }
 
 .album-selector {
