@@ -8,6 +8,10 @@ const MUSIC_SOURCE = {
   METING: 'meting'
 }
 
+const ALBUM_IMAGE_BASE_URL = 'https://assets.frez79.io/swm/album-img'
+const SEKAI_COVER_URL = `${ALBUM_IMAGE_BASE_URL}/for-SEKAI.webp`
+const DEFAULT_COVER_URL = `${ALBUM_IMAGE_BASE_URL}/other.webp`
+
 const songs = ref([])
 const loading = ref(false)
 const currentSource = ref(localStorage.getItem('music_source') || MUSIC_SOURCE.METING)
@@ -34,7 +38,7 @@ export const useMusic = () => {
       name: song.title,
       artist: song.artist,
       url: song.src,
-      cover: song.album && song.album.includes('SEKAI') ? '/4.webp' : '/123.webp'
+      cover: song.album && song.album.includes('SEKAI') ? SEKAI_COVER_URL : DEFAULT_COVER_URL
     }))
     prefetchPlaylistAudios(songs.value, { platform: MUSIC_SOURCE.LOCAL, id: 'local' })
   }

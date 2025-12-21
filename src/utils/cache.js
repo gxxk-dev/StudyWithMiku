@@ -4,9 +4,7 @@ const cache = {
   videos: new Map(),
   audios: new Map()
 }
-const ALLOWED_SCRIPT_SOURCES = [
-  './APlayer.min.js',
-]
+const ALLOWED_SCRIPT_SOURCES = ['APlayer.min.js']
 
 const isScriptSourceAllowed = (src) => {
   return ALLOWED_SCRIPT_SOURCES.some(allowed => src.includes(allowed))
@@ -35,9 +33,7 @@ export const loadScript = (src) => {
   })
 }
 
-const ALLOWED_STYLE_SOURCES = [
-  './APlayer.min.css',
-]
+const ALLOWED_STYLE_SOURCES = ['APlayer.min.css']
 
 const isStyleSourceAllowed = (href) => {
   return ALLOWED_STYLE_SOURCES.some(allowed => href.includes(allowed))

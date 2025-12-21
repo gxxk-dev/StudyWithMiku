@@ -38,11 +38,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
-import { loadScript, loadStyle, preloadVideos } from './utils/cache.js'
+import APlayer from 'aplayer'
+import { loadStyle, preloadVideos } from './utils/cache.js'
 import { setAPlayerInstance, setHoveringUI, isHoveringUI } from './utils/eventBus.js'
 import { useMusic } from './composables/useMusic.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import PomodoroTimer from './components/PomodoroTimer.vue'
+import aplayerStyleUrl from 'aplayer/dist/APlayer.min.css?url'
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
@@ -97,10 +99,12 @@ const onUITouchEnd = () => {
   startHideTimer()
 }
 
+const VIDEO_BASE_URL = 'https://assets.frez79.io/swm/bg-video'
+
 const videos = [
-      `/1.mp4`,
-      `/2.mp4`,
-      `/3.mp4`
+      `${VIDEO_BASE_URL}/1.mp4`,
+      `${VIDEO_BASE_URL}/2.mp4`,
+      `${VIDEO_BASE_URL}/3.mp4`
 ]
 
 const savedVideoIndex = getVideoIndex()
@@ -115,10 +119,52 @@ const switchVideo = () => {
 
 const aplayer = ref(null)
 const aplayerInitialized = ref(false)
+const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
+const autoplayUnlockListeners = []
 const { songs, loadSongs, loading } = useMusic()
 
 const onVideoLoaded = () => {
   console.log('视频加载完成')
+}
+
+const removeAutoplayUnlockListeners = () => {
+  autoplayUnlockListeners.forEach(({ event, handler }) => {
+    document.removeEventListener(event, handler)
+  })
+  autoplayUnlockListeners.length = 0
+}
+
+const setupAutoplayUnlockListeners = () => {
+  removeAutoplayUnlockListeners()
+  const unlock = () => {
+    removeAutoplayUnlockListeners()
+    if (!aplayer.value) return
+    const retryPromise = aplayer.value.play()
+    if (retryPromise && typeof retryPromise.catch === 'function') {
+      retryPromise.catch((error) => {
+        console.warn('APlayer play retry failed:', error)
+      })
+    }
+  }
+  AUTOPLAY_UNLOCK_EVENTS.forEach((event) => {
+    const handler = () => unlock()
+    autoplayUnlockListeners.push({ event, handler })
+    document.addEventListener(event, handler, { once: true })
+  })
+}
+
+const attemptAPlayerAutoplay = () => {
+  if (!aplayer.value) return
+  const playPromise = aplayer.value.play()
+  if (playPromise && typeof playPromise.catch === 'function') {
+    playPromise.catch((error) => {
+      if (error?.name === 'NotAllowedError' || /play\(\) failed/i.test(error?.message || '')) {
+        setupAutoplayUnlockListeners()
+      } else {
+        console.warn('APlayer play failed:', error)
+      }
+    })
+  }
 }
 
 // 监听显示/隐藏状态变化
@@ -149,17 +195,11 @@ onMounted(() => {
     }
   }
   const loadAPlayer = async () => {
-    if (window.APlayer) {
-      await initAPlayer()
-      return
-    }
-
     try {
-      await loadStyle('./APlayer.min.css')
-      await loadScript('./APlayer.min.js')
+      await loadStyle(aplayerStyleUrl)
       await initAPlayer()
     } catch (error) {
-      console.error('加载 APlayer 资源失败:', error)
+      console.error('初始化 APlayer 失败:', error)
     }
   }
   
@@ -170,7 +210,7 @@ onMounted(() => {
     aplayer.value = new APlayer({
       container: document.getElementById('aplayer'),
       fixed: true,
-      autoplay: true,
+      autoplay: false,
       audio: songs.value,
       lrcType: 0,
       theme: '#2980b9',
@@ -205,6 +245,7 @@ onMounted(() => {
     }
     aplayerInitialized.value = true
     setAPlayerInstance(aplayer.value)
+    attemptAPlayerAutoplay()
   }
   preloadAllVideos()
   setTimeout(() => {
@@ -216,6 +257,7 @@ onUnmounted(() => {
   if (aplayer.value) {
     aplayer.value.destroy()
   }
+  removeAutoplayUnlockListeners()
 })
 </script>
 

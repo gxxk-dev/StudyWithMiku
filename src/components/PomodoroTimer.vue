@@ -629,12 +629,14 @@ const handleTimerComplete = () => {
   }, 1000)
 }
 
+const NOTIFICATION_AUDIO_URL = 'https://assets.frez79.io/swm/BreakOrWork.mp3'
+
 const playNotificationSound = async () => {
   duckMusicForNotification(3000)
   
   await new Promise(resolve => setTimeout(resolve, 200))
   
-  const audio = new Audio('/BreakOrWork.mp3')
+  const audio = new Audio(NOTIFICATION_AUDIO_URL)
   audio.play()
 }
 
