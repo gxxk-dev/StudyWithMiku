@@ -9,7 +9,7 @@
       @touchstart="onUITouchStart"
       @touchend="onUITouchEnd"
     >
-      <div class="online-indicator">
+      <div class="online-indicator" @click.stop="toggleServerPanel">
         <span class="online-dot" :class="{ connected: isConnected }"></span>
         <span class="online-text">{{ onlineCount }}</span>
       </div>
@@ -342,12 +342,62 @@
         </div>
       </div>
     </transition>
+
+    <!-- 服务器选择面板 -->
+    <transition name="fade-down">
+      <div v-if="showServerPanel" class="server-panel-container" @click.stop @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave">
+        <div class="server-panel">
+          <div class="server-header">
+            <h4>选择计数服务器</h4>
+            <button class="close-btn" @click="closeServerPanel">×</button>
+          </div>
+
+          <div class="server-list">
+            <div
+              v-for="server in serverList"
+              :key="server.id"
+              class="server-item"
+              :class="{ active: selectedServerId === server.id }"
+              @click="handleSelectServer(server.id)"
+            >
+              <div class="server-info">
+                <div class="server-name">{{ server.name }}</div>
+                <div class="server-desc">{{ server.description }}</div>
+              </div>
+              <div class="server-status">
+                <span v-if="selectedServerId === server.id && isConnected" class="status-badge">已连接</span>
+                <span v-if="serverLatencies[server.id]" class="latency">{{ serverLatencies[server.id] }}ms</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 自定义服务器输入框 -->
+          <div v-if="selectedServerId === 'custom'" class="custom-server-section">
+            <input
+              v-model="customServerUrl"
+              type="text"
+              placeholder="wss://example.com/ws"
+              class="custom-url-input"
+            />
+            <button @click="applyCustomServer" class="apply-btn">应用</button>
+          </div>
+
+          <div class="server-panel-footer">
+            <label class="auto-fallback-label">
+              <input type="checkbox" v-model="autoFallback" @change="handleAutoFallbackChange" />
+              <span>连接失败时自动切换到默认服务器</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useOnlineCount } from '../composables/useOnlineCount.js'
+import { useServerConfig } from '../composables/useServerConfig.js'
 import { useMusic } from '../composables/useMusic.js'
 import { useCache } from '../composables/useCache.js'
 import { duckMusicForNotification, setHoveringUI, getAPlayerInstance } from '../utils/eventBus.js'
@@ -360,8 +410,23 @@ const resolveWsUrl = () => {
   return `${protocol}//${window.location.host}/ws`
 }
 
-const WS_URL = resolveWsUrl()
-const { onlineCount, isConnected } = useOnlineCount(WS_URL)
+// 服务器配置
+const {
+  serverList,
+  selectedServerId,
+  customServerUrl: customServerUrlRef,
+  autoFallback,
+  getActiveServerUrl,
+  selectServer: changeServer,
+  setCustomServerUrl,
+  toggleAutoFallback,
+  testConnection,
+  validateServerUrl
+} = useServerConfig()
+
+// 初始化 WebSocket URL
+const initialWsUrl = getActiveServerUrl()
+const { onlineCount, isConnected, reconnectToServer } = useOnlineCount(initialWsUrl)
 const { playlistId, platform, applyCustomPlaylist, resetToLocal, songs, DEFAULT_PLAYLIST_ID, PLATFORMS } = useMusic()
 
 const inputPlaylistId = ref('')
@@ -408,6 +473,16 @@ const isRunning = ref(false)
 const currentStatus = ref(STATUS.FOCUS)
 const completedPomodoros = ref(0)
 const showSettings = ref(false)
+
+// 服务器面板状态
+const showServerPanel = ref(false)
+const serverLatencies = ref({})
+const customServerUrl = ref(customServerUrlRef.value)
+
+// 监听 customServerUrlRef 的变化
+watch(customServerUrlRef, (newVal) => {
+  customServerUrl.value = newVal
+})
 
 const activeTab = ref('pomodoro')
 
@@ -578,6 +653,70 @@ const closeSettings = () => {
   showSettings.value = false
 }
 
+// 服务器面板处理函数
+const toggleServerPanel = () => {
+  showServerPanel.value = !showServerPanel.value
+  if (showServerPanel.value) {
+    loadServerLatencies()
+  }
+}
+
+const closeServerPanel = () => {
+  showServerPanel.value = false
+}
+
+const loadServerLatencies = async () => {
+  for (const server of serverList.value) {
+    let testUrl = server.url
+    if (server.id === 'custom') {
+      if (!customServerUrl.value) continue
+      testUrl = customServerUrl.value
+    }
+    if (!testUrl) continue
+    const result = await testConnection(testUrl)
+    if (result.success) {
+      serverLatencies.value[server.id] = result.latency
+    }
+  }
+}
+
+const handleSelectServer = async (serverId) => {
+  if (serverId === 'custom' && !customServerUrl.value) {
+    changeServer(serverId)
+    return
+  }
+
+  try {
+    const newUrl = getActiveServerUrl(serverId)
+    const testResult = await testConnection(newUrl)
+
+    if (testResult.success) {
+      changeServer(serverId)
+      await reconnectToServer(newUrl)
+      closeServerPanel()
+    } else {
+      alert(`连接测试失败: ${testResult.error}`)
+    }
+  } catch (err) {
+    console.error('Server selection error:', err)
+  }
+}
+
+const applyCustomServer = async () => {
+  const validation = validateServerUrl(customServerUrl.value)
+  if (!validation.valid) {
+    alert(validation.error)
+    return
+  }
+
+  setCustomServerUrl(customServerUrl.value)
+  await handleSelectServer('custom')
+}
+
+const handleAutoFallbackChange = () => {
+  toggleAutoFallback(autoFallback.value)
+}
+
 const startTimer = () => {
   if (timeLeft.value <= 0) return
   isRunning.value = true
@@ -719,6 +858,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  cursor: pointer;
+  transition: opacity 0.3s;
+  position: relative;
+}
+
+.online-indicator:hover {
+  opacity: 0.8;
 }
 
 .online-dot {
@@ -1381,6 +1527,195 @@ onUnmounted(() => {
 .prefetch-actions.stacked .action-btn {
   width: 100%;
   text-align: center;
+}
+
+/* 服务器选择面板样式 */
+.server-panel-container {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1003;
+}
+
+.server-panel {
+  min-width: 320px;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(30px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.server-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.server-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.3s;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  opacity: 1;
+}
+
+.server-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.server-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.server-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.server-item.active {
+  background: rgba(76, 175, 80, 0.2);
+  border-left: 3px solid #4caf50;
+  padding-left: calc(0.8rem - 3px);
+}
+
+.server-info {
+  flex: 1;
+}
+
+.server-name {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.server-desc {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  line-height: 1.3;
+}
+
+.server-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.status-badge {
+  background: rgba(76, 175, 80, 0.3);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.latency {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.custom-server-section {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.custom-url-input {
+  flex: 1;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.9rem;
+}
+
+.custom-url-input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.apply-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(76, 175, 80, 0.3);
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s;
+  white-space: nowrap;
+}
+
+.apply-btn:hover {
+  background: rgba(76, 175, 80, 0.5);
+}
+
+.server-panel-footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auto-fallback-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.auto-fallback-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+/* 淡入淡出动画 */
+.fade-down-enter-active, .fade-down-leave-active {
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.fade-down-enter-from, .fade-down-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+.fade-down-enter-to, .fade-down-leave-from {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 </style>

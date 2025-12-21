@@ -6,10 +6,12 @@ export function useOnlineCount(wsUrl) {
   let ws = null
   let reconnectTimer = null
   let pingTimer = null
+  let currentWsUrl = typeof wsUrl === 'string' ? wsUrl : wsUrl.value
 
-  const connect = () => {
+  const connect = (url = null) => {
+    if (url) currentWsUrl = url
     try {
-      ws = new WebSocket(wsUrl)
+      ws = new WebSocket(currentWsUrl)
 
       ws.onopen = () => {
         isConnected.value = true
@@ -79,6 +81,14 @@ export function useOnlineCount(wsUrl) {
     }
   }
 
+  const reconnectToServer = async (newUrl) => {
+    disconnect()
+    currentWsUrl = newUrl
+    // 等待一小段时间确保断开完成
+    await new Promise(resolve => setTimeout(resolve, 100))
+    connect(newUrl)
+  }
+
   onMounted(() => {
     connect()
   })
@@ -90,5 +100,6 @@ export function useOnlineCount(wsUrl) {
   return {
     onlineCount,
     isConnected,
+    reconnectToServer,
   }
 }
