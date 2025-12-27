@@ -405,6 +405,7 @@ import { useMusic } from '../composables/useMusic.js'
 import { useCache } from '../composables/useCache.js'
 import { duckMusicForNotification, setHoveringUI, getAPlayerInstance } from '../utils/eventBus.js'
 import { getPomodoroSettings, savePomodoroSettings } from '../utils/userSettings.js'
+import { extractSpotifyPlaylistId, isSpotifyLink } from '../services/spotify.js'
 
 const resolveWsUrl = () => {
   if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
@@ -430,10 +431,17 @@ const {
 // 初始化 WebSocket URL
 const initialWsUrl = getActiveServerUrl()
 const { onlineCount, isConnected, reconnectToServer } = useOnlineCount(initialWsUrl)
-const { playlistId, platform, applyCustomPlaylist, resetToDefault, songs, DEFAULT_PLAYLIST_ID, PLATFORMS } = useMusic()
+const { playlistId, platform, applyCustomPlaylist, resetToDefault, songs, DEFAULT_PLAYLIST_ID, PLATFORMS, isSpotify, spotifyPlaylistId, applySpotifyPlaylist, resetSpotifyToDefault } = useMusic()
 
 const inputPlaylistId = ref('')
 const selectedPlatform = ref(platform.value)
+
+const pauseCurrentMusic = () => {
+  const ap = getAPlayerInstance()
+  if (ap && typeof ap.pause === 'function') {
+    ap.pause()
+  }
+}
 
 // 从文本中提取歌单ID
 const extractPlaylistId = (text, targetPlatform) => {
@@ -480,6 +488,7 @@ const detectPlatformFromText = (text) => {
   if (!text) return null
   if (/music\.163\.com/i.test(text)) return 'netease'
   if (/y\.qq\.com|i\.y\.qq\.com/i.test(text)) return 'tencent'
+  if (isSpotifyLink(text)) return 'spotify'
   return null
 }
 
@@ -488,6 +497,7 @@ const detectedPlatformHint = computed(() => {
   const detected = detectPlatformFromText(inputPlaylistId.value)
   if (detected === 'netease') return '✓ 检测到网易云歌单'
   if (detected === 'tencent') return '✓ 检测到QQ音乐歌单'
+  if (detected === 'spotify') return '✓ 检测到Spotify歌单'
   return ''
 })
 
@@ -507,7 +517,17 @@ const applyPlaylist = async () => {
     selectedPlatform.value = detectedPlatform
   }
 
-  // 提取歌单ID
+  pauseCurrentMusic()
+
+  // Spotify 特殊处理
+  if (selectedPlatform.value === 'spotify') {
+    const extractedId = extractSpotifyPlaylistId(inputPlaylistId.value)
+    inputPlaylistId.value = extractedId
+    applySpotifyPlaylist(extractedId)
+    return
+  }
+
+  // 提取歌单ID (网易云/QQ音乐)
   const extractedId = extractPlaylistId(inputPlaylistId.value, selectedPlatform.value)
   inputPlaylistId.value = extractedId
 
@@ -521,6 +541,7 @@ const applyPlaylist = async () => {
 
 const resetPlaylist = async () => {
   inputPlaylistId.value = ''
+  pauseCurrentMusic()
   await resetToDefault()
   const ap = getAPlayerInstance()
   if (ap) {

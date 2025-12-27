@@ -19,7 +19,7 @@
 
 ## 快速参与开发
 
-- **工作流程**：[GitHub Flow](https://docs.github.com/zh/get-started/using-github/github-flow)
+- **工作流程**：[GitHub Flow](https://docs.github.com/zh/get-started/using-github/github-flow)(仅在多人协作/大型工程时使用)
 - **提交规范**：[约定式提交](https://www.conventionalcommits.org/zh-hans/)
 
 ### 对于vibe coding用户

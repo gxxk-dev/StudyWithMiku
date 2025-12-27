@@ -29,9 +29,20 @@
     
     <!-- 番茄钟！＞﹏＜ -->
     <PomodoroTimer />
-    
-    <!-- APlayer 播放器 -->
-    <div id="aplayer" class="aplayer-container"></div>
+
+    <!-- APlayer 播放器 (网易云/QQ音乐) -->
+    <div v-show="!isSpotify" id="aplayer" class="aplayer-container"></div>
+
+    <!-- Spotify 嵌入播放器 -->
+    <SpotifyPlayer
+      v-if="isSpotify"
+      :playlist-id="spotifyPlaylistId"
+      :visible="showControls"
+      @mouseenter="onUIMouseEnter"
+      @mouseleave="onUIMouseLeave"
+      @touchstart="onUITouchStart"
+      @touchend="onUITouchEnd"
+    />
   </div>
 </template>
 
@@ -44,6 +55,7 @@ import { setAPlayerInstance, setHoveringUI, isHoveringUI } from './utils/eventBu
 import { useMusic } from './composables/useMusic.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import PomodoroTimer from './components/PomodoroTimer.vue'
+import SpotifyPlayer from './components/SpotifyPlayer.vue'
 
 const APLAYER_CSS_URL = 'https://unpkg.com/aplayer@1.10.1/dist/APlayer.min.css'
 
@@ -122,7 +134,7 @@ const aplayer = ref(null)
 const aplayerInitialized = ref(false)
 const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
 const autoplayUnlockListeners = []
-const { songs, loadSongs, loading } = useMusic()
+const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId } = useMusic()
 
 const onVideoLoaded = () => {
   console.log('视频加载完成')
@@ -170,7 +182,8 @@ const attemptAPlayerAutoplay = () => {
 
 // 监听显示/隐藏状态变化
 watch(showControls, (newValue) => {
-  if (aplayer.value && aplayerInitialized.value) {
+  // 只在非 Spotify 模式下控制 APlayer 显示
+  if (aplayer.value && aplayerInitialized.value && !isSpotify.value) {
     const playerElement = document.getElementById('aplayer')
     if (playerElement) {
       if (newValue) {

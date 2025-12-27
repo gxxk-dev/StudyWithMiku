@@ -1,17 +1,23 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { fetchPlaylist, getStoredConfig, saveConfig, DEFAULT_PLAYLIST_ID, getCachedPlaylist, cachePlaylist } from '../services/meting.js'
 import { prefetchPlaylistAudios } from '../utils/audioPrefetch.js'
+import { getSpotifyPlaylistId, saveSpotifyPlaylistId, resetSpotifyPlaylistId, DEFAULT_SPOTIFY_PLAYLIST_ID } from '../services/spotify.js'
 
 const songs = ref([])
 const loading = ref(false)
 const metingConfig = ref(getStoredConfig())
 const playlistId = ref(localStorage.getItem('playlist_id') || DEFAULT_PLAYLIST_ID)
 const platform = ref(localStorage.getItem('music_platform') || 'netease')
+const spotifyPlaylistId = ref(getSpotifyPlaylistId())
 
 const PLATFORMS = [
   { value: 'netease', label: '网易云' },
-  { value: 'tencent', label: 'QQ音乐' }
+  { value: 'tencent', label: 'QQ音乐' },
+  { value: 'spotify', label: 'Spotify' }
 ]
+
+// 是否使用 Spotify 播放器
+const isSpotify = computed(() => platform.value === 'spotify')
 
 export const useMusic = () => {
   const persistMetingState = (platform, id) => {
@@ -98,12 +104,30 @@ export const useMusic = () => {
     await loadMetingSongs('netease', DEFAULT_PLAYLIST_ID, { forceRefresh: true })
   }
 
+  // Spotify 相关方法
+  const setSpotifyPlaylistId = (id) => {
+    spotifyPlaylistId.value = id
+    saveSpotifyPlaylistId(id)
+  }
+
+  const applySpotifyPlaylist = (id) => {
+    setPlatform('spotify')
+    setSpotifyPlaylistId(id)
+  }
+
+  const resetSpotifyToDefault = () => {
+    const defaultId = resetSpotifyPlaylistId()
+    spotifyPlaylistId.value = defaultId
+  }
+
   return {
     songs,
     loading,
     metingConfig,
     playlistId,
     platform,
+    spotifyPlaylistId,
+    isSpotify,
     loadSongs,
     updateMetingPlaylist,
     setPlaylistId,
@@ -111,7 +135,11 @@ export const useMusic = () => {
     setPlatform,
     applyCustomPlaylist,
     resetToDefault,
+    setSpotifyPlaylistId,
+    applySpotifyPlaylist,
+    resetSpotifyToDefault,
     DEFAULT_PLAYLIST_ID,
+    DEFAULT_SPOTIFY_PLAYLIST_ID,
     PLATFORMS
   }
 }
