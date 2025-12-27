@@ -1,4 +1,4 @@
-<p align="center"><b><a href="https://github.com/shshouse/StudyWithMiku">上游仓库</a> <!--/ <a href="https://github.com/gxxk-dev/StudyWithMiku/wiki">Wiki</a> -->/ <a href="https://swm.frez79.io">快速体验</a> / <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/gxxk-dev/StudyWithMiku.git">自行部署</a> / <a href="https://www.bilibili.com/video/BV18TSWBzE4o">介绍视频</a></b></p>
+<p align="center"><b><a href="https://github.com/shshouse/StudyWithMiku">上游仓库</a> / <a href="https://github.com/gxxk-dev/StudyWithMiku/wiki">Wiki</a> / <a href="https://swm.frez79.io">快速体验</a> / <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/gxxk-dev/StudyWithMiku.git">自行部署</a> / <a href="https://www.bilibili.com/video/BV18TSWBzE4o">介绍视频</a></b></p>
 
 # Study with Miku
 
