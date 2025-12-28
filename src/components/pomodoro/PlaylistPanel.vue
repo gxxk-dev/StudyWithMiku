@@ -88,7 +88,7 @@ const handleReset = () => {
 @use '../../styles/pomodoro.scss' as *;
 
 .playlist-container {
-  padding: 1.5rem;
+  padding: 0;
   color: white;
 }
 

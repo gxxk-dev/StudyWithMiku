@@ -41,68 +41,54 @@
       >
         <div class="settings-panel">
           <div class="settings-header">
-            <h3>设置</h3>
+            <h3>专注设置</h3>
             <button class="close-btn" @click="closeSettings">×</button>
           </div>
 
-          <div class="settings-tabs">
-            <button
-              class="tab-btn"
-              :class="{ active: activeTab === 'pomodoro' }"
-              @click="activeTab = 'pomodoro'"
-            >
-              番茄钟
-            </button>
-            <button
-              class="tab-btn"
-              :class="{ active: activeTab === 'playlist' }"
-              @click="activeTab = 'playlist'"
-            >
-              歌单
-            </button>
-          </div>
+          <div class="settings-content">
+            <!-- 番茄钟区域 -->
+            <section class="settings-section pomodoro-section">
+              <div class="timer-container">
+                <div class="status-indicator">
+                  <span class="status-text" :class="statusClass">{{ statusText }}</span>
+                </div>
 
-          <div class="tab-content">
-            <!-- 番茄钟设置 -->
-            <div v-show="activeTab === 'pomodoro'" class="timer-container">
-              <div class="status-indicator">
-                <span class="status-text" :class="statusClass">{{ statusText }}</span>
+                <TimerDisplay
+                  :time-left="timeLeft"
+                  :total-time="totalTime"
+                  :status-class="statusClass"
+                />
+
+                <TimerControls
+                  :is-running="isRunning"
+                  :disabled="timeLeft <= 0"
+                  @start="startTimer"
+                  @pause="pauseTimer"
+                  @reset="resetTimer"
+                />
+
+                <TimerSettings
+                  v-model:focus-duration="focusDuration"
+                  v-model:break-duration="breakDuration"
+                  :disabled="isRunning"
+                />
+
+                <PomodoroCounter
+                  :completed="completedPomodoros"
+                  :total="4"
+                />
               </div>
+            </section>
 
-              <TimerDisplay
-                :time-left="timeLeft"
-                :total-time="totalTime"
-                :status-class="statusClass"
+            <!-- 歌单区域 -->
+            <section class="settings-section playlist-section">
+              <PlaylistPanel
+                :platforms="PLATFORMS"
+                :initial-platform="platform"
+                @apply="handleApplyPlaylist"
+                @reset="handleResetPlaylist"
               />
-
-              <TimerControls
-                :is-running="isRunning"
-                :disabled="timeLeft <= 0"
-                @start="startTimer"
-                @pause="pauseTimer"
-                @reset="resetTimer"
-              />
-
-              <TimerSettings
-                v-model:focus-duration="focusDuration"
-                v-model:break-duration="breakDuration"
-                :disabled="isRunning"
-              />
-
-              <PomodoroCounter
-                :completed="completedPomodoros"
-                :total="4"
-              />
-            </div>
-
-            <!-- 歌单设置 -->
-            <PlaylistPanel
-              v-show="activeTab === 'playlist'"
-              :platforms="PLATFORMS"
-              :initial-platform="platform"
-              @apply="handleApplyPlaylist"
-              @reset="handleResetPlaylist"
-            />
+            </section>
           </div>
         </div>
       </div>
@@ -190,7 +176,6 @@ const {
 // UI 状态
 const showSettings = ref(false)
 const showServerPanel = ref(false)
-const activeTab = ref('pomodoro')
 const serverLatencies = ref({})
 const customServerUrl = ref(customServerUrlRef.value)
 const currentTime = ref(new Date())
@@ -466,37 +451,78 @@ onUnmounted(() => {
   @extend .pomodoro-close-btn;
 }
 
-.settings-tabs {
-  display: flex;
-  border-bottom: 1px solid $glass-border;
-  padding: 0 1.5rem;
-}
+.settings-content {
+  padding: 0;
+  max-height: calc(90vh - 100px);
+  overflow-y: auto;
 
-.tab-btn {
-  flex: 1;
-  padding: 1rem;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-  border-bottom: 2px solid transparent;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.9);
+  // 自定义滚动条
+  &::-webkit-scrollbar {
+    width: 6px;
   }
 
-  &.active {
-    color: white;
-    border-bottom-color: $color-break;
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
   }
 }
 
-.timer-container {
+.settings-section {
   padding: 1.5rem;
-  text-align: center;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid $glass-border;
+  }
+}
+
+.section-title {
   color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+  text-align: center;
+  position: relative;
+  padding-bottom: 0.5rem;
+
+  // 装饰性下划线
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent
+    );
+  }
+}
+
+.pomodoro-section {
+  .timer-container {
+    padding: 0;
+    text-align: center;
+    color: white;
+  }
+}
+
+.playlist-section {
+  :deep(.playlist-container) {
+    padding: 0;
+  }
 }
 
 .status-indicator {
@@ -520,6 +546,26 @@ onUnmounted(() => {
 
   &.long-break {
     color: $color-long-break;
+  }
+}
+
+// 移动端响应式
+@media (max-width: 480px) {
+  .settings-panel {
+    width: 95%;
+    max-height: 85vh;
+  }
+
+  .settings-content {
+    max-height: calc(85vh - 80px);
+  }
+
+  .settings-section {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 0.9rem;
   }
 }
 
