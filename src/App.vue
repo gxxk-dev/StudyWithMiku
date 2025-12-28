@@ -57,7 +57,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import APlayer from 'aplayer'
-import { loadScript, loadStyle, preloadVideos } from './utils/cache.js'
+import { preloadVideos } from './utils/cache.js'
 import { setAPlayerInstance, setHoveringUI, isHoveringUI } from './utils/eventBus.js'
 import { useMusic } from './composables/useMusic.js'
 import { usePWA } from './composables/usePWA.js'
@@ -67,26 +67,12 @@ import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 
-const APLAYER_CSS_URL = 'https://unpkg.com/aplayer@1.10.1/dist/APlayer.min.css'
-const VCONSOLE_SCRIPT_URL = 'https://unpkg.com/vconsole@3.15.0/dist/vconsole.min.js'
 const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
-let vConsoleScriptPromise = null
-let vConsoleInitPromise = null
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
 const inactivityTimer = ref(null)
 const vConsoleInstance = ref(null)
-
-const ensureVConsoleScriptLoaded = () => {
-  if (!vConsoleScriptPromise) {
-    vConsoleScriptPromise = loadScript(VCONSOLE_SCRIPT_URL).catch((error) => {
-      vConsoleScriptPromise = null
-      throw error
-    })
-  }
-  return vConsoleScriptPromise
-}
 
 const startHideTimer = () => {
   if (inactivityTimer.value) {
@@ -164,42 +150,9 @@ const hideVConsoleSwitch = () => {
   document.head.appendChild(style)
 }
 
-const showVConsolePanel = () => {
+const onTitleClick = () => {
   if (vConsoleInstance.value && typeof vConsoleInstance.value.show === 'function') {
     vConsoleInstance.value.show()
-  }
-}
-
-const ensureVConsoleReady = () => {
-  if (typeof window === 'undefined') return Promise.resolve()
-  if (vConsoleInstance.value) {
-    hideVConsoleSwitch()
-    return Promise.resolve(vConsoleInstance.value)
-  }
-  if (vConsoleInitPromise) {
-    return vConsoleInitPromise
-  }
-  vConsoleInitPromise = (async () => {
-    await ensureVConsoleScriptLoaded()
-    if (window.VConsole) {
-      vConsoleInstance.value = new window.VConsole()
-      hideVConsoleSwitch()
-      return vConsoleInstance.value
-    }
-    throw new Error('vConsole 脚本已加载但未找到 VConsole 对象')
-  })().catch((error) => {
-    vConsoleInitPromise = null
-    throw error
-  })
-  return vConsoleInitPromise
-}
-
-const onTitleClick = async () => {
-  try {
-    await ensureVConsoleReady()
-    showVConsolePanel()
-  } catch (error) {
-    console.error('显示 vConsole 失败:', error)
   }
 }
 
@@ -289,9 +242,12 @@ onMounted(() => {
     setHasUpdate(true)
   })
 
-  ensureVConsoleReady().catch((error) => {
-    console.error('初始化 vConsole 失败:', error)
-  })
+  // 初始化 vConsole
+  if (window.VConsole && !vConsoleInstance.value) {
+    vConsoleInstance.value = new window.VConsole()
+    hideVConsoleSwitch()
+  }
+
   const preloadAllVideos = async () => {
     try {
       await preloadVideos(videos)
@@ -302,7 +258,6 @@ onMounted(() => {
   }
   const loadAPlayer = async () => {
     try {
-      await loadStyle(APLAYER_CSS_URL)
       await initAPlayer()
     } catch (error) {
       console.error('初始化 APlayer 失败:', error)
