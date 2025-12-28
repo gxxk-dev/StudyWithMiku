@@ -33,12 +33,34 @@
         </div>
 
         <!-- PWA 安装提示（仅网页模式显示） -->
-        <div v-if="!isPWA && canInstall" class="install-section">
-          <div class="install-info">
-            <span class="install-icon">📲</span>
-            <span>安装应用以获得更好的体验</span>
+        <div v-if="!isPWA" class="install-section">
+          <!-- 浏览器支持自动安装 -->
+          <div v-if="canInstall" class="install-auto">
+            <div class="install-info">
+              <span class="install-icon">📲</span>
+              <span>安装应用以获得更好的体验</span>
+            </div>
+            <button class="install-btn" @click="handleInstall">安装到桌面</button>
           </div>
-          <button class="install-btn" @click="handleInstall">安装到桌面</button>
+
+          <!-- 手动安装指引 -->
+          <div v-else class="install-manual">
+            <div class="install-info">
+              <span class="install-icon">📲</span>
+              <span>将应用添加到主屏幕</span>
+            </div>
+            <div class="manual-steps">
+              <p class="step-hint">{{ manualInstallHint }}</p>
+              <button class="guide-btn" @click="showInstallGuide = !showInstallGuide">
+                {{ showInstallGuide ? '收起' : '查看详细步骤' }}
+              </button>
+              <div v-if="showInstallGuide" class="guide-details">
+                <p v-for="(step, index) in installSteps" :key="index" class="guide-step">
+                  {{ index + 1 }}. {{ step }}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 版本与快捷操作 -->
@@ -188,6 +210,9 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['mouseenter', 'mouseleave'])
+
+// 安装指引状态
+const showInstallGuide = ref(false)
 
 // PWA 状态
 const {
@@ -343,6 +368,67 @@ const handleRefresh = () => {
   refreshApp(true)
 }
 
+// 检测浏览器类型和平台
+const detectPlatform = () => {
+  const ua = navigator.userAgent
+  const isIOS = /iPad|iPhone|iPod/.test(ua)
+  const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua)
+  const isAndroid = /Android/.test(ua)
+  const isChrome = /Chrome/.test(ua)
+
+  if (isIOS) return 'ios'
+  if (isAndroid && isChrome) return 'android-chrome'
+  if (isAndroid) return 'android'
+  if (isSafari) return 'safari'
+  return 'other'
+}
+
+// 手动安装提示文本
+const manualInstallHint = computed(() => {
+  const platform = detectPlatform()
+  switch (platform) {
+    case 'ios':
+      return '点击浏览器底部的"分享"按钮'
+    case 'android-chrome':
+      return '点击浏览器菜单中的"添加到主屏幕"'
+    case 'safari':
+      return '点击浏览器的"分享"按钮'
+    default:
+      return '在浏览器菜单中查找"安装"或"添加到主屏幕"选项'
+  }
+})
+
+// 详细安装步骤
+const installSteps = computed(() => {
+  const platform = detectPlatform()
+  switch (platform) {
+    case 'ios':
+      return [
+        '点击底部工具栏的"分享"图标（方框带向上箭头）',
+        '在弹出菜单中找到"添加到主屏幕"',
+        '点击"添加"完成安装'
+      ]
+    case 'android-chrome':
+      return [
+        '点击右上角的三个点菜单',
+        '选择"添加到主屏幕"或"安装应用"',
+        '点击"添加"完成安装'
+      ]
+    case 'safari':
+      return [
+        '点击工具栏的"分享"按钮',
+        '选择"添加到主屏幕"',
+        '点击"添加"完成'
+      ]
+    default:
+      return [
+        '打开浏览器菜单（通常是右上角的三个点或三条线）',
+        '查找"安装"、"添加到主屏幕"或类似选项',
+        '按照提示完成安装'
+      ]
+  }
+})
+
 // 鼠标事件转发
 const onMouseEnter = () => emit('mouseenter')
 const onMouseLeave = () => emit('mouseleave')
@@ -353,7 +439,7 @@ const onMouseLeave = () => emit('mouseleave')
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 1000;
+  z-index: 1002;
   transition: opacity 0.3s ease;
 }
 
@@ -409,6 +495,7 @@ const onMouseLeave = () => emit('mouseleave')
   bottom: 60px;
   right: 0;
   width: 320px;
+  max-height: calc(100vh - 100px);
   height: 480px;
   background: rgba(30, 30, 40, 0.95);
   backdrop-filter: blur(30px);
@@ -417,6 +504,14 @@ const onMouseLeave = () => emit('mouseleave')
   overflow-y: auto;
   color: white;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* 手机横屏优化 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .pwa-panel {
+    max-height: calc(100vh - 80px);
+    height: auto;
+  }
 }
 
 /* 头部 */
@@ -497,6 +592,7 @@ const onMouseLeave = () => emit('mouseleave')
   font-size: 1.2rem;
 }
 
+/* 自动安装（支持 beforeinstallprompt 的浏览器） */
 .install-btn {
   width: 100%;
   padding: 8px;
@@ -511,6 +607,53 @@ const onMouseLeave = () => emit('mouseleave')
 
 .install-btn:hover {
   background: rgba(57, 197, 187, 1);
+}
+
+/* 手动安装指引（iOS、Safari 等不支持的浏览器） */
+.install-manual {
+  width: 100%;
+}
+
+.manual-steps {
+  margin-top: 8px;
+}
+
+.step-hint {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.guide-btn {
+  width: 100%;
+  padding: 8px;
+  background: rgba(57, 197, 187, 0.6);
+  border: 1px solid rgba(57, 197, 187, 0.8);
+  border-radius: 8px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.3s;
+}
+
+.guide-btn:hover {
+  background: rgba(57, 197, 187, 0.8);
+}
+
+.guide-details {
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  border-left: 3px solid rgba(57, 197, 187, 0.8);
+}
+
+.guide-step {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 6px 0;
+  line-height: 1.5;
 }
 
 /* 版本区域 */

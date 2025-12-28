@@ -217,7 +217,6 @@ const attemptAPlayerAutoplay = () => {
   }
 }
 
-// M-1 修复: 监听显示/隐藏状态变化，保存停止函数以便在组件卸载时清理
 const stopShowControlsWatch = watch(showControls, (newValue) => {
   // 只在非 Spotify 模式下控制 APlayer 显示
   if (aplayer.value && aplayerInitialized.value && !isSpotify.value) {
@@ -236,7 +235,6 @@ const stopShowControlsWatch = watch(showControls, (newValue) => {
   }
 })
 
-// H-3 修复: 存储 setTimeout 定时器引用以便清理
 const loadTimer = ref(null)
 
 onMounted(() => {
@@ -306,7 +304,6 @@ onMounted(() => {
       playerElement.style.opacity = '1'
       playerElement.style.pointerEvents = 'auto'
 
-      // H-2 修复: 统一管理事件监听器，确保完全清理
       const handlers = [
         { event: 'mouseenter', handler: onUIMouseEnter },
         { event: 'mouseleave', handler: onUIMouseLeave },
@@ -327,25 +324,22 @@ onMounted(() => {
   preloadAllVideos().catch(err => {
     console.error('视频预加载失败:', err)
   })
-  // H-3 修复: 保存定时器引用以便在组件卸载时清理
+  
   loadTimer.value = setTimeout(() => {
     loadAPlayer()
   }, 500)
 })
 
 onUnmounted(() => {
-  // H-3 修复: 清理 setTimeout 定时器
   if (loadTimer.value) {
     clearTimeout(loadTimer.value)
     loadTimer.value = null
   }
 
-  // M-1 修复: 停止 watch 监听
-  if (stopShowControlsWatch) {
+  if (stopShowControlsWatch) {  
     stopShowControlsWatch()
   }
 
-  // H-2 修复: 使用统一管理的事件监听器数组进行清理
   if (playerElementRef.value && playerEventHandlers.length > 0) {
     playerEventHandlers.forEach(({ event, handler }) => {
       playerElementRef.value.removeEventListener(event, handler)
@@ -409,10 +403,11 @@ onUnmounted(() => {
   font-size: 3rem;
   margin-bottom: 1rem;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 .subtitle {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 

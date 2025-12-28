@@ -26,7 +26,6 @@ export function useOnlineCount(wsUrl) {
   const connect = (url = null) => {
     if (url) currentWsUrl.value = url
 
-    // M-3: 清理现有的定时器，防止多次调用产生多个定时器
     stopPing()
 
     try {
