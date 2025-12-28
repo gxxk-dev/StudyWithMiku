@@ -50,6 +50,9 @@
       @mouseenter="onUIMouseEnter"
       @mouseleave="onUIMouseLeave"
     />
+
+    <!-- 横屏提示 -->
+    <OrientationPrompt />
   </div>
 </template>
 
@@ -66,6 +69,7 @@ import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './
 import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
+import OrientationPrompt from './components/OrientationPrompt.vue'
 
 const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
 
