@@ -245,8 +245,6 @@ const categoryLabels = {
 }
 
 const memoryTypeLabels = {
-  scripts: '脚本',
-  styles: '样式',
   videos: '视频',
   audios: '音频'
 }

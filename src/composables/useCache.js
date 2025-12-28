@@ -189,21 +189,13 @@ export const useCache = () => {
   // 获取内存缓存统计
   const getMemoryCacheStats = () => {
     return {
-      scripts: {
-        count: cache.scripts.size,
-        items: Array.from(cache.scripts)
-      },
-      styles: {
-        count: cache.styles.size,
-        items: Array.from(cache.styles)
-      },
       videos: {
-        count: cache.videos.size,
-        items: Array.from(cache.videos.keys())
+        count: cache.videos?.size || 0,
+        items: cache.videos ? Array.from(cache.videos.keys()) : []
       },
       audios: {
-        count: cache.audios.size,
-        items: Array.from(cache.audios.keys())
+        count: cache.audios?.size || 0,
+        items: cache.audios ? Array.from(cache.audios.keys()) : []
       }
     }
   }
