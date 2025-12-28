@@ -16,8 +16,8 @@
     </transition>
     <div class="overlay"></div>
     <div class="content" :class="{ hidden: !showControls }">
-      <h1 class="title">Study with Miku</h1>
-      <p class="subtitle">Love by SHSHOUSE</p>
+      <h1 class="title" @click="onTitleClick">Study with Miku</h1>
+      <p class="subtitle">Love by SHSHOUSE / Fork by gxxk-dev</p>
     </div>
     <button class="switch-video-btn" @click="switchVideo" :class="{ hidden: !showControls }" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" @touchstart="onUITouchStart" @touchend="onUITouchEnd">
       切换
@@ -57,7 +57,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import APlayer from 'aplayer'
-import { loadStyle, preloadVideos } from './utils/cache.js'
+import { loadScript, loadStyle, preloadVideos } from './utils/cache.js'
 import { setAPlayerInstance, setHoveringUI, isHoveringUI } from './utils/eventBus.js'
 import { useMusic } from './composables/useMusic.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
@@ -66,10 +66,25 @@ import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 
 const APLAYER_CSS_URL = 'https://unpkg.com/aplayer@1.10.1/dist/APlayer.min.css'
+const VCONSOLE_SCRIPT_URL = 'https://unpkg.com/vconsole@3.15.0/dist/vconsole.min.js'
+const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
+let vConsoleScriptPromise = null
+let vConsoleInitPromise = null
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
 const inactivityTimer = ref(null)
+const vConsoleInstance = ref(null)
+
+const ensureVConsoleScriptLoaded = () => {
+  if (!vConsoleScriptPromise) {
+    vConsoleScriptPromise = loadScript(VCONSOLE_SCRIPT_URL).catch((error) => {
+      vConsoleScriptPromise = null
+      throw error
+    })
+  }
+  return vConsoleScriptPromise
+}
 
 const startHideTimer = () => {
   if (inactivityTimer.value) {
@@ -136,6 +151,54 @@ const switchVideo = () => {
   currentVideoIndex.value = (currentVideoIndex.value + 1) % videos.length
   currentVideo.value = videos[currentVideoIndex.value]
   saveVideoIndex(currentVideoIndex.value)
+}
+
+const hideVConsoleSwitch = () => {
+  if (typeof document === 'undefined') return
+  if (document.getElementById(VCONSOLE_SWITCH_STYLE_ID)) return
+  const style = document.createElement('style')
+  style.id = VCONSOLE_SWITCH_STYLE_ID
+  style.textContent = '.vc-switch{display:none !important;}'
+  document.head.appendChild(style)
+}
+
+const showVConsolePanel = () => {
+  if (vConsoleInstance.value && typeof vConsoleInstance.value.show === 'function') {
+    vConsoleInstance.value.show()
+  }
+}
+
+const ensureVConsoleReady = () => {
+  if (typeof window === 'undefined') return Promise.resolve()
+  if (vConsoleInstance.value) {
+    hideVConsoleSwitch()
+    return Promise.resolve(vConsoleInstance.value)
+  }
+  if (vConsoleInitPromise) {
+    return vConsoleInitPromise
+  }
+  vConsoleInitPromise = (async () => {
+    await ensureVConsoleScriptLoaded()
+    if (window.VConsole) {
+      vConsoleInstance.value = new window.VConsole()
+      hideVConsoleSwitch()
+      return vConsoleInstance.value
+    }
+    throw new Error('vConsole 脚本已加载但未找到 VConsole 对象')
+  })().catch((error) => {
+    vConsoleInitPromise = null
+    throw error
+  })
+  return vConsoleInitPromise
+}
+
+const onTitleClick = async () => {
+  try {
+    await ensureVConsoleReady()
+    showVConsolePanel()
+  } catch (error) {
+    console.error('显示 vConsole 失败:', error)
+  }
 }
 
 const aplayer = ref(null)
@@ -208,6 +271,9 @@ watch(showControls, (newValue) => {
 })
 
 onMounted(() => {
+  ensureVConsoleReady().catch((error) => {
+    console.error('初始化 vConsole 失败:', error)
+  })
   const preloadAllVideos = async () => {
     try {
       await preloadVideos(videos)

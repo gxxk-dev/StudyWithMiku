@@ -2,9 +2,25 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const buildMeta = (() => {
+  const pad = (value) => value.toString().padStart(2, '0')
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = pad(now.getMonth() + 1)
+  const day = pad(now.getDate())
+  const hours = pad(now.getHours())
+  const minutes = pad(now.getMinutes())
+  const seconds = pad(now.getSeconds())
+  return {
+    version: `${year}${month}${day}`,
+    fullTime: `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+})()
+
 export default defineConfig({
   define: {
-    __APP_VERSION__: JSON.stringify(new Date().toISOString().slice(0, 10).replace(/-/g, ''))
+    __APP_VERSION__: JSON.stringify(buildMeta.version),
+    __BUILD_TIME__: JSON.stringify(buildMeta.fullTime)
   },
   plugins: [
     vue(),

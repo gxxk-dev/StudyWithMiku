@@ -43,15 +43,22 @@
 
         <!-- 版本与快捷操作 -->
         <div class="version-section">
-          <div class="version-info">
+          <div class="version-info" :title="buildTimeTooltip">
             <span>版本: {{ appVersion }}</span>
             <span v-if="hasUpdate" class="update-hint">有新版本</span>
           </div>
           <div class="quick-actions">
-            <button v-if="hasUpdate" class="action-btn update-btn" @click="handleRefresh">
+            <button
+              v-if="hasUpdate"
+              class="action-btn update-btn"
+              @click="handleRefresh"
+            >
               立即更新
             </button>
-            <button class="action-btn refresh-btn" @click="handleRefresh">
+            <button
+              class="action-btn refresh-btn"
+              @click="handleRefresh"
+            >
               刷新
             </button>
           </div>
@@ -62,9 +69,6 @@
           <div class="section-header">
             <h4>缓存管理</h4>
             <div class="header-actions">
-              <button class="small-btn" @click="refreshStats" :disabled="cacheLoading">
-                {{ cacheLoading ? '...' : '刷新' }}
-              </button>
               <button class="small-btn danger" @click="confirmClearAll">
                 全部清除
               </button>
@@ -170,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, defineProps } from 'vue'
+import { ref, computed, defineProps } from 'vue'
 import { usePWA } from '../composables/usePWA.js'
 import { useCache } from '../composables/useCache.js'
 import { useMusic } from '../composables/useMusic.js'
@@ -191,6 +195,7 @@ const {
   canInstall,
   hasUpdate,
   appVersion,
+  appBuildTime,
   installPWA,
   refreshApp
 } = usePWA()
@@ -215,6 +220,20 @@ const { playlistId, platform, songs } = useMusic()
 const showPanel = ref(false)
 const expandedSections = ref({ sw: false, ls: false, memory: false, prefetch: false })
 const prefetching = ref(false)
+
+const getFallbackBuildTime = () => {
+  const pad = (value) => value.toString().padStart(2, '0')
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = pad(now.getMonth() + 1)
+  const day = pad(now.getDate())
+  const hours = pad(now.getHours())
+  const minutes = pad(now.getMinutes())
+  const seconds = pad(now.getSeconds())
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+const buildTimeTooltip = computed(() => appBuildTime.value || getFallbackBuildTime())
 
 // 标签映射
 const categoryLabels = {
@@ -317,7 +336,7 @@ const handleInstall = async () => {
 }
 
 const handleRefresh = () => {
-  refreshApp()
+  refreshApp(true)
 }
 
 // 鼠标事件转发
