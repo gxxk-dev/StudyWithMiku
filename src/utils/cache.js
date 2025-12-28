@@ -28,7 +28,9 @@ export const loadScript = (src) => {
       cache.scripts.add(src)
       resolve()
     }
-    script.onerror = reject
+    script.onerror = (event) => {
+      reject(new Error(`Failed to load script: ${src}${event?.message ? ` - ${event.message}` : ''}`))
+    }
     document.head.appendChild(script)
   })
 }
@@ -58,7 +60,9 @@ export const loadStyle = (href) => {
       cache.styles.add(href)
       resolve()
     }
-    link.onerror = reject
+    link.onerror = (event) => {
+      reject(new Error(`Failed to load stylesheet: ${href}${event?.message ? ` - ${event.message}` : ''}`))
+    }
     document.head.appendChild(link)
   })
 }
@@ -77,33 +81,26 @@ export const getVideo = (src) => {
       cache.videos.set(src, video)
       resolve(video)
     }
-    video.onerror = reject
+    video.onerror = (event) => {
+      const errorMsg = video.error ?
+        `Code ${video.error.code}: ${video.error.message}` :
+        'Unknown error'
+      reject(new Error(`Failed to load video: ${src} - ${errorMsg}`))
+    }
   })
 }
 
-export const getAudio = (src) => {
-  return new Promise((resolve, reject) => {
-    if (cache.audios.has(src)) {
-      resolve(cache.audios.get(src))
-      return
-    }
-
-    const audio = document.createElement('audio')
-    audio.src = src
-    audio.preload = 'auto'
-    audio.onloadeddata = () => {
-      cache.audios.set(src, audio)
-      resolve(audio)
-    }
-    audio.onerror = reject
-  })
-}
 export const preloadVideos = (urls) => {
-  return Promise.all(urls.map(url => getVideo(url)))
+  return Promise.allSettled(urls.map(url => getVideo(url)))
+    .then(results => {
+      const failed = results.filter(r => r.status === 'rejected')
+      if (failed.length > 0) {
+        console.warn(`${failed.length}/${urls.length} videos failed to load`)
+      }
+      return results.filter(r => r.status === 'fulfilled').map(r => r.value)
+    })
 }
-export const preloadAudios = (urls) => {
-  return Promise.all(urls.map(url => getAudio(url)))
-}
+
 export const clearCache = (type) => {
   if (cache[type]) {
     if (type === 'videos' || type === 'audios') {

@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, reactive, toRefs } from 'vue'
 
 const STORAGE_KEY = 'countServer'
 
@@ -56,10 +56,30 @@ const resolveDefaultWsUrl = () => {
 const testConnection = async (url) => {
   return new Promise((resolve) => {
     let ws = null
+    let timeout = null
     const startTime = Date.now()
 
-    const timeout = setTimeout(() => {
-      if (ws) ws.close()
+    // 清理函数：关闭连接并移除所有事件处理器
+    const cleanup = () => {
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = null
+      }
+      if (ws) {
+        try {
+          ws.onopen = null
+          ws.onerror = null
+          ws.onclose = null
+          ws.close()
+        } catch (err) {
+          console.warn('Cleanup error:', err)
+        }
+        ws = null
+      }
+    }
+
+    timeout = setTimeout(() => {
+      cleanup()
       resolve({ success: false, error: '连接超时' })
     }, 5000)
 
@@ -68,17 +88,16 @@ const testConnection = async (url) => {
 
       ws.onopen = () => {
         const latency = Date.now() - startTime
-        clearTimeout(timeout)
-        ws.close()
+        cleanup()
         resolve({ success: true, latency })
       }
 
       ws.onerror = () => {
-        clearTimeout(timeout)
+        cleanup()
         resolve({ success: false, error: '连接失败' })
       }
     } catch (err) {
-      clearTimeout(timeout)
+      cleanup()
       resolve({ success: false, error: err.message })
     }
   })
@@ -86,17 +105,14 @@ const testConnection = async (url) => {
 
 // 导出 composable
 export function useServerConfig() {
-  const config = loadConfig()
-
-  const selectedServerId = ref(config.selectedServerId)
-  const customServerUrl = ref(config.customServerUrl)
-  const autoFallback = ref(config.autoFallback)
+  // 使用 reactive 包装配置对象以保持响应性
+  const state = reactive(loadConfig())
 
   const persistConfig = () => {
     saveConfig({
-      selectedServerId: selectedServerId.value,
-      customServerUrl: customServerUrl.value,
-      autoFallback: autoFallback.value
+      selectedServerId: state.selectedServerId,
+      customServerUrl: state.customServerUrl,
+      autoFallback: state.autoFallback
     })
   }
 
@@ -105,12 +121,12 @@ export function useServerConfig() {
 
   // 获取当前激活的服务器 URL
   const getActiveServerUrl = (serverId = null) => {
-    const id = serverId || selectedServerId.value
+    const id = serverId || state.selectedServerId
 
     if (id === 'default') {
       return resolveDefaultWsUrl()
     } else if (id === 'custom') {
-      const targetUrl = customServerUrl.value || resolveDefaultWsUrl()
+      const targetUrl = state.customServerUrl || resolveDefaultWsUrl()
       return targetUrl
     }
 
@@ -125,19 +141,19 @@ export function useServerConfig() {
 
   // 选择服务器
   const selectServer = (serverId) => {
-    selectedServerId.value = serverId
+    state.selectedServerId = serverId
     persistConfig()
   }
 
   // 设置自定义服务器 URL
   const setCustomServerUrl = (url) => {
-    customServerUrl.value = url
+    state.customServerUrl = url
     persistConfig()
   }
 
   // 切换自动回退
   const toggleAutoFallback = (value) => {
-    autoFallback.value = value
+    state.autoFallback = value
     persistConfig()
   }
 
@@ -152,9 +168,7 @@ export function useServerConfig() {
 
   return {
     serverList,
-    selectedServerId,
-    customServerUrl,
-    autoFallback,
+    ...toRefs(state),  // 使用 toRefs 解构 reactive 对象以保持响应性
     getActiveServerUrl,
     selectServer,
     setCustomServerUrl,

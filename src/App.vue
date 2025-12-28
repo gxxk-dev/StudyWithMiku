@@ -1,6 +1,6 @@
 <template>
   <div class="app-container" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
-    <transition name="fade" mode="out-in">
+    <transition name="fade-slow" mode="out-in">
       <video 
         :key="currentVideo"
         ref="videoRef" 
@@ -60,6 +60,8 @@ import APlayer from 'aplayer'
 import { loadScript, loadStyle, preloadVideos } from './utils/cache.js'
 import { setAPlayerInstance, setHoveringUI, isHoveringUI } from './utils/eventBus.js'
 import { useMusic } from './composables/useMusic.js'
+import { usePWA } from './composables/usePWA.js'
+import { setSwUpdateCallback } from './utils/swCallback.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
@@ -204,8 +206,15 @@ const onTitleClick = async () => {
 const aplayer = ref(null)
 const aplayerInitialized = ref(false)
 const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
-const autoplayUnlockListeners = []
+// 事件监听器数组（不需要响应式）
+let autoplayUnlockListeners = []
 const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId } = useMusic()
+const { setHasUpdate } = usePWA()
+
+// 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
+const playerElementRef = ref(null)
+// 使用数组统一管理 playerElement 事件监听器
+let playerEventHandlers = []
 
 const onVideoLoaded = () => {
   console.log('视频加载完成')
@@ -215,7 +224,7 @@ const removeAutoplayUnlockListeners = () => {
   autoplayUnlockListeners.forEach(({ event, handler }) => {
     document.removeEventListener(event, handler)
   })
-  autoplayUnlockListeners.length = 0
+  autoplayUnlockListeners = []
 }
 
 const setupAutoplayUnlockListeners = () => {
@@ -251,26 +260,35 @@ const attemptAPlayerAutoplay = () => {
   }
 }
 
-// 监听显示/隐藏状态变化
-watch(showControls, (newValue) => {
+// M-1 修复: 监听显示/隐藏状态变化，保存停止函数以便在组件卸载时清理
+const stopShowControlsWatch = watch(showControls, (newValue) => {
   // 只在非 Spotify 模式下控制 APlayer 显示
   if (aplayer.value && aplayerInitialized.value && !isSpotify.value) {
     const playerElement = document.getElementById('aplayer')
-    if (playerElement) {
-      if (newValue) {
-        // 显示播放器
-        playerElement.style.opacity = '1'
-        playerElement.style.pointerEvents = 'auto'
-      } else {
-        // 隐藏播放器
-        playerElement.style.opacity = '0'
-        playerElement.style.pointerEvents = 'none'
-      }
+    if (!playerElement) return
+
+    if (newValue) {
+      // 显示播放器
+      playerElement.style.opacity = '1'
+      playerElement.style.pointerEvents = 'auto'
+    } else {
+      // 隐藏播放器
+      playerElement.style.opacity = '0'
+      playerElement.style.pointerEvents = 'none'
     }
   }
 })
 
+// H-3 修复: 存储 setTimeout 定时器引用以便清理
+const loadTimer = ref(null)
+
 onMounted(() => {
+  // 连接 PWA Service Worker 更新回调
+  setSwUpdateCallback(() => {
+    console.log('检测到新版本可用')
+    setHasUpdate(true)
+  })
+
   ensureVConsoleReady().catch((error) => {
     console.error('初始化 vConsole 失败:', error)
   })
@@ -290,10 +308,10 @@ onMounted(() => {
       console.error('初始化 APlayer 失败:', error)
     }
   }
-  
+
   const initAPlayer = async () => {
     await loadSongs()
-    
+
     const savedMusicIndex = getMusicIndex()
     aplayer.value = new APlayer({
       container: document.getElementById('aplayer'),
@@ -311,37 +329,72 @@ onMounted(() => {
       listMaxHeight: '200px',
       width: '300px'
     })
-    
+
     if (savedMusicIndex > 0 && savedMusicIndex < songs.value.length) {
       aplayer.value.list.switch(savedMusicIndex)
     }
-    
+
     aplayer.value.on('listswitch', (e) => {
       saveMusicIndex(e.index)
     })
-    
+
     // 设置播放器样式
     const playerElement = document.getElementById('aplayer')
     if (playerElement) {
+      // 存储元素引用，确保在 onUnmounted 中使用同一个引用
+      playerElementRef.value = playerElement
       playerElement.style.transition = 'opacity 0.3s ease'
       playerElement.style.opacity = '1'
       playerElement.style.pointerEvents = 'auto'
-      playerElement.addEventListener('mouseenter', onUIMouseEnter)
-      playerElement.addEventListener('mouseleave', onUIMouseLeave)
-      playerElement.addEventListener('touchstart', onUITouchStart)
-      playerElement.addEventListener('touchend', onUITouchEnd)
+
+      // H-2 修复: 统一管理事件监听器，确保完全清理
+      const handlers = [
+        { event: 'mouseenter', handler: onUIMouseEnter },
+        { event: 'mouseleave', handler: onUIMouseLeave },
+        { event: 'touchstart', handler: onUITouchStart },
+        { event: 'touchend', handler: onUITouchEnd }
+      ]
+
+      handlers.forEach(({ event, handler }) => {
+        playerElement.addEventListener(event, handler)
+      })
+
+      playerEventHandlers = handlers
     }
     aplayerInitialized.value = true
     setAPlayerInstance(aplayer.value)
     attemptAPlayerAutoplay()
   }
-  preloadAllVideos()
-  setTimeout(() => {
+  preloadAllVideos().catch(err => {
+    console.error('视频预加载失败:', err)
+  })
+  // H-3 修复: 保存定时器引用以便在组件卸载时清理
+  loadTimer.value = setTimeout(() => {
     loadAPlayer()
   }, 500)
 })
 
 onUnmounted(() => {
+  // H-3 修复: 清理 setTimeout 定时器
+  if (loadTimer.value) {
+    clearTimeout(loadTimer.value)
+    loadTimer.value = null
+  }
+
+  // M-1 修复: 停止 watch 监听
+  if (stopShowControlsWatch) {
+    stopShowControlsWatch()
+  }
+
+  // H-2 修复: 使用统一管理的事件监听器数组进行清理
+  if (playerElementRef.value && playerEventHandlers.length > 0) {
+    playerEventHandlers.forEach(({ event, handler }) => {
+      playerElementRef.value.removeEventListener(event, handler)
+    })
+    playerEventHandlers = []
+    playerElementRef.value = null
+  }
+
   if (aplayer.value) {
     aplayer.value.destroy()
   }
@@ -355,15 +408,6 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 
 .video-background {

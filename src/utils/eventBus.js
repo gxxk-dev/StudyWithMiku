@@ -1,9 +1,15 @@
 import { ref } from 'vue'
 
-const musicVolume = ref(0.7)
+const VOLUME_FADE_STEPS = 20
+const VOLUME_DUCK_RATIO = 0.2
+const VOLUME_DUCK_FADE_DURATION = 300
+
 const originalVolume = ref(0.7)
+
 const isHoveringUI = ref(false)
+
 let aplayerInstance = null
+let volumeRestoreTimer = null
 
 export const setAPlayerInstance = (instance) => {
   aplayerInstance = instance
@@ -11,27 +17,35 @@ export const setAPlayerInstance = (instance) => {
 
 export const getAPlayerInstance = () => aplayerInstance
 
-export const fadeVolume = (targetVolume, duration = 500) => {
-  return new Promise((resolve) => {
+const fadeVolume = (targetVolume, duration = 500) => {
+  return new Promise((resolve, reject) => {
     if (!aplayerInstance) {
       resolve()
       return
     }
-    
+
     const startVolume = aplayerInstance.audio.volume
     const volumeDiff = targetVolume - startVolume
-    const steps = 20
-    const stepDuration = duration / steps
+    const stepDuration = duration / VOLUME_FADE_STEPS
     let currentStep = 0
-    
-    const interval = setInterval(() => {
+    let interval = null
+
+    interval = setInterval(() => {
       currentStep++
-      const progress = currentStep / steps
+      const progress = currentStep / VOLUME_FADE_STEPS
       const easeProgress = 1 - Math.pow(1 - progress, 3)
       const newVolume = startVolume + volumeDiff * easeProgress
+
+      // 添加安全检查
+      if (!aplayerInstance) {
+        clearInterval(interval)
+        reject(new Error('APlayer instance lost'))
+        return
+      }
+
       aplayerInstance.audio.volume = Math.max(0, Math.min(1, newVolume))
-      
-      if (currentStep >= steps) {
+
+      if (currentStep >= VOLUME_FADE_STEPS) {
         clearInterval(interval)
         aplayerInstance.audio.volume = targetVolume
         resolve()
@@ -42,14 +56,26 @@ export const fadeVolume = (targetVolume, duration = 500) => {
 
 export const duckMusicForNotification = async (notificationDuration = 3000) => {
   if (!aplayerInstance) return
-  
+
+  if (volumeRestoreTimer) {
+    clearTimeout(volumeRestoreTimer)
+    volumeRestoreTimer = null
+  }
+
   originalVolume.value = aplayerInstance.audio.volume
-  const duckedVolume = originalVolume.value * 0.2
-  
-  await fadeVolume(duckedVolume, 300)
-  
-  setTimeout(async () => {
-    await fadeVolume(originalVolume.value, 300)
+  const duckedVolume = originalVolume.value * VOLUME_DUCK_RATIO
+
+  await fadeVolume(duckedVolume, VOLUME_DUCK_FADE_DURATION)
+
+  volumeRestoreTimer = setTimeout(() => {
+    if (!aplayerInstance) {
+      volumeRestoreTimer = null
+      return
+    }
+    fadeVolume(originalVolume.value, VOLUME_DUCK_FADE_DURATION).catch(err => {
+      console.error('恢复通知后音量失败:', err)
+    })
+    volumeRestoreTimer = null
   }, notificationDuration)
 }
 
@@ -57,6 +83,4 @@ export const setHoveringUI = (value) => {
   isHoveringUI.value = value
 }
 
-export const getHoveringUI = () => isHoveringUI
-
-export { musicVolume, originalVolume, isHoveringUI }
+export { isHoveringUI }

@@ -13,25 +13,41 @@ const defaultSettings = {
   }
 }
 
-export const getSettings = () => {
+/**
+ * 获取所有设置
+ * @internal 仅供模块内部使用，外部请使用具体的 get/save 函数
+ */
+const getSettings = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       return { ...defaultSettings, ...JSON.parse(stored) }
     }
   } catch (e) {
-    console.error('Failed to load settings:', e)
+    console.warn('读取设置失败，将使用默认设置:', e.message)
+    if (e.name === 'QuotaExceededError') {
+      console.warn('localStorage 存储空间不足')
+    }
   }
   return { ...defaultSettings }
 }
 
-export const saveSettings = (settings) => {
+/**
+ * 保存设置
+ * @internal 仅供模块内部使用，外部请使用具体的 get/save 函数
+ */
+const saveSettings = (settings) => {
   try {
     const current = getSettings()
     const merged = { ...current, ...settings }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
   } catch (e) {
-    console.error('Failed to save settings:', e)
+    console.warn('保存设置失败:', e.message)
+    if (e.name === 'QuotaExceededError') {
+      console.warn('localStorage 存储空间不足，请清理浏览器缓存')
+    } else if (e.name === 'SecurityError') {
+      console.warn('浏览器安全策略阻止访问 localStorage（可能处于无痕模式）')
+    }
   }
 }
 

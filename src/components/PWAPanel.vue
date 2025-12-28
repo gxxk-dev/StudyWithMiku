@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps } from 'vue'
+import { ref, computed } from 'vue'
 import { usePWA } from '../composables/usePWA.js'
 import { useCache } from '../composables/useCache.js'
 import { useMusic } from '../composables/useMusic.js'
@@ -182,7 +182,8 @@ import { useMusic } from '../composables/useMusic.js'
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: true
+    default: true,
+    required: false  // visible 不是必需的，有默认值
   }
 })
 
@@ -253,9 +254,14 @@ const memoryTypeLabels = {
 // 计算上次预加载时间
 const lastPrefetchTime = computed(() => {
   const key = `meting_playlist_prefetch:${platform.value}:${playlistId.value}`
-  const timestamp = localStorage.getItem(key)
-  if (!timestamp) return '从未'
-  return new Date(Number(timestamp)).toLocaleString('zh-CN')
+  try {
+    const timestamp = localStorage.getItem(key)
+    if (!timestamp) return '从未'
+    return new Date(Number(timestamp)).toLocaleString('zh-CN')
+  } catch (error) {
+    console.warn('读取预加载时间戳失败:', error)
+    return '未知'
+  }
 })
 
 // 切换面板
@@ -287,16 +293,16 @@ const clearSwCache = async (name) => {
   }
 }
 
-const clearLsCategory = (category) => {
+const clearLsCategory = async (category) => {
   if (confirm(`确定要清除 ${categoryLabels[category]} 吗？`)) {
-    clearLocalStorageCategory(category)
+    await clearLocalStorageCategory(category)
     alert(`${categoryLabels[category]} 已清除`)
   }
 }
 
-const clearMemCache = (type) => {
+const clearMemCache = async (type) => {
   if (confirm(`确定要清除 ${memoryTypeLabels[type]} 缓存吗？`)) {
-    clearMemoryCacheType(type)
+    await clearMemoryCacheType(type)
     alert(`${memoryTypeLabels[type]} 缓存已清除`)
   }
 }

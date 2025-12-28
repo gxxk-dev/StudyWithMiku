@@ -1,26 +1,23 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import './style.css'
+import './styles/common.scss'
 
 createApp(App).mount('#app')
 
 // PWA Service Worker 注册（仅在 PWA 模式下启用）
 import { registerSW } from 'virtual:pwa-register'
 import { isPWAMode, watchPWAMode } from './utils/pwaDetector.js'
-
-// SW 更新回调（供 usePWA composable 使用）
-export let swUpdateCallback = null
-export const setSwUpdateCallback = (callback) => {
-  swUpdateCallback = callback
-}
+import { getSwUpdateCallback } from './utils/swCallback.js'
 
 if ('serviceWorker' in navigator && isPWAMode()) {
   registerSW({
     immediate: true,
     onNeedRefresh() {
       // 触发更新通知而非直接刷新
-      if (swUpdateCallback) {
-        swUpdateCallback()
+      const callback = getSwUpdateCallback()
+      if (callback) {
+        callback()
       } else {
         // 如果没有设置回调，使用默认行为
         window.location.reload()

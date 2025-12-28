@@ -35,13 +35,20 @@ export class OnlineCounter {
       }
     } catch (err) {
       console.error('Parse error:', err)
+      try {
+        ws.close(1003, 'Invalid message format')
+      } catch (closeErr) {
+        console.warn('Failed to close invalid websocket:', closeErr.message)
+      }
     }
   }
 
   async webSocketClose(ws) {
     try {
       ws.close(1000, 'Goodbye')
-    } catch (err) {}
+    } catch (err) {
+      console.warn('WebSocket close error:', err.message)
+    }
     this.broadcast()
   }
 
@@ -58,6 +65,7 @@ export class OnlineCounter {
       try {
         session.send(message)
       } catch (err) {
+        console.warn('Broadcast to session failed:', err.message)
       }
     }
   }

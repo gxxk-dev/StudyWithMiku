@@ -1,0 +1,50 @@
+/**
+ * 公共样式 - 通用工具类和动画
+ * 用于整个应用的可复用样式
+ */
+
+// ===== 隐藏元素 =====
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+// ===== 淡入淡出过渡 =====
+.fade-transition {
+  transition: opacity 0.3s ease;
+}
+
+// ===== Vue 过渡动画 =====
+// 标准淡入淡出动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+// 慢速淡入淡出动画 (0.5s)
+.fade-slow-enter-active,
+.fade-slow-leave-active {
+  transition: opacity 0.5s ease;
+}
+
+.fade-slow-enter-from,
+.fade-slow-leave-to {
+  opacity: 0;
+}
+
+// 滑动向上动画
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}

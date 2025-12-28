@@ -1,6 +1,8 @@
-// Spotify 歌单 ID 存储键
-const SPOTIFY_PLAYLIST_KEY = 'spotify_playlist_id'
-const DEFAULT_SPOTIFY_PLAYLIST_ID = '37i9dQZF1DXcBWIGoYBM5M' // Today's Top Hits
+import { safeLocalStorageGet, safeLocalStorageSet } from '../utils/storage.js'
+import { API_CONFIG, STORAGE_KEYS } from '../config/constants.js'
+
+const SPOTIFY_PLAYLIST_KEY = STORAGE_KEYS.SPOTIFY_PLAYLIST_ID
+const { DEFAULT_SPOTIFY_PLAYLIST_ID } = API_CONFIG
 
 /**
  * 从 Spotify 链接或文本中提取歌单 ID
@@ -52,21 +54,21 @@ export const getSpotifyEmbedUrl = (playlistId, options = {}) => {
  * 保存 Spotify 歌单 ID 到 localStorage
  */
 export const saveSpotifyPlaylistId = (playlistId) => {
-  localStorage.setItem(SPOTIFY_PLAYLIST_KEY, playlistId)
+  safeLocalStorageSet(SPOTIFY_PLAYLIST_KEY, playlistId)
 }
 
 /**
  * 获取已保存的 Spotify 歌单 ID
  */
 export const getSpotifyPlaylistId = () => {
-  return localStorage.getItem(SPOTIFY_PLAYLIST_KEY) || DEFAULT_SPOTIFY_PLAYLIST_ID
+  return safeLocalStorageGet(SPOTIFY_PLAYLIST_KEY, DEFAULT_SPOTIFY_PLAYLIST_ID) || DEFAULT_SPOTIFY_PLAYLIST_ID
 }
 
 /**
  * 重置为默认歌单
  */
 export const resetSpotifyPlaylistId = () => {
-  localStorage.setItem(SPOTIFY_PLAYLIST_KEY, DEFAULT_SPOTIFY_PLAYLIST_ID)
+  safeLocalStorageSet(SPOTIFY_PLAYLIST_KEY, DEFAULT_SPOTIFY_PLAYLIST_ID)
   return DEFAULT_SPOTIFY_PLAYLIST_ID
 }
 

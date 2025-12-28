@@ -1,0 +1,167 @@
+$color-focus: #ff6b6b;
+$color-break: #4ecdc4;
+$color-long-break: #45b7d1;
+$color-success: #4caf50;
+$color-warning: #ffc107;
+$color-danger: #f44336;
+
+$overlay-bg: rgba(0, 0, 0, 0.7);
+$glass-bg: rgba(255, 255, 255, 0.1);
+$glass-bg-hover: rgba(255, 255, 255, 0.15);
+$glass-border: rgba(255, 255, 255, 0.2);
+
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 20px;
+
+@mixin glass-panel {
+  background: $glass-bg;
+  backdrop-filter: blur(30px);
+  border: 1px solid $glass-border;
+  border-radius: $radius-xl;
+}
+
+@mixin status-color($status) {
+  @if $status == 'focus' {
+    color: $color-focus;
+  } @else if $status == 'break' {
+    color: $color-break;
+  } @else if $status == 'long-break' {
+    color: $color-long-break;
+  }
+}
+
+.pomodoro-btn {
+  background: $glass-bg;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-md;
+  padding: 0.6rem 0.8rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+
+  &:hover:not(:disabled) {
+    background: $glass-bg-hover;
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--start {
+    background: rgba($color-success, 0.3);
+    border-color: rgba($color-success, 0.5);
+  }
+
+  &--pause {
+    background: rgba($color-warning, 0.3);
+    border-color: rgba($color-warning, 0.5);
+  }
+
+  &--reset {
+    background: rgba($color-danger, 0.3);
+    border-color: rgba($color-danger, 0.5);
+  }
+
+  &--apply {
+    background: rgba($color-success, 0.3);
+    border-color: rgba($color-success, 0.5);
+  }
+}
+
+.pomodoro-input {
+  background: $glass-bg;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-sm;
+  padding: 0.3rem 0.5rem;
+  color: white;
+
+  &:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.pomodoro-select {
+  background: $glass-bg;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: $radius-sm;
+  padding: 0.3rem 0.5rem;
+  color: white;
+  cursor: pointer;
+
+  option {
+    background: #333;
+    color: white;
+  }
+}
+
+.pomodoro-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+  opacity: 0.7;
+
+  &:hover {
+    background: $glass-bg;
+    opacity: 1;
+  }
+}
+
+.pomodoro-setting-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+  font-size: 0.8rem;
+
+  label {
+    opacity: 0.8;
+  }
+}
+
+.pomodoro-status-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: $glass-bg;
+
+  &.focus {
+    @include status-color('focus');
+  }
+
+  &.break {
+    @include status-color('break');
+  }
+
+  &.long-break {
+    @include status-color('long-break');
+  }
+}
+

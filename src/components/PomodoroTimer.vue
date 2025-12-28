@@ -1,7 +1,8 @@
 <template>
   <div>
-    <div 
-      class="countdown-clock" 
+    <!-- 顶部计时条 -->
+    <div
+      class="countdown-clock"
       :class="{ 'settings-open': showSettings }"
       @click="toggleSettings"
       @mouseenter="onUIMouseEnter"
@@ -14,7 +15,7 @@
         <span class="online-text">{{ onlineCount }}</span>
       </div>
       <span class="countdown-divider" aria-hidden="true"></span>
-      <div class="system-time" >{{ systemTime }}</div>
+      <div class="system-time">{{ systemTime }}</div>
       <span class="countdown-divider" aria-hidden="true"></span>
       <div class="clock-display">
         <span class="minutes">{{ formattedMinutes }}</span>
@@ -26,8 +27,18 @@
         {{ statusText }}
       </div>
     </div>
+
+    <!-- 设置面板 -->
     <transition name="fade">
-      <div v-if="showSettings" class="settings-overlay" @click.self="closeSettings" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" @touchstart="onUITouchStart" @touchend="onUITouchEnd">
+      <div
+        v-if="showSettings"
+        class="settings-overlay"
+        @click.self="closeSettings"
+        @mouseenter="onUIMouseEnter"
+        @mouseleave="onUIMouseLeave"
+        @touchstart="onUITouchStart"
+        @touchend="onUITouchEnd"
+      >
         <div class="settings-panel">
           <div class="settings-header">
             <h3>设置</h3>
@@ -52,183 +63,66 @@
           </div>
 
           <div class="tab-content">
+            <!-- 番茄钟设置 -->
             <div v-show="activeTab === 'pomodoro'" class="timer-container">
-            <div class="status-indicator">
-              <span class="status-text" :class="statusClass">{{ statusText }}</span>
-            </div>
-            
-            <div class="timer-display">
-              <div class="time-circle">
-                <svg class="progress-ring" width="120" height="120">
-                  <circle
-                    class="progress-ring-background"
-                    cx="60"
-                    cy="60"
-                    r="54"
-                    stroke="rgba(255, 255, 255, 0.2)"
-                    stroke-width="5"
-                    fill="transparent"
-                  />
-                  <circle
-                    class="progress-ring-fill"
-                    :class="statusClass"
-                    cx="60"
-                    cy="60"
-                    r="54"
-                    stroke="currentColor"
-                    stroke-width="5"
-                    fill="transparent"
-                    :stroke-dasharray="circumference"
-                    :stroke-dashoffset="strokeDashoffset"
-                    transform="rotate(-90 60 60)"
-                  />
-                </svg>
-                <div class="time-text">
-                  <span class="minutes">{{ formattedMinutes }}</span>
-                  <span class="separator">:</span>
-                  <span class="seconds">{{ formattedSeconds }}</span>
-                </div>
+              <div class="status-indicator">
+                <span class="status-text" :class="statusClass">{{ statusText }}</span>
               </div>
-            </div>
-            
-            <div class="timer-controls">
-              <button 
-                v-if="!isRunning" 
-                class="control-btn start-btn" 
-                @click="startTimer"
-                :disabled="timeLeft <= 0"
-              >
-                <span class="btn-icon">▶</span>
-              </button>
-              <button 
-                v-else 
-                class="control-btn pause-btn" 
-                @click="pauseTimer"
-              >
-                <span class="btn-icon">⏸</span>
-              </button>
-              <button 
-                class="control-btn reset-btn" 
-                @click="resetTimer"
-              >
-                <span class="btn-icon">↺</span>
-              </button>
-            </div>
-            
-            <div class="timer-settings">
-              <div class="setting-group">
-                <label>专注时间(分钟)</label>
-                <input 
-                  type="number" 
-                  v-model.number="focusDuration" 
-                  min="1" 
-                  max="60"
-                  :disabled="isRunning"
-                />
-              </div>
-              <div class="setting-group">
-                <label>休息时间(分钟)</label>
-                <input 
-                  type="number" 
-                  v-model.number="breakDuration" 
-                  min="1" 
-                  max="30"
-                  :disabled="isRunning"
-                />
-              </div>
-            </div>
-            
-            <div class="pomodoro-count">
-              <span class="count-label">已完成番茄:</span>
-              <div class="count-display">
-                <span
-                  v-for="i in 4"
-                  :key="i"
-                  class="pomodoro-dot"
-                  :class="{ filled: completedPomodoros >= i }"
-                ></span>
-              </div>
-            </div>
-          </div>
 
-          <div v-show="activeTab === 'playlist'" class="playlist-container">
-            <div class="playlist-settings">
-              <div class="setting-group">
-                <label>平台</label>
-                <select v-model="selectedPlatform" class="platform-select">
-                  <option v-for="p in PLATFORMS" :key="p.value" :value="p.value">{{ p.label }}</option>
-                </select>
-              </div>
-              <div class="setting-group">
-                <label>歌单ID</label>
-                <input
-                  type="text"
-                  v-model="inputPlaylistId"
-                  placeholder="粘贴歌单链接或ID"
-                />
-              </div>
-              <div v-if="detectedPlatformHint" class="platform-hint">
-                {{ detectedPlatformHint }}
-              </div>
-              <div class="playlist-actions">
-                <button class="action-btn apply-btn" @click="applyPlaylist">获取</button>
-                <button class="action-btn reset-playlist-btn" @click="resetPlaylist">恢复默认</button>
-              </div>
+              <TimerDisplay
+                :time-left="timeLeft"
+                :total-time="totalTime"
+                :status-class="statusClass"
+              />
+
+              <TimerControls
+                :is-running="isRunning"
+                :disabled="timeLeft <= 0"
+                @start="startTimer"
+                @pause="pauseTimer"
+                @reset="resetTimer"
+              />
+
+              <TimerSettings
+                v-model:focus-duration="focusDuration"
+                v-model:break-duration="breakDuration"
+                :disabled="isRunning"
+              />
+
+              <PomodoroCounter
+                :completed="completedPomodoros"
+                :total="4"
+              />
             </div>
-          </div>
+
+            <!-- 歌单设置 -->
+            <PlaylistPanel
+              v-show="activeTab === 'playlist'"
+              :platforms="PLATFORMS"
+              :initial-platform="platform"
+              @apply="handleApplyPlaylist"
+              @reset="handleResetPlaylist"
+            />
           </div>
         </div>
       </div>
     </transition>
 
     <!-- 服务器选择面板 -->
-    <transition name="fade-down">
-      <div v-if="showServerPanel" class="server-panel-container" @click.stop @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave">
-        <div class="server-panel">
-          <div class="server-header">
-            <h4>选择计数服务器</h4>
-            <button class="close-btn" @click="closeServerPanel">×</button>
-          </div>
-
-          <div class="server-list">
-            <div
-              v-for="server in serverList"
-              :key="server.id"
-              class="server-item"
-              :class="{ active: selectedServerId === server.id }"
-              @click="handleSelectServer(server.id)"
-            >
-              <div class="server-info">
-                <div class="server-name">{{ server.name }}</div>
-                <div class="server-desc">{{ server.description }}</div>
-              </div>
-              <div class="server-status">
-                <span v-if="selectedServerId === server.id && isConnected" class="status-badge">已连接</span>
-                <span v-if="serverLatencies[server.id]" class="latency">{{ serverLatencies[server.id] }}ms</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 自定义服务器输入框 -->
-          <div v-if="selectedServerId === 'custom'" class="custom-server-section">
-            <input
-              v-model="customServerUrl"
-              type="text"
-              placeholder="wss://example.com/ws"
-              class="custom-url-input"
-            />
-            <button @click="applyCustomServer" class="apply-btn">应用</button>
-          </div>
-
-          <div class="server-panel-footer">
-            <label class="auto-fallback-label">
-              <input type="checkbox" v-model="autoFallback" @change="handleAutoFallbackChange" />
-              <span>连接失败时自动切换到默认服务器</span>
-            </label>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <ServerPanel
+      :show="showServerPanel"
+      :server-list="serverList"
+      :selected-server-id="selectedServerId"
+      :is-connected="isConnected"
+      :latencies="serverLatencies"
+      v-model:custom-server-url="customServerUrl"
+      v-model:auto-fallback="autoFallback"
+      @close="closeServerPanel"
+      @select="handleSelectServer"
+      @apply-custom="applyCustomServer"
+      @mouseenter="onUIMouseEnter"
+      @mouseleave="onUIMouseLeave"
+    />
   </div>
 </template>
 
@@ -237,16 +131,16 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useOnlineCount } from '../composables/useOnlineCount.js'
 import { useServerConfig } from '../composables/useServerConfig.js'
 import { useMusic } from '../composables/useMusic.js'
-import { duckMusicForNotification, setHoveringUI, getAPlayerInstance } from '../utils/eventBus.js'
-import { getPomodoroSettings, savePomodoroSettings } from '../utils/userSettings.js'
-import { extractSpotifyPlaylistId, isSpotifyLink } from '../services/spotify.js'
+import { usePomodoro } from '../composables/usePomodoro.js'
+import { setHoveringUI, getAPlayerInstance } from '../utils/eventBus.js'
 
-const resolveWsUrl = () => {
-  if (import.meta.env.VITE_WS_URL) return import.meta.env.VITE_WS_URL
-  if (typeof window === 'undefined') return 'ws://localhost:8787/ws'
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${protocol}//${window.location.host}/ws`
-}
+// 子组件
+import TimerDisplay from './pomodoro/TimerDisplay.vue'
+import TimerControls from './pomodoro/TimerControls.vue'
+import TimerSettings from './pomodoro/TimerSettings.vue'
+import PlaylistPanel from './pomodoro/PlaylistPanel.vue'
+import ServerPanel from './pomodoro/ServerPanel.vue'
+import PomodoroCounter from './pomodoro/PomodoroCounter.vue'
 
 // 服务器配置
 const {
@@ -262,14 +156,59 @@ const {
   validateServerUrl
 } = useServerConfig()
 
-// 初始化 WebSocket URL
+// WebSocket 连接
 const initialWsUrl = getActiveServerUrl()
 const { onlineCount, isConnected, reconnectToServer } = useOnlineCount(initialWsUrl)
-const { playlistId, platform, applyCustomPlaylist, resetToDefault, songs, DEFAULT_PLAYLIST_ID, PLATFORMS, isSpotify, spotifyPlaylistId, applySpotifyPlaylist, resetSpotifyToDefault } = useMusic()
 
-const inputPlaylistId = ref('')
-const selectedPlatform = ref(platform.value)
+// 音乐
+const {
+  platform,
+  applyCustomPlaylist,
+  resetToDefault,
+  songs,
+  PLATFORMS,
+  applySpotifyPlaylist
+} = useMusic()
 
+// 番茄钟
+const {
+  focusDuration,
+  breakDuration,
+  timeLeft,
+  isRunning,
+  completedPomodoros,
+  formattedMinutes,
+  formattedSeconds,
+  statusText,
+  statusClass,
+  totalTime,
+  startTimer,
+  pauseTimer,
+  resetTimer
+} = usePomodoro()
+
+// UI 状态
+const showSettings = ref(false)
+const showServerPanel = ref(false)
+const activeTab = ref('pomodoro')
+const serverLatencies = ref({})
+const customServerUrl = ref(customServerUrlRef.value)
+const currentTime = ref(new Date())
+const timeUpdateInterval = ref(null)
+
+// 监听 customServerUrlRef 变化
+watch(customServerUrlRef, (newVal) => {
+  customServerUrl.value = newVal
+})
+
+// 系统时间
+const systemTime = computed(() => {
+  const hours = currentTime.value.getHours().toString().padStart(2, '0')
+  const minutes = currentTime.value.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+})
+
+// 暂停当前音乐
 const pauseCurrentMusic = () => {
   const ap = getAPlayerInstance()
   if (ap && typeof ap.pause === 'function') {
@@ -277,192 +216,7 @@ const pauseCurrentMusic = () => {
   }
 }
 
-// 从文本中提取歌单ID
-const extractPlaylistId = (text, targetPlatform) => {
-  if (!text) return ''
-
-  const trimmed = text.trim()
-
-  // 尝试从URL中提取
-  const urlPatterns = {
-    netease: [
-      /music\.163\.com.*[?&]id=(\d+)/,
-      /music\.163\.com\/playlist\/(\d+)/
-    ],
-    tencent: [
-      /y\.qq\.com.*[?&]id=(\d+)/,
-      /y\.qq\.com\/n\/ryqq\/playlist\/(\d+)/
-    ]
-  }
-
-  const patterns = urlPatterns[targetPlatform] || []
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern)
-    if (match && match[1]) {
-      return match[1]
-    }
-  }
-
-  // 如果没匹配到URL格式，检查是否是纯数字ID
-  if (/^\d+$/.test(trimmed)) {
-    return trimmed
-  }
-
-  // 最后尝试从文本任意位置提取id参数
-  const genericIdMatch = trimmed.match(/[?&]id=(\d+)/)
-  if (genericIdMatch) {
-    return genericIdMatch[1]
-  }
-
-  return trimmed
-}
-
-// 从文本检测平台
-const detectPlatformFromText = (text) => {
-  if (!text) return null
-  if (/music\.163\.com/i.test(text)) return 'netease'
-  if (/y\.qq\.com|i\.y\.qq\.com/i.test(text)) return 'tencent'
-  if (isSpotifyLink(text)) return 'spotify'
-  return null
-}
-
-// 检测到的平台提示
-const detectedPlatformHint = computed(() => {
-  const detected = detectPlatformFromText(inputPlaylistId.value)
-  if (detected === 'netease') return '✓ 检测到网易云歌单'
-  if (detected === 'tencent') return '✓ 检测到QQ音乐歌单'
-  if (detected === 'spotify') return '✓ 检测到Spotify歌单'
-  return ''
-})
-
-const currentTime = ref(new Date())
-const systemTime = computed(() => {
-  const hours = currentTime.value.getHours().toString().padStart(2, '0')
-  const minutes = currentTime.value.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
-})
-
-const applyPlaylist = async () => {
-  if (!inputPlaylistId.value) return
-
-  // 自动检测平台
-  const detectedPlatform = detectPlatformFromText(inputPlaylistId.value)
-  if (detectedPlatform) {
-    selectedPlatform.value = detectedPlatform
-  }
-
-  pauseCurrentMusic()
-
-  // Spotify 特殊处理
-  if (selectedPlatform.value === 'spotify') {
-    const extractedId = extractSpotifyPlaylistId(inputPlaylistId.value)
-    inputPlaylistId.value = extractedId
-    applySpotifyPlaylist(extractedId)
-    return
-  }
-
-  // 提取歌单ID (网易云/QQ音乐)
-  const extractedId = extractPlaylistId(inputPlaylistId.value, selectedPlatform.value)
-  inputPlaylistId.value = extractedId
-
-  await applyCustomPlaylist(selectedPlatform.value, extractedId)
-  const ap = getAPlayerInstance()
-  if (ap) {
-    ap.list.clear()
-    ap.list.add(songs.value)
-  }
-}
-
-const resetPlaylist = async () => {
-  inputPlaylistId.value = ''
-  pauseCurrentMusic()
-  await resetToDefault()
-  const ap = getAPlayerInstance()
-  if (ap) {
-    ap.list.clear()
-    ap.list.add(songs.value)
-  }
-}
-
-const STATUS = {
-  FOCUS: 'focus',
-  BREAK: 'break',
-  LONG_BREAK: 'longBreak'
-}
-
-const savedPomodoro = getPomodoroSettings()
-const focusDuration = ref(savedPomodoro.focusDuration)
-const breakDuration = ref(savedPomodoro.breakDuration)
-const timeLeft = ref(focusDuration.value * 60)
-const isRunning = ref(false)
-const currentStatus = ref(STATUS.FOCUS)
-const completedPomodoros = ref(0)
-const showSettings = ref(false)
-
-// 服务器面板状态
-const showServerPanel = ref(false)
-const serverLatencies = ref({})
-const customServerUrl = ref(customServerUrlRef.value)
-
-// 监听 customServerUrlRef 的变化
-watch(customServerUrlRef, (newVal) => {
-  customServerUrl.value = newVal
-})
-
-const activeTab = ref('pomodoro')
-
-watch(focusDuration, (newVal) => {
-  if (currentStatus.value === STATUS.FOCUS && !isRunning.value) {
-    timeLeft.value = newVal * 60
-  }
-  savePomodoroSettings(newVal, breakDuration.value)
-})
-
-watch(breakDuration, (newVal) => {
-  if (currentStatus.value !== STATUS.FOCUS && !isRunning.value) {
-    timeLeft.value = newVal * 60
-  }
-  savePomodoroSettings(focusDuration.value, newVal)
-})
-
-let timer = null
-let timeUpdateInterval = null
-
-const formattedMinutes = computed(() => {
-  return Math.floor(timeLeft.value / 60).toString().padStart(2, '0')
-})
-
-const formattedSeconds = computed(() => {
-  return (timeLeft.value % 60).toString().padStart(2, '0')
-})
-
-const statusText = computed(() => {
-  switch (currentStatus.value) {
-    case STATUS.FOCUS: return '专注'
-    case STATUS.BREAK: return '休息'
-    case STATUS.LONG_BREAK: return '长休'
-    default: return '专注'
-  }
-})
-
-const statusClass = computed(() => {
-  switch (currentStatus.value) {
-    case STATUS.FOCUS: return 'focus'
-    case STATUS.BREAK: return 'break'
-    case STATUS.LONG_BREAK: return 'long-break'
-    default: return 'focus'
-  }
-})
-
-const circumference = computed(() => 2 * Math.PI * 54)
-const strokeDashoffset = computed(() => {
-  const totalTime = currentStatus.value === STATUS.FOCUS 
-    ? focusDuration.value * 60 
-    : breakDuration.value * 60
-  const progress = (totalTime - timeLeft.value) / totalTime
-  return circumference.value * (1 - progress)
-})
-
+// 设置面板操作
 const toggleSettings = () => {
   showSettings.value = !showSettings.value
 }
@@ -471,7 +225,7 @@ const closeSettings = () => {
   showSettings.value = false
 }
 
-// 服务器面板处理函数
+// 服务器面板操作
 const toggleServerPanel = () => {
   showServerPanel.value = !showServerPanel.value
   if (showServerPanel.value) {
@@ -531,117 +285,61 @@ const applyCustomServer = async () => {
   await handleSelectServer('custom')
 }
 
-const handleAutoFallbackChange = () => {
-  toggleAutoFallback(autoFallback.value)
-}
+// 歌单操作
+const handleApplyPlaylist = async ({ platform: selectedPlatform, playlistId }) => {
+  pauseCurrentMusic()
 
-const startTimer = () => {
-  if (timeLeft.value <= 0) return
-  isRunning.value = true
-  timer = setInterval(() => {
-    timeLeft.value--
-    if (timeLeft.value <= 0) {
-      clearInterval(timer)
-      handleTimerComplete()
+  try {
+    if (selectedPlatform === 'spotify') {
+      applySpotifyPlaylist(playlistId)
+      return
     }
-  }, 1000)
-}
 
-const pauseTimer = () => {
-  isRunning.value = false
-  if (timer) {
-    clearInterval(timer)
-    timer = null
-  }
-}
-
-const resetTimer = () => {
-  pauseTimer()
-  timeLeft.value = focusDuration.value * 60
-  currentStatus.value = STATUS.FOCUS
-}
-
-const handleTimerComplete = () => {
-  playNotificationSound()
-  
-  if (currentStatus.value === STATUS.FOCUS) {
-    completedPomodoros.value++
-    
-    if (completedPomodoros.value % 4 === 0) {
-      currentStatus.value = STATUS.LONG_BREAK
-      timeLeft.value = breakDuration.value * 60 * 2
-    } else {
-      currentStatus.value = STATUS.BREAK
-      timeLeft.value = breakDuration.value * 60
+    await applyCustomPlaylist(selectedPlatform, playlistId)
+    const ap = getAPlayerInstance()
+    if (ap?.list && typeof ap.list.clear === 'function') {
+      ap.list.clear()
+      ap.list.add(songs.value)
     }
-  } else {
-    currentStatus.value = STATUS.FOCUS
-    timeLeft.value = focusDuration.value * 60
-  }
-  
-  showNotification()
-  
-  setTimeout(() => {
-    startTimer()
-  }, 1000)
-}
-
-const NOTIFICATION_AUDIO_URL = 'https://assets.frez79.io/swm/BreakOrWork.mp3'
-
-const playNotificationSound = async () => {
-  duckMusicForNotification(3000)
-  
-  await new Promise(resolve => setTimeout(resolve, 200))
-  
-  const audio = new Audio(NOTIFICATION_AUDIO_URL)
-  audio.play()
-}
-
-const showNotification = () => {
-  if (Notification.permission === 'granted') {
-    new Notification('番茄钟', {
-      body: `${statusText.value}已完成！`,
-      icon: '/favicon.ico'
-    })
+  } catch (error) {
+    console.error('Failed to apply playlist:', error)
   }
 }
 
-const onUIMouseEnter = () => {
-  setHoveringUI(true)
+const handleResetPlaylist = async () => {
+  pauseCurrentMusic()
+  await resetToDefault()
+  const ap = getAPlayerInstance()
+  if (ap) {
+    ap.list.clear()
+    ap.list.add(songs.value)
+  }
 }
 
-const onUIMouseLeave = () => {
-  setHoveringUI(false)
-}
+// UI 交互
+const onUIMouseEnter = () => setHoveringUI(true)
+const onUIMouseLeave = () => setHoveringUI(false)
+const onUITouchStart = () => setHoveringUI(true)
+const onUITouchEnd = () => setHoveringUI(false)
 
-const onUITouchStart = () => {
-  setHoveringUI(true)
-}
-const onUITouchEnd = () => {
-  setHoveringUI(false)
-}
-
+// 生命周期
 onMounted(() => {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission()
-  }
-
-  timeUpdateInterval = setInterval(() => {
+  timeUpdateInterval.value = setInterval(() => {
     currentTime.value = new Date()
   }, 1000)
 })
 
 onUnmounted(() => {
-  if (timer) {
-    clearInterval(timer)
-  }
-  if (timeUpdateInterval) {
-    clearInterval(timeUpdateInterval)
+  if (timeUpdateInterval.value) {
+    clearInterval(timeUpdateInterval.value)
   }
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '../styles/pomodoro.scss' as *;
+
+// 顶部计时条
 .countdown-clock {
   position: fixed;
   top: 20px;
@@ -650,17 +348,27 @@ onUnmounted(() => {
   z-index: 1001;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: rgba(255, 255, 255, 0.1);
+  background: $glass-bg;
   backdrop-filter: blur(20px);
   border-radius: 10px;
   padding: 0.8rem 1.2rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid $glass-border;
   display: inline-flex;
   align-items: center;
   gap: 1.2rem;
   white-space: nowrap;
   color: white;
   font-family: 'Courier New', monospace;
+
+  &:hover {
+    background: $glass-bg-hover;
+    transform: translateX(-50%) translateY(-2px);
+  }
+
+  &.settings-open {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
 }
 
 .countdown-divider {
@@ -678,11 +386,10 @@ onUnmounted(() => {
   gap: 0.5rem;
   cursor: pointer;
   transition: opacity 0.3s;
-  position: relative;
-}
 
-.online-indicator:hover {
-  opacity: 0.8;
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 .online-dot {
@@ -691,11 +398,11 @@ onUnmounted(() => {
   border-radius: 50%;
   background: #666;
   transition: background 0.3s ease;
-}
 
-.online-dot.connected {
-  background: #4caf50;
-  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+  &.connected {
+    background: $color-success;
+    box-shadow: 0 0 8px rgba($color-success, 0.6);
+  }
 }
 
 .online-text {
@@ -710,48 +417,23 @@ onUnmounted(() => {
   opacity: 0.8;
 }
 
-.countdown-clock:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateX(-50%) translateY(-2px);
-}
-
-.countdown-clock.settings-open {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
 .clock-display {
   font-size: 1.5rem;
   font-weight: 600;
 }
 
 .status-badge {
-  padding: 0.3rem 0.8rem;
-  border-radius: 15px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.1);
+  @extend .pomodoro-status-badge;
 }
 
-.status-badge.focus {
-  color: #ff6b6b;
-}
-
-.status-badge.break {
-  color: #4ecdc4;
-}
-
-.status-badge.long-break {
-  color: #45b7d1;
-}
-
+// 设置面板
 .settings-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
+  background: $overlay-bg;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -759,10 +441,7 @@ onUnmounted(() => {
 }
 
 .settings-panel {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(30px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  @include glass-panel;
   max-width: 400px;
   width: 90%;
   max-height: 90vh;
@@ -774,33 +453,44 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
+  border-bottom: 1px solid $glass-border;
 
-.settings-header h3 {
-  color: white;
-  margin: 0;
-  font-size: 1.2rem;
+  h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.2rem;
+  }
 }
 
 .close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.2rem;
-  border-radius: 50%;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.3s ease;
+  @extend .pomodoro-close-btn;
 }
 
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid $glass-border;
+  padding: 0 1.5rem;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1rem;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  border-bottom: 2px solid transparent;
+
+  &:hover {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  &.active {
+    color: white;
+    border-bottom-color: $color-break;
+  }
 }
 
 .timer-container {
@@ -818,249 +508,22 @@ onUnmounted(() => {
   font-weight: 500;
   padding: 0.4rem 0.8rem;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: $glass-bg;
+
+  &.focus {
+    color: $color-focus;
+  }
+
+  &.break {
+    color: $color-break;
+  }
+
+  &.long-break {
+    color: $color-long-break;
+  }
 }
 
-.status-text.focus {
-  color: #ff6b6b;
-}
-
-.status-text.break {
-  color: #4ecdc4;
-}
-
-.status-text.long-break {
-  color: #45b7d1;
-}
-
-.timer-display {
-  margin-bottom: 1.5rem;
-}
-
-.time-circle {
-  position: relative;
-  display: inline-block;
-}
-
-.progress-ring {
-  display: block;
-  width: 120px;
-  height: 120px;
-}
-
-.progress-ring-fill.focus {
-  color: #ff6b6b;
-}
-
-.progress-ring-fill.break {
-  color: #4ecdc4;
-}
-
-.progress-ring-fill.long-break {
-  color: #45b7d1;
-}
-
-.time-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.8rem;
-  font-weight: 300;
-  font-family: 'Courier New', monospace;
-}
-
-.timer-controls {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-
-.control-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 0.6rem 0.8rem;
-  color: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-}
-
-.control-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateY(-2px);
-}
-
-.control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.start-btn {
-  background: rgba(76, 175, 80, 0.3);
-  border-color: rgba(76, 175, 80, 0.5);
-}
-
-.pause-btn {
-  background: rgba(255, 193, 7, 0.3);
-  border-color: rgba(255, 193, 7, 0.5);
-}
-
-.reset-btn {
-  background: rgba(244, 67, 54, 0.3);
-  border-color: rgba(244, 67, 54, 0.5);
-}
-
-.btn-icon {
-  font-size: 1rem;
-}
-
-.timer-settings {
-  margin-bottom: 1rem;
-}
-
-.setting-group {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.8rem;
-  font-size: 0.8rem;
-}
-
-.setting-group label {
-  opacity: 0.8;
-}
-
-.setting-group input {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  padding: 0.2rem 0.4rem;
-  color: white;
-  width: 50px;
-  text-align: center;
-}
-
-.setting-group input:focus {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.6);
-}
-
-.setting-group input:disabled {
-  opacity: 0.5;
-}
-
-.pomodoro-count {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.8rem;
-  opacity: 0.8;
-}
-
-.count-display {
-  display: flex;
-  gap: 0.2rem;
-}
-
-.pomodoro-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  transition: background 0.3s ease;
-}
-
-.pomodoro-dot.filled {
-  background: #ff6b6b;
-}
-
-.playlist-settings {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-.playlist-settings .setting-group input {
-  width: 140px;
-  text-align: left;
-  padding: 0.3rem 0.5rem;
-}
-
-.platform-select {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  padding: 0.3rem 0.5rem;
-  color: white;
-  width: 100px;
-  cursor: pointer;
-}
-
-.platform-select option {
-  background: #333;
-  color: white;
-}
-
-.playlist-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-  justify-content: center;
-}
-
-.action-btn {
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 0.75rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.action-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.apply-btn {
-  background: rgba(76, 175, 80, 0.3);
-  border-color: rgba(76, 175, 80, 0.5);
-}
-
-.reset-playlist-btn {
-  background: rgba(255, 152, 0, 0.3);
-  border-color: rgba(255, 152, 0, 0.5);
-}
-
-.help-link {
-  display: block;
-  margin-top: 0.8rem;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.6);
-  text-decoration: none;
-  text-align: center;
-  transition: color 0.3s ease;
-}
-
-.help-link:hover {
-  color: rgba(255, 255, 255, 0.9);
-  text-decoration: underline;
-}
-
-.platform-hint {
-  font-size: 0.75rem;
-  color: #4ecdc4;
-  margin-top: -0.4rem;
-  margin-bottom: 0.4rem;
-  text-align: right;
-}
-
+// 动画
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -1070,226 +533,4 @@ onUnmounted(() => {
 .fade-leave-to {
   opacity: 0;
 }
-
-.settings-tabs {
-  display: flex;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 1.5rem;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 1rem;
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-  border-bottom: 2px solid transparent;
-}
-
-.tab-btn:hover {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.tab-btn.active {
-  color: white;
-  border-bottom-color: #4ecdc4;
-}
-
-.playlist-container {
-  padding: 1.5rem;
-  color: white;
-}
-
-/* 服务器选择面板样式 */
-.server-panel-container {
-  position: fixed;
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1003;
-}
-
-.server-panel {
-  min-width: 320px;
-  max-width: 400px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(30px);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-  padding: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.server-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.server-header h4 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-  transition: opacity 0.3s;
-  line-height: 1;
-}
-
-.close-btn:hover {
-  opacity: 1;
-}
-
-.server-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.server-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.8rem;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  border-radius: 8px;
-  margin-bottom: 0.5rem;
-}
-
-.server-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.server-item.active {
-  background: rgba(76, 175, 80, 0.2);
-  border-left: 3px solid #4caf50;
-  padding-left: calc(0.8rem - 3px);
-}
-
-.server-info {
-  flex: 1;
-}
-
-.server-name {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.server-desc {
-  font-size: 0.85rem;
-  opacity: 0.7;
-  line-height: 1.3;
-}
-
-.server-status {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.25rem;
-}
-
-.status-badge {
-  background: rgba(76, 175, 80, 0.3);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-}
-
-.latency {
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-.custom-server-section {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.custom-url-input {
-  flex: 1;
-  padding: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
-  color: white;
-  font-size: 0.9rem;
-}
-
-.custom-url-input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.apply-btn {
-  padding: 0.5rem 1rem;
-  background: rgba(76, 175, 80, 0.3);
-  border: 1px solid rgba(76, 175, 80, 0.5);
-  border-radius: 6px;
-  color: white;
-  cursor: pointer;
-  transition: background 0.3s;
-  white-space: nowrap;
-}
-
-.apply-btn:hover {
-  background: rgba(76, 175, 80, 0.5);
-}
-
-.server-panel-footer {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.auto-fallback-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.auto-fallback-label input[type="checkbox"] {
-  cursor: pointer;
-}
-
-/* 淡入淡出动画 */
-.fade-down-enter-active, .fade-down-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.fade-down-enter-from, .fade-down-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(-10px);
-}
-
-.fade-down-enter-to, .fade-down-leave-from {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
 </style>

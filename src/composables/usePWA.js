@@ -20,8 +20,9 @@ export const usePWA = () => {
   const appVersion = ref(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : new Date().toISOString().slice(0, 10).replace(/-/g, ''))
   const appBuildTime = ref(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : formatFullTime())
 
-  let deferredPrompt = null
-  let removePWAModeWatcher = null
+  // 使用 ref 避免跨实例引用混乱
+  const deferredPrompt = ref(null)
+  const removePWAModeWatcher = ref(null)
 
   const updatePWAMode = () => {
     isPWA.value = isPWAMode()
@@ -30,16 +31,16 @@ export const usePWA = () => {
   // 监听安装提示事件
   const handleBeforeInstallPrompt = (e) => {
     e.preventDefault()
-    deferredPrompt = e
+    deferredPrompt.value = e
     canInstall.value = true
   }
 
   // 安装 PWA
   const installPWA = async () => {
-    if (!deferredPrompt) return false
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    deferredPrompt = null
+    if (!deferredPrompt.value) return false
+    deferredPrompt.value.prompt()
+    const { outcome } = await deferredPrompt.value.userChoice
+    deferredPrompt.value = null
     canInstall.value = false
     return outcome === 'accepted'
   }
@@ -47,6 +48,13 @@ export const usePWA = () => {
   // 监听在线状态
   const handleOnline = () => { isOnline.value = true }
   const handleOffline = () => { isOnline.value = false }
+
+  // 监听 PWA 安装完成
+  const handleAppInstalled = () => {
+    canInstall.value = false
+    deferredPrompt.value = null
+    updatePWAMode()
+  }
 
   // 设置有更新
   const setHasUpdate = (value) => {
@@ -81,35 +89,42 @@ export const usePWA = () => {
     window.location.replace(url.toString())
   }
 
+  // 统一的事件监听器管理
+  const eventListeners = [
+    { event: 'beforeinstallprompt', handler: handleBeforeInstallPrompt },
+    { event: 'online', handler: handleOnline },
+    { event: 'offline', handler: handleOffline },
+    { event: 'visibilitychange', handler: updatePWAMode },
+    { event: 'pageshow', handler: updatePWAMode },
+    { event: 'appinstalled', handler: handleAppInstalled }
+  ]
+
+  const addEventListeners = () => {
+    eventListeners.forEach(({ event, handler }) => {
+      window.addEventListener(event, handler)
+    })
+  }
+
+  const removeEventListeners = () => {
+    eventListeners.forEach(({ event, handler }) => {
+      window.removeEventListener(event, handler)
+    })
+  }
+
   onMounted(() => {
     updatePWAMode()
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    window.addEventListener('visibilitychange', updatePWAMode)
-    window.addEventListener('pageshow', updatePWAMode)
+    addEventListeners()
 
-    removePWAModeWatcher = watchPWAMode((value) => {
+    removePWAModeWatcher.value = watchPWAMode((value) => {
       isPWA.value = value
-    })
-
-    // 监听 PWA 安装完成
-    window.addEventListener('appinstalled', () => {
-      canInstall.value = false
-      deferredPrompt = null
-      updatePWAMode()
     })
   })
 
   onUnmounted(() => {
-    window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    window.removeEventListener('online', handleOnline)
-    window.removeEventListener('offline', handleOffline)
-    window.removeEventListener('visibilitychange', updatePWAMode)
-    window.removeEventListener('pageshow', updatePWAMode)
-    if (removePWAModeWatcher) {
-      removePWAModeWatcher()
-      removePWAModeWatcher = null
+    removeEventListeners()
+    if (removePWAModeWatcher.value) {
+      removePWAModeWatcher.value()
+      removePWAModeWatcher.value = null
     }
   })
 

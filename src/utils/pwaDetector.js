@@ -3,13 +3,8 @@
  * @returns {boolean} true 表示在 PWA 模式，false 表示网页模式
  */
 export const isPWAMode = () => {
-
-  // 检测 display-mode: standalone
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-
-  // iOS Safari 特殊处理
   const isIOSStandalone = window.navigator.standalone === true
-
   return isStandalone || isIOSStandalone
 }
 
@@ -25,10 +20,17 @@ export const watchPWAMode = (callback) => {
     callback(e.matches || window.navigator.standalone === true)
   }
 
-  // 监听变化（某些浏览器支持）
-  mediaQuery.addEventListener('change', handler)
-
-  return () => {
-    mediaQuery.removeEventListener('change', handler)
+  if (mediaQuery.addEventListener) {
+    mediaQuery.addEventListener('change', handler)
+    return () => {
+      mediaQuery.removeEventListener('change', handler)
+    }
+  } else if (mediaQuery.addListener) {
+    mediaQuery.addListener(handler)
+    return () => {
+      mediaQuery.removeListener(handler)
+    }
+  } else {
+    return () => {}
   }
 }

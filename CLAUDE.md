@@ -28,15 +28,28 @@ npm run deploy:worker    # 部署到 Cloudflare Workers
 - `src/components/PomodoroTimer.vue` - 番茄钟组件：计时器、设置面板(番茄钟/歌单/缓存)、服务器选择
 - `src/composables/` - Vue Composables
   - `useMusic.js` - 音乐源管理，支持本地歌曲和 Meting API (网易云/QQ音乐等)
+  - `usePomodoro.js` - 番茄钟核心逻辑：计时、状态管理、通知
   - `useOnlineCount.js` - WebSocket 在线人数
   - `useServerConfig.js` - 计数服务器配置
   - `useCache.js` - 缓存管理 (Service Worker/localStorage/内存)
-- `src/services/meting.js` - Meting API 封装，获取歌单
+  - `usePWA.js` - PWA 安装和更新提示
+  - `usePlaylistDetection.js` - 歌单 URL 检测和解析
+- `src/config/` - 配置文件
+  - `constants.js` - 统一常量配置（缓存名称、API配置、存储键、重连策略等）
+- `src/services/` - 服务层
+  - `meting.js` - Meting API 封装，获取歌单
+  - `spotify.js` - Spotify 歌单 ID 管理和解析
 - `src/utils/` - 工具函数
   - `eventBus.js` - 事件总线，管理 APlayer 实例和 UI 交互状态
   - `userSettings.js` - 用户设置持久化 (番茄钟时长、视频/音乐索引)
   - `cache.js` - 资源加载和预加载
-  - `audioPrefetch.js` - 音频预加载
+  - `audioPrefetch.js` - 音频预加载和缓存管理
+  - `storage.js` - localStorage 安全封装，提供容错机制
+  - `pwaDetector.js` - PWA 模式检测 (独立窗口/浏览器标签页)
+  - `swCallback.js` - Service Worker 更新回调处理
+- `src/styles/` - 样式文件
+  - `common.scss` - 全局公共样式和 Vue 过渡动画定义
+  - `pomodoro.scss` - 番茄钟组件专用样式
 
 ### 后端 (Cloudflare Workers + Durable Objects)
 
@@ -44,6 +57,8 @@ npm run deploy:worker    # 部署到 Cloudflare Workers
   - `GET /ws` - WebSocket 连接
   - `GET /count` - 获取在线人数
 - `workers/online-counter.js` - Durable Object 实现在线计数
+- `workers/middleware/cors.js` - CORS 中间件
+- `workers/services/counter.js` - Counter 服务封装
 - `wrangler.toml` - Worker 配置，包含 Durable Objects 绑定
 
 ### PWA
