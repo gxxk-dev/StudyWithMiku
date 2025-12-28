@@ -3,6 +3,9 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(new Date().toISOString().slice(0, 10).replace(/-/g, ''))
+  },
   plugins: [
     vue(),
     VitePWA({
@@ -110,7 +113,7 @@ export default defineConfig({
         clientsClaim: true
       },
       devOptions: {
-        enabled: true,
+        enabled: false, 
         type: 'module'
       }
     })

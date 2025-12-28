@@ -43,6 +43,13 @@
       @touchstart="onUITouchStart"
       @touchend="onUITouchEnd"
     />
+
+    <!-- PWA 功能面板 -->
+    <PWAPanel
+      :visible="showControls"
+      @mouseenter="onUIMouseEnter"
+      @mouseleave="onUIMouseLeave"
+    />
   </div>
 </template>
 
@@ -56,6 +63,7 @@ import { useMusic } from './composables/useMusic.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
+import PWAPanel from './components/PWAPanel.vue'
 
 const APLAYER_CSS_URL = 'https://unpkg.com/aplayer@1.10.1/dist/APlayer.min.css'
 

@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { clearCache as clearMemoryCache, clearAllCache as clearAllMemoryCache, cache } from '../utils/cache.js'
 import { prefetchPlaylistAudios } from '../utils/audioPrefetch.js'
+import { isPWAMode } from '../utils/pwaDetector.js'
 
 const CACHE_NAMES = [
   'video-cache',
@@ -25,6 +26,7 @@ export const useCache = () => {
     memory: {}
   })
   const loading = ref(false)
+  const isPWA = ref(isPWAMode()) // 新增：PWA 模式状态
 
   // 格式化字节数
   const formatBytes = (bytes) => {
@@ -287,6 +289,7 @@ export const useCache = () => {
   return {
     cacheStats,
     loading,
+    isPWA,  // 新增：暴露 PWA 模式状态
     refreshCacheStats,
     clearServiceWorkerCache,
     clearLocalStorageCategory,
