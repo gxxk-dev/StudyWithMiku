@@ -23,7 +23,15 @@
         <span class="seconds">{{ formattedSeconds }}</span>
       </div>
       <span class="countdown-divider" aria-hidden="true"></span>
-      <div class="status-badge" :class="statusClass">
+      <div
+        class="status-badge"
+        :class="statusClass"
+        @click.stop="togglePomodoroTimer"
+        @mouseenter="onUIMouseEnter"
+        @mouseleave="onUIMouseLeave"
+        @touchstart="onUITouchStart"
+        @touchend="onUITouchEnd"
+      >
         {{ statusText }}
       </div>
     </div>
@@ -208,6 +216,18 @@ const toggleSettings = () => {
 
 const closeSettings = () => {
   showSettings.value = false
+}
+
+// 暂停/恢复切换
+const togglePomodoroTimer = () => {
+  // 时间已用完时不允许操作
+  if (timeLeft.value <= 0) return
+
+  if (isRunning.value) {
+    pauseTimer()
+  } else {
+    startTimer()
+  }
 }
 
 // 服务器面板操作
@@ -409,6 +429,17 @@ onUnmounted(() => {
 
 .status-badge {
   @extend .pomodoro-status-badge;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
 // 设置面板
