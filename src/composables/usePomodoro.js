@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { duckMusicForNotification } from '../utils/eventBus.js'
-import { getPomodoroSettings, savePomodoroSettings } from '../utils/userSettings.js'
+import { getPomodoroSettings, savePomodoroSettings, saveTimerState, getTimerState, clearTimerState } from '../utils/userSettings.js'
 
 const NOTIFICATION_AUDIO_URL = 'https://assets.frez79.io/swm/BreakOrWork.mp3'
 
@@ -21,6 +21,7 @@ export function usePomodoro() {
 
   const timer = ref(null)
   const notificationAudio = ref(null)
+  const endTime = ref(null) // 计时器结束的绝对时间戳(毫秒)
 
   // Computed properties
   const formattedMinutes = computed(() => {
@@ -87,9 +88,16 @@ export function usePomodoro() {
     }
   }
 
-  const handleTimerComplete = () => {
-    playNotificationSound()
+  const handleTimerComplete = (isSilent = false) => {
+    const previousStatus = statusText.value
+    endTime.value = null // 确保清理状态
 
+    // 只在实时完成时播放通知和音频
+    if (!isSilent) {
+      playNotificationSound()
+    }
+
+    // 切换到下一阶段，但不自动开始
     if (currentStatus.value === STATUS.FOCUS) {
       completedPomodoros.value++
 
@@ -105,11 +113,16 @@ export function usePomodoro() {
       timeLeft.value = focusDuration.value * 60
     }
 
-    showNotification()
+    console.log(`[Pomodoro] ${previousStatus}阶段完成 → 切换到${statusText.value}阶段 (完成计数: ${completedPomodoros.value}, 静默模式: ${isSilent})`)
 
-    setTimeout(() => {
-      startTimer()
-    }, 1000)
+    // 只在实时完成时显示通知
+    if (!isSilent) {
+      showNotification()
+    }
+
+    // 删除原有的自动开始逻辑
+    // 现在需要用户手动点击开始下一阶段
+    // 禁止自动累积多个阶段
   }
 
   const startTimer = () => {
@@ -117,18 +130,39 @@ export function usePomodoro() {
 
     pauseTimer()
 
+    // 计算结束时间 (当前时间 + 剩余秒数 * 1000)
+    endTime.value = Date.now() + timeLeft.value * 1000
+    const endDate = new Date(endTime.value)
+    console.log(`[Pomodoro] 计时器启动 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒, 预计结束时间: ${endDate.toLocaleTimeString()}`)
+
     isRunning.value = true
     timer.value = setInterval(() => {
-      timeLeft.value--
-      if (timeLeft.value <= 0) {
+      // 基于绝对时间计算剩余时间
+      const remaining = Math.ceil((endTime.value - Date.now()) / 1000)
+
+      if (remaining <= 0) {
+        timeLeft.value = 0
         clearInterval(timer.value)
-        handleTimerComplete()
+        endTime.value = null
+
+        // 检测是否延迟完成 (超过 5 秒)
+        const isSilent = remaining < -5
+        if (isSilent) {
+          console.log(`[Pomodoro] 延迟完成检测 - 延迟 ${Math.abs(remaining)} 秒，静默完成模式`)
+        } else {
+          console.log(`[Pomodoro] 计时器完成 - 实时完成，播放通知`)
+        }
+        handleTimerComplete(isSilent)
+      } else {
+        timeLeft.value = remaining
       }
     }, 1000)
   }
 
   const pauseTimer = () => {
+    console.log(`[Pomodoro] 计时器暂停 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒`)
     isRunning.value = false
+    endTime.value = null // 清除绝对时间，保留 timeLeft
     if (timer.value) {
       clearInterval(timer.value)
       timer.value = null
@@ -136,6 +170,7 @@ export function usePomodoro() {
   }
 
   const resetTimer = () => {
+    console.log(`[Pomodoro] 计时器重置`)
     pauseTimer()
     timeLeft.value = focusDuration.value * 60
     currentStatus.value = STATUS.FOCUS
@@ -153,12 +188,53 @@ export function usePomodoro() {
 
   // Lifecycle
   onMounted(async () => {
+    // 恢复计时器状态
+    const savedState = getTimerState()
+
+    if (savedState && savedState.isRunning && savedState.endTime) {
+      // 检查是否已经过期
+      const remaining = Math.ceil((savedState.endTime - Date.now()) / 1000)
+      const savedDate = new Date(savedState.savedAt)
+
+      console.log(`[Pomodoro] 检测到已保存的计时器状态 - 保存时间: ${savedDate.toLocaleString()}, 剩余: ${remaining}秒`)
+
+      if (remaining > 0) {
+        // 恢复状态
+        timeLeft.value = remaining
+        currentStatus.value = savedState.currentStatus
+        completedPomodoros.value = savedState.completedPomodoros
+        console.log(`[Pomodoro] 恢复计时器 - 阶段: ${statusText.value}, 剩余: ${remaining}秒`)
+        startTimer() // 自动恢复计时
+      } else {
+        // 已过期，清理状态
+        console.log(`[Pomodoro] 计时器已过期 (${Math.abs(remaining)}秒前)，清理状态`)
+        clearTimerState()
+      }
+    } else {
+      console.log(`[Pomodoro] 未检测到保存的计时器状态`)
+    }
+
+    // 请求通知权限
     if ('Notification' in window && Notification.permission === 'default') {
       await Notification.requestPermission()
     }
   })
 
   onUnmounted(() => {
+    // 如果正在运行，保存状态
+    if (isRunning.value && endTime.value) {
+      console.log(`[Pomodoro] 组件卸载 - 保存计时器状态 (阶段: ${statusText.value}, 剩余: ${timeLeft.value}秒)`)
+      saveTimerState({
+        endTime: endTime.value,
+        timeLeft: timeLeft.value,
+        isRunning: isRunning.value,
+        currentStatus: currentStatus.value,
+        completedPomodoros: completedPomodoros.value
+      })
+    } else {
+      console.log(`[Pomodoro] 组件卸载 - 计时器未运行，清理状态`)
+    }
+
     if (timer.value) {
       clearInterval(timer.value)
     }
@@ -170,6 +246,26 @@ export function usePomodoro() {
       notificationAudio.value.pause()
       notificationAudio.value.src = ''
       notificationAudio.value = null
+    }
+  })
+
+  // 自动保存计时器状态
+  watch([timeLeft, isRunning, currentStatus, endTime], () => {
+    if (isRunning.value && endTime.value) {
+      const state = {
+        endTime: endTime.value,
+        timeLeft: timeLeft.value,
+        isRunning: isRunning.value,
+        currentStatus: currentStatus.value,
+        completedPomodoros: completedPomodoros.value
+      }
+      saveTimerState(state)
+      // 每30秒输出一次状态日志，避免日志过多
+      if (timeLeft.value % 30 === 0) {
+        console.log(`[Pomodoro] 状态已保存 - 阶段: ${statusText.value}, 剩余: ${timeLeft.value}秒`)
+      }
+    } else if (!isRunning.value) {
+      clearTimerState()
     }
   })
 

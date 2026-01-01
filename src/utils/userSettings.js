@@ -80,3 +80,40 @@ export const saveMusicIndex = (index) => {
 export const getMusicIndex = () => {
   return getSettings().music.currentSongIndex
 }
+
+export const saveTimerState = (state) => {
+  try {
+    const settings = getSettings()
+    settings.timerState = {
+      endTime: state.endTime,
+      timeLeft: state.timeLeft,
+      isRunning: state.isRunning,
+      currentStatus: state.currentStatus,
+      completedPomodoros: state.completedPomodoros,
+      savedAt: Date.now()
+    }
+    saveSettings(settings)
+  } catch (e) {
+    console.error('[Settings] 保存计时器状态失败:', e.message)
+  }
+}
+
+export const getTimerState = () => {
+  try {
+    return getSettings().timerState || null
+  } catch (e) {
+    console.error('[Settings] 读取计时器状态失败:', e.message)
+    return null
+  }
+}
+
+export const clearTimerState = () => {
+  try {
+    const settings = getSettings()
+    delete settings.timerState
+    saveSettings(settings)
+    console.log('[Settings] 计时器状态已清理')
+  } catch (e) {
+    console.error('[Settings] 清理计时器状态失败:', e.message)
+  }
+}
