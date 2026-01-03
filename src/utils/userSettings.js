@@ -1,3 +1,5 @@
+import { safeLocalStorageGet, safeLocalStorageSet } from './storage.js'
+
 const STORAGE_KEY = 'study_with_miku_settings'
 
 const defaultSettings = {
@@ -18,15 +20,13 @@ const defaultSettings = {
  * @internal 仅供模块内部使用，外部请使用具体的 get/save 函数
  */
 const getSettings = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
+  const stored = safeLocalStorageGet(STORAGE_KEY)
+  if (stored) {
+    try {
       return { ...defaultSettings, ...JSON.parse(stored) }
-    }
-  } catch (e) {
-    console.warn('读取设置失败，将使用默认设置:', e.message)
-    if (e.name === 'QuotaExceededError') {
-      console.warn('localStorage 存储空间不足')
+    } catch (e) {
+      console.warn('读取设置失败，将使用默认设置:', e.message)
+      return { ...defaultSettings }
     }
   }
   return { ...defaultSettings }
@@ -37,18 +37,9 @@ const getSettings = () => {
  * @internal 仅供模块内部使用，外部请使用具体的 get/save 函数
  */
 const saveSettings = (settings) => {
-  try {
-    const current = getSettings()
-    const merged = { ...current, ...settings }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
-  } catch (e) {
-    console.warn('保存设置失败:', e.message)
-    if (e.name === 'QuotaExceededError') {
-      console.warn('localStorage 存储空间不足，请清理浏览器缓存')
-    } else if (e.name === 'SecurityError') {
-      console.warn('浏览器安全策略阻止访问 localStorage（可能处于无痕模式）')
-    }
-  }
+  const current = getSettings()
+  const merged = { ...current, ...settings }
+  safeLocalStorageSet(STORAGE_KEY, JSON.stringify(merged))
 }
 
 export const savePomodoroSettings = (focusDuration, breakDuration) => {
@@ -82,20 +73,15 @@ export const getMusicIndex = () => {
 }
 
 export const saveTimerState = (state) => {
-  try {
-    const settings = getSettings()
-    settings.timerState = {
-      endTime: state.endTime,
-      timeLeft: state.timeLeft,
-      isRunning: state.isRunning,
-      currentStatus: state.currentStatus,
-      completedPomodoros: state.completedPomodoros,
-      savedAt: Date.now()
-    }
-    saveSettings(settings)
-  } catch (e) {
-    console.error('[Settings] 保存计时器状态失败:', e.message)
+  const settings = getSettings()
+  settings.timerState = {
+    endTime: state.endTime,
+    isRunning: state.isRunning,
+    currentStatus: state.currentStatus,
+    completedPomodoros: state.completedPomodoros,
+    savedAt: Date.now()
   }
+  saveSettings(settings)
 }
 
 export const getTimerState = () => {

@@ -191,7 +191,7 @@ export function usePomodoro() {
     // 恢复计时器状态
     const savedState = getTimerState()
 
-    if (savedState && savedState.isRunning && savedState.endTime) {
+    if (savedState?.isRunning && savedState.endTime) {
       // 检查是否已经过期
       const remaining = Math.ceil((savedState.endTime - Date.now()) / 1000)
       const savedDate = new Date(savedState.savedAt)
@@ -226,7 +226,6 @@ export function usePomodoro() {
       console.log(`[Pomodoro] 组件卸载 - 保存计时器状态 (阶段: ${statusText.value}, 剩余: ${timeLeft.value}秒)`)
       saveTimerState({
         endTime: endTime.value,
-        timeLeft: timeLeft.value,
         isRunning: isRunning.value,
         currentStatus: currentStatus.value,
         completedPomodoros: completedPomodoros.value
@@ -249,21 +248,17 @@ export function usePomodoro() {
     }
   })
 
-  // 自动保存计时器状态
-  watch([timeLeft, isRunning, currentStatus, endTime], () => {
+  // 只在状态变化时保存计时器状态（优化：不再每秒触发）
+  watch([isRunning, currentStatus, completedPomodoros], () => {
     if (isRunning.value && endTime.value) {
       const state = {
         endTime: endTime.value,
-        timeLeft: timeLeft.value,
-        isRunning: isRunning.value,
+        isRunning: true,
         currentStatus: currentStatus.value,
         completedPomodoros: completedPomodoros.value
       }
       saveTimerState(state)
-      // 每30秒输出一次状态日志，避免日志过多
-      if (timeLeft.value % 30 === 0) {
-        console.log(`[Pomodoro] 状态已保存 - 阶段: ${statusText.value}, 剩余: ${timeLeft.value}秒`)
-      }
+      console.log(`[Pomodoro] 状态已保存 - 阶段: ${statusText.value}, 结束时间: ${new Date(endTime.value).toLocaleTimeString()}`)
     } else if (!isRunning.value) {
       clearTimerState()
     }
