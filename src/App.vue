@@ -66,6 +66,7 @@ import { useMusic } from './composables/useMusic.js'
 import { usePWA } from './composables/usePWA.js'
 import { setSwUpdateCallback } from './utils/swCallback.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
+import { initializeMediaSession, cleanupMediaSession } from './utils/mediaSession.js'
 import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
@@ -165,7 +166,7 @@ const aplayerInitialized = ref(false)
 const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
 // 事件监听器数组（不需要响应式）
 let autoplayUnlockListeners = []
-const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId } = useMusic()
+const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId, platform, playlistId } = useMusic()
 const { setHasUpdate } = usePWA()
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
@@ -232,6 +233,13 @@ const stopShowControlsWatch = watch(showControls, (newValue) => {
       playerElement.style.opacity = '0'
       playerElement.style.pointerEvents = 'none'
     }
+  }
+})
+
+// 监听平台切换，清理旧播放器的 Media Session
+watch(() => platform.value, (newPlatform, oldPlatform) => {
+  if (oldPlatform !== newPlatform) {
+    cleanupMediaSession()
   }
 })
 
@@ -319,6 +327,14 @@ onMounted(() => {
     }
     aplayerInitialized.value = true
     setAPlayerInstance(aplayer.value)
+
+    // 初始化 Media Session
+    initializeMediaSession('aplayer', aplayer.value, {
+      songs: songs.value,
+      platform: platform.value,
+      playlistId: playlistId.value
+    })
+
     attemptAPlayerAutoplay()
   }
   preloadAllVideos().catch(err => {
@@ -349,6 +365,7 @@ onUnmounted(() => {
   }
 
   if (aplayer.value) {
+    cleanupMediaSession()
     aplayer.value.destroy()
   }
   removeAutoplayUnlockListeners()

@@ -21,8 +21,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { getSpotifyEmbedUrl } from '../services/spotify.js'
+import { initializeMediaSession, cleanupMediaSession } from '../utils/mediaSession.js'
 
 const props = defineProps({
   playlistId: {
@@ -43,6 +44,29 @@ defineEmits(['mouseenter', 'mouseleave', 'touchstart', 'touchend'])
 
 const embedUrl = computed(() => {
   return getSpotifyEmbedUrl(props.playlistId, { theme: props.theme })
+})
+
+// 监听 playlistId 变化，更新 Media Session 静态元数据
+watch(() => props.playlistId, (newId) => {
+  if (newId) {
+    initializeMediaSession('spotify', null, {
+      playlistId: newId,
+      platform: 'spotify'
+    })
+  }
+})
+
+onMounted(() => {
+  if (props.playlistId) {
+    initializeMediaSession('spotify', null, {
+      playlistId: props.playlistId,
+      platform: 'spotify'
+    })
+  }
+})
+
+onUnmounted(() => {
+  cleanupMediaSession()
 })
 </script>
 
