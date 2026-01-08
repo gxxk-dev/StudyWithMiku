@@ -7,7 +7,8 @@ const NOTIFICATION_AUDIO_URL = 'https://assets.frez79.io/swm/BreakOrWork.mp3'
 export const STATUS = {
   FOCUS: 'focus',
   BREAK: 'break',
-  LONG_BREAK: 'longBreak'
+  LONG_BREAK: 'longBreak',
+  PAUSED: 'paused'
 }
 
 export function usePomodoro() {
@@ -17,6 +18,7 @@ export function usePomodoro() {
   const timeLeft = ref(focusDuration.value * 60)
   const isRunning = ref(false)
   const currentStatus = ref(STATUS.FOCUS)
+  const previousStatus = ref(STATUS.FOCUS) // 保存暂停前的阶段状态
   const completedPomodoros = ref(0)
 
   const timer = ref(null)
@@ -37,6 +39,7 @@ export function usePomodoro() {
       case STATUS.FOCUS: return '专注'
       case STATUS.BREAK: return '休息'
       case STATUS.LONG_BREAK: return '长休'
+      case STATUS.PAUSED: return '暂停'
       default: return '专注'
     }
   })
@@ -46,12 +49,14 @@ export function usePomodoro() {
       case STATUS.FOCUS: return 'focus'
       case STATUS.BREAK: return 'break'
       case STATUS.LONG_BREAK: return 'long-break'
+      case STATUS.PAUSED: return 'paused'
       default: return 'focus'
     }
   })
 
   const totalTime = computed(() => {
-    return currentStatus.value === STATUS.FOCUS
+    const status = currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
+    return status === STATUS.FOCUS
       ? focusDuration.value * 60
       : breakDuration.value * 60
   })
@@ -128,7 +133,12 @@ export function usePomodoro() {
   const startTimer = () => {
     if (timeLeft.value <= 0) return
 
-    pauseTimer()
+    pauseTimer(false) // 内部清理，不设置暂停状态
+
+    // 从暂停状态恢复
+    if (currentStatus.value === STATUS.PAUSED) {
+      currentStatus.value = previousStatus.value
+    }
 
     // 计算结束时间 (当前时间 + 剩余秒数 * 1000)
     endTime.value = Date.now() + timeLeft.value * 1000
@@ -159,7 +169,12 @@ export function usePomodoro() {
     }, 1000)
   }
 
-  const pauseTimer = () => {
+  const pauseTimer = (setPausedStatus = true) => {
+    // 只在用户手动暂停且计时器正在运行时设置暂停状态
+    if (setPausedStatus && isRunning.value && currentStatus.value !== STATUS.PAUSED) {
+      previousStatus.value = currentStatus.value
+      currentStatus.value = STATUS.PAUSED
+    }
     console.log(`[Pomodoro] 计时器暂停 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒`)
     isRunning.value = false
     endTime.value = null // 清除绝对时间，保留 timeLeft
@@ -171,16 +186,18 @@ export function usePomodoro() {
 
   const resetTimer = () => {
     console.log(`[Pomodoro] 计时器重置`)
-    pauseTimer()
+    pauseTimer(false) // 重置时不设置暂停状态
     timeLeft.value = focusDuration.value * 60
     currentStatus.value = STATUS.FOCUS
+    previousStatus.value = STATUS.FOCUS
   }
 
   // Watch duration changes
   const stopDurationWatcher = watch([focusDuration, breakDuration], ([newFocus, newBreak]) => {
-    if (currentStatus.value === STATUS.FOCUS && !isRunning.value) {
+    const effectiveStatus = currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
+    if (effectiveStatus === STATUS.FOCUS && !isRunning.value) {
       timeLeft.value = newFocus * 60
-    } else if (currentStatus.value !== STATUS.FOCUS && !isRunning.value) {
+    } else if (effectiveStatus !== STATUS.FOCUS && !isRunning.value) {
       timeLeft.value = newBreak * 60
     }
     savePomodoroSettings(newFocus, newBreak)

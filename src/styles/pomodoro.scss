@@ -1,6 +1,7 @@
 $color-focus: #ff6b6b;
 $color-break: #4ecdc4;
 $color-long-break: #45b7d1;
+$color-paused: #ffc107;
 $color-success: #4caf50;
 $color-warning: #ffc107;
 $color-danger: #f44336;
@@ -29,6 +30,8 @@ $radius-xl: 20px;
     color: $color-break;
   } @else if $status == 'long-break' {
     color: $color-long-break;
+  } @else if $status == 'paused' {
+    color: $color-paused;
   }
 }
 
@@ -162,6 +165,10 @@ $radius-xl: 20px;
 
   &.long-break {
     @include status-color('long-break');
+  }
+
+  &.paused {
+    @include status-color('paused');
   }
 }
 
