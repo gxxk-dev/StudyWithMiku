@@ -28,7 +28,11 @@
     </button>
     
     <!-- 番茄钟！＞﹏＜ -->
-    <PomodoroTimer />
+    <PomodoroTimer
+      :current-video-index="currentVideoIndex"
+      :video-list="videos"
+      @video-change="handleVideoChange"
+    />
 
     <!-- APlayer 播放器 (网易云/QQ音乐) -->
     <div v-show="!isSpotify" id="aplayer" class="aplayer-container"></div>
@@ -172,6 +176,15 @@ const switchVideo = () => {
   currentVideoIndex.value = (currentVideoIndex.value + 1) % videos.length
   currentVideo.value = videos[currentVideoIndex.value]
   saveVideoIndex(currentVideoIndex.value)
+}
+
+// 处理视频切换（从设置面板）
+const handleVideoChange = (index) => {
+  if (index >= 0 && index < videos.length) {
+    currentVideoIndex.value = index
+    currentVideo.value = videos[index]
+    saveVideoIndex(index)
+  }
 }
 
 const hideVConsoleSwitch = () => {

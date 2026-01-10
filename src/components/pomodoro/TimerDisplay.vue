@@ -1,12 +1,12 @@
 <template>
-  <div class="timer-display">
+  <div class="timer-display" :class="{ 'timer-display--large': size === 'large' }">
     <div class="time-circle">
-      <svg class="progress-ring" width="120" height="120">
+      <svg class="progress-ring" :width="circleSize" :height="circleSize">
         <circle
           class="progress-ring-background"
-          cx="60"
-          cy="60"
-          r="54"
+          :cx="circleSize / 2"
+          :cy="circleSize / 2"
+          :r="radius"
           stroke="rgba(255, 255, 255, 0.2)"
           stroke-width="5"
           fill="transparent"
@@ -14,15 +14,15 @@
         <circle
           class="progress-ring-fill"
           :class="statusClass"
-          cx="60"
-          cy="60"
-          r="54"
+          :cx="circleSize / 2"
+          :cy="circleSize / 2"
+          :r="radius"
           stroke="currentColor"
           stroke-width="5"
           fill="transparent"
           :stroke-dasharray="circumference"
           :stroke-dashoffset="strokeDashoffset"
-          transform="rotate(-90 60 60)"
+          :transform="`rotate(-90 ${circleSize / 2} ${circleSize / 2})`"
         />
       </svg>
       <div class="time-text">
@@ -49,6 +49,11 @@ const props = defineProps({
   statusClass: {
     type: String,
     default: 'focus'
+  },
+  size: {
+    type: String,
+    default: 'normal', // 'normal' | 'large'
+    validator: (value) => ['normal', 'large'].includes(value)
   }
 })
 
@@ -60,7 +65,13 @@ const formattedSeconds = computed(() => {
   return (props.timeLeft % 60).toString().padStart(2, '0')
 })
 
-const circumference = computed(() => 2 * Math.PI * 54)
+// 计算圆形尺寸和半径
+const circleSize = computed(() => props.size === 'large' ? 200 : 120)
+const radius = computed(() => props.size === 'large' ? 90 : 54)
+
+const circumference = computed(() => {
+  return 2 * Math.PI * radius.value
+})
 
 const strokeDashoffset = computed(() => {
   const progress = (props.totalTime - props.timeLeft) / props.totalTime
@@ -73,6 +84,10 @@ const strokeDashoffset = computed(() => {
 
 .timer-display {
   margin-bottom: 1.5rem;
+
+  &.timer-display--large {
+    margin-bottom: 2rem;
+  }
 }
 
 .time-circle {
@@ -82,8 +97,6 @@ const strokeDashoffset = computed(() => {
 
 .progress-ring {
   display: block;
-  width: 120px;
-  height: 120px;
 }
 
 .progress-ring-fill {
@@ -107,9 +120,43 @@ const strokeDashoffset = computed(() => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: 1.8rem;
   font-weight: 300;
   font-family: 'Courier New', monospace;
   color: white;
+
+  // 默认尺寸
+  font-size: 1.8rem;
+
+  // 大尺寸模式
+  .timer-display--large & {
+    font-size: 2.8rem;
+  }
+}
+
+// 响应式
+@media (max-width: 768px) {
+  .timer-display--large {
+    .time-circle svg {
+      width: 180px !important;
+      height: 180px !important;
+    }
+
+    .time-text {
+      font-size: 2.4rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-display--large {
+    .time-circle svg {
+      width: 150px !important;
+      height: 150px !important;
+    }
+
+    .time-text {
+      font-size: 2rem;
+    }
+  }
 }
 </style>

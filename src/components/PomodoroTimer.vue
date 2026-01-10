@@ -54,49 +54,43 @@
           </div>
 
           <div class="settings-content">
-            <!-- 番茄钟区域 -->
-            <section class="settings-section pomodoro-section">
-              <div class="timer-container">
-                <div class="status-indicator">
-                  <span class="status-text" :class="statusClass">{{ statusText }}</span>
-                </div>
-
-                <TimerDisplay
-                  :time-left="timeLeft"
-                  :total-time="totalTime"
-                  :status-class="statusClass"
-                />
-
-                <TimerControls
-                  :is-running="isRunning"
-                  :disabled="timeLeft <= 0"
-                  @start="startTimer"
-                  @pause="pauseTimer"
-                  @reset="resetTimer"
-                />
-
-                <TimerSettings
-                  v-model:focus-duration="focusDuration"
-                  v-model:break-duration="breakDuration"
-                  :disabled="isRunning"
-                />
-
-                <PomodoroCounter
-                  :completed="completedPomodoros"
-                  :total="4"
-                />
-              </div>
-            </section>
-
-            <!-- 歌单区域 -->
-            <section class="settings-section playlist-section">
-              <PlaylistPanel
-                :platforms="PLATFORMS"
-                :initial-platform="platform"
-                @apply="handleApplyPlaylist"
-                @reset="handleResetPlaylist"
-              />
-            </section>
+            <!-- 标签页系统 -->
+            <SettingsTabs
+              :focus-duration="focusDuration"
+              :break-duration="breakDuration"
+              :time-left="timeLeft"
+              :is-running="isRunning"
+              :completed-pomodoros="completedPomodoros"
+              :formatted-minutes="formattedMinutes"
+              :formatted-seconds="formattedSeconds"
+              :status-text="statusText"
+              :status-class="statusClass"
+              :total-time="totalTime"
+              :platform="platform"
+              :songs="songs"
+              :platforms="PLATFORMS"
+              :server-list="serverList"
+              :selected-server-id="selectedServerId"
+              :custom-server-url="customServerUrl"
+              :auto-fallback="autoFallback"
+              :is-connected="isConnected"
+              :server-latencies="serverLatencies"
+              :current-video-index="props.currentVideoIndex"
+              :video-list="props.videoList"
+              @timer-start="startTimer"
+              @timer-pause="pauseTimer"
+              @timer-reset="resetTimer"
+              @update:focus-duration="focusDuration = $event"
+              @update:break-duration="breakDuration = $event"
+              @playlist-apply="handleApplyPlaylist"
+              @playlist-reset="handleResetPlaylist"
+              @server-select="handleSelectServer"
+              @server-apply-custom="applyCustomServer"
+              @update:custom-server-url="customServerUrl = $event"
+              @update:auto-fallback="autoFallback = $event"
+              @video-change="$emit('video-change', $event)"
+              @cache-clear="handleCacheClear"
+            />
           </div>
         </div>
       </div>
@@ -135,6 +129,22 @@ import TimerSettings from './pomodoro/TimerSettings.vue'
 import PlaylistPanel from './pomodoro/PlaylistPanel.vue'
 import ServerPanel from './pomodoro/ServerPanel.vue'
 import PomodoroCounter from './pomodoro/PomodoroCounter.vue'
+import SettingsTabs from './settings/SettingsTabs.vue'
+
+// 定义 emits
+const emit = defineEmits(['video-change'])
+
+// 定义 props（从 App.vue 接收视频状态）
+const props = defineProps({
+  currentVideoIndex: {
+    type: Number,
+    default: 0
+  },
+  videoList: {
+    type: Array,
+    default: () => []
+  }
+})
 
 // 服务器配置
 const {
@@ -327,6 +337,12 @@ const onUIMouseLeave = () => setHoveringUI(false)
 const onUITouchStart = () => setHoveringUI(true)
 const onUITouchEnd = () => setHoveringUI(false)
 
+// 缓存清除处理（占位符，实际逻辑在未来实现）
+const handleCacheClear = (cacheType) => {
+  console.log('清除缓存:', cacheType)
+  // TODO: 实现缓存清除逻辑
+}
+
 // 生命周期
 onMounted(() => {
   timeUpdateInterval.value = setInterval(() => {
@@ -458,7 +474,7 @@ onUnmounted(() => {
 
 .settings-panel {
   @include glass-panel;
-  max-width: 400px;
+  max-width: 550px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
