@@ -68,22 +68,29 @@ export const usePWA = () => {
       return
     }
     try {
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations()
-        await Promise.all(registrations.map(async (registration) => {
-          await registration.update()
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-          }
-        }))
-      }
+      // 1. 先清理所有缓存
       if (window.caches && typeof window.caches.keys === 'function') {
         const keys = await window.caches.keys()
         await Promise.all(keys.map((key) => window.caches.delete(key)))
       }
+
+      // 2. 注销所有 Service Worker（关键改动）
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(registrations.map(async (registration) => {
+          // 先尝试让等待中的 SW 跳过等待
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+          }
+          // 然后注销 Service Worker
+          await registration.unregister()
+        }))
+      }
     } catch (error) {
       console.warn('强制刷新时清理缓存失败:', error)
     }
+
+    // 3. 添加 sw-bust 参数并刷新
     const url = new URL(window.location.href)
     url.searchParams.set('sw-bust', Date.now().toString())
     window.location.replace(url.toString())

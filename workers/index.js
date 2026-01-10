@@ -34,7 +34,5 @@ app.get('/ws', async (c) => {
   }
 })
 
-app.notFound((c) => c.env.ASSETS.fetch(c.req.raw))
-
 export default app
 export { OnlineCounter }
