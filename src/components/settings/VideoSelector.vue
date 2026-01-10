@@ -13,8 +13,8 @@
       >
         <div class="radio-indicator"></div>
         <div class="item-info">
-          <div class="item-label">视频 {{ index + 1 }}</div>
-          <div class="item-url">{{ getVideoName(video) }}</div>
+          <div class="item-label">{{ getVideoLabel(index) }}</div>
+          <div class="item-url">{{ video }}</div>
         </div>
       </div>
     </div>
@@ -40,19 +40,17 @@ const props = defineProps({
 
 const emit = defineEmits(['video-change'])
 
+// 视频名称映射
+const videoLabels = ['PART 4', 'PART SEKAI', 'PART 1-3']
+
+// 获取视频标签
+const getVideoLabel = (index) => {
+  return videoLabels[index] || `视频 ${index + 1}`
+}
+
 // 选择视频
 const selectVideo = (index) => {
   emit('video-change', index)
-}
-
-// 从URL提取视频名称
-const getVideoName = (url) => {
-  try {
-    const parts = url.split('/')
-    return parts[parts.length - 1]
-  } catch {
-    return url
-  }
 }
 </script>
 
