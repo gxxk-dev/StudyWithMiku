@@ -51,6 +51,15 @@
       @mouseleave="onUIMouseLeave"
     />
 
+    <!-- Toast 通知 -->
+    <Toast
+      :visible="toastState.visible"
+      :type="toastState.type"
+      :title="toastState.title"
+      :message="toastState.message"
+      @close="hideToast"
+    />
+
     <!-- 横屏提示 -->
     <OrientationPrompt />
   </div>
@@ -67,10 +76,14 @@ import { usePWA } from './composables/usePWA.js'
 import { setSwUpdateCallback } from './utils/swCallback.js'
 import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import { initializeMediaSession, cleanupMediaSession } from './utils/mediaSession.js'
+import { useUrlParams } from './composables/useUrlParams.js'
+import { useToast } from './composables/useToast.js'
+import { setUrlConfig, usePomodoro } from './composables/usePomodoro.js'
 import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
+import Toast from './components/Toast.vue'
 
 const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
 
@@ -78,6 +91,21 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
 const inactivityTimer = ref(null)
 const vConsoleInstance = ref(null)
+
+// Toast 状态
+const { toastState, showToast, hideToast } = useToast()
+
+// 番茄钟控制（用于自动启动）
+const { startTimer: pomodoroStartTimer } = usePomodoro()
+
+// === URL 参数处理（必须在组件初始化之前执行）===
+const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
+
+// 立即应用番茄钟配置（在 PomodoroTimer 组件初始化之前）
+if (hasUrlParams.value && (urlConfig.value.pomodoro || urlConfig.value.shortBreak || urlConfig.value.longBreak)) {
+  setUrlConfig(urlConfig.value)
+  console.log('[App] 已提前应用 URL 番茄钟配置:', urlConfig.value)
+}
 
 const startHideTimer = () => {
   if (inactivityTimer.value) {
@@ -166,7 +194,7 @@ const aplayerInitialized = ref(false)
 const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
 // 事件监听器数组（不需要响应式）
 let autoplayUnlockListeners = []
-const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId, platform, playlistId } = useMusic()
+const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId, platform, playlistId, applyUrlPlaylist } = useMusic()
 const { setHasUpdate } = usePWA()
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
@@ -251,6 +279,68 @@ onMounted(() => {
     console.log('检测到新版本可用')
     setHasUpdate(true)
   })
+
+  // === URL 参数处理（Toast 显示和歌单处理）===
+  if (hasUrlParams.value) {
+    const config = urlConfig.value
+
+    // 1. 构建配置摘要
+    const parts = []
+    if (config.pomodoro) parts.push(`专注 ${config.pomodoro} 分钟`)
+    if (config.shortBreak) parts.push(`短休 ${config.shortBreak} 分钟`)
+    if (config.longBreak) parts.push(`长休 ${config.longBreak} 分钟`)
+    if (config.playlist) {
+      const platformLabels = {
+        netease: '网易云',
+        tencent: 'QQ音乐',
+        spotify: 'Spotify'
+      }
+      parts.push(`歌单：${platformLabels[config.playlist.platform]} ${config.playlist.id}`)
+    }
+
+    const summary = parts.join('，')
+    const hasValidConfig = summary.length > 0
+    const hasWarnings = validationWarnings.value.length > 0
+
+    // 2. 显示配置提示（有效配置）
+    if (hasValidConfig) {
+      showToast('info', '已应用自定义配置', summary, 3000)
+    }
+
+    // 3. 显示验证警告（自动排队）
+    if (hasWarnings) {
+      const warningMessage = validationWarnings.value.join('；')
+      showToast('error', '部分参数无效', warningMessage, 5000)
+    }
+
+    // 4. 自动启动番茄钟
+    if (config.autoStart) {
+      const duration = config.pomodoro || 25
+      // 延迟 800ms 确保所有组件初始化完成
+      setTimeout(() => {
+        pomodoroStartTimer()
+        showToast('success', '番茄钟已启动', `专注 ${duration} 分钟`, 3000)
+        console.log('[App] 自动启动番茄钟')
+      }, 800)
+    }
+
+    // 5. 应用歌单配置（延迟 1 秒，异步执行）
+    if (config.playlist) {
+      setTimeout(async () => {
+        try {
+          const playlistConfig = `${config.playlist.platform}:${config.playlist.id}`
+          const success = await applyUrlPlaylist(playlistConfig)
+          if (!success) {
+            showToast('error', '歌单加载失败', '将使用默认歌单', 3000)
+          }
+        } catch (error) {
+          console.error('[App] 应用歌单失败:', error)
+          showToast('error', '歌单加载失败', '将使用默认歌单', 3000)
+        }
+      }, 1000)
+    }
+  }
+  // === URL 参数处理结束 ===
 
   // 初始化 vConsole
   if (window.VConsole && !vConsoleInstance.value) {

@@ -4,6 +4,18 @@ import { getPomodoroSettings, savePomodoroSettings, saveTimerState, getTimerStat
 
 const NOTIFICATION_AUDIO_URL = 'https://assets.frez79.io/swm/BreakOrWork.mp3'
 
+// URL 配置覆盖（模块级单例）
+let urlConfigOverride = null
+
+/**
+ * 设置 URL 配置覆盖
+ * @param {Object} config - URL 参数配置对象
+ */
+export function setUrlConfig(config) {
+  urlConfigOverride = config
+  console.log('[Pomodoro] 应用 URL 配置:', config)
+}
+
 export const STATUS = {
   FOCUS: 'focus',
   BREAK: 'break',
@@ -13,9 +25,14 @@ export const STATUS = {
 
 export function usePomodoro() {
   const savedPomodoro = getPomodoroSettings()
-  const focusDuration = ref(savedPomodoro.focusDuration)
-  const breakDuration = ref(savedPomodoro.breakDuration)
-  const timeLeft = ref(focusDuration.value * 60)
+
+  // URL 参数优先级最高
+  const initialFocus = urlConfigOverride?.pomodoro ?? savedPomodoro.focusDuration
+  const initialBreak = urlConfigOverride?.shortBreak ?? savedPomodoro.breakDuration
+
+  const focusDuration = ref(initialFocus)
+  const breakDuration = ref(initialBreak)
+  const timeLeft = ref(initialFocus * 60)
   const isRunning = ref(false)
   const currentStatus = ref(STATUS.FOCUS)
   const previousStatus = ref(STATUS.FOCUS) // 保存暂停前的阶段状态
@@ -60,7 +77,9 @@ export function usePomodoro() {
       case STATUS.FOCUS:
         return focusDuration.value * 60
       case STATUS.LONG_BREAK:
-        return breakDuration.value * 60 * 2  // 长休息是普通休息的 2 倍
+        // 支持 URL 自定义长休息时长
+        const longBreak = urlConfigOverride?.longBreak ?? (breakDuration.value * 2)
+        return longBreak * 60
       default:
         return breakDuration.value * 60
     }
@@ -114,7 +133,9 @@ export function usePomodoro() {
 
       if (completedPomodoros.value % 4 === 0) {
         currentStatus.value = STATUS.LONG_BREAK
-        timeLeft.value = breakDuration.value * 60 * 2
+        // 支持 URL 自定义长休息时长
+        const longBreak = urlConfigOverride?.longBreak ?? (breakDuration.value * 2)
+        timeLeft.value = longBreak * 60
       } else {
         currentStatus.value = STATUS.BREAK
         timeLeft.value = breakDuration.value * 60
@@ -213,7 +234,11 @@ export function usePomodoro() {
     } else if (effectiveStatus !== STATUS.FOCUS && !isRunning.value) {
       timeLeft.value = newBreak * 60
     }
-    savePomodoroSettings(newFocus, newBreak)
+
+    // 仅在非 URL 配置模式下保存
+    if (!urlConfigOverride) {
+      savePomodoroSettings(newFocus, newBreak)
+    }
   })
 
   // Lifecycle

@@ -189,6 +189,40 @@ export const useMusic = () => {
     spotifyPlaylistId.value = defaultId
   }
 
+  /**
+   * 从 URL 参数应用歌单配置
+   * @param {string} playlistConfig - 格式：'platform:id'
+   * @returns {Promise<boolean>} - 是否成功
+   */
+  const applyUrlPlaylist = async (playlistConfig) => {
+    const [platform, id] = playlistConfig.split(':')
+
+    if (!platform || !id) {
+      console.warn('[useMusic] 无效的歌单参数格式:', playlistConfig)
+      return false
+    }
+
+    if (!['netease', 'tencent', 'spotify'].includes(platform)) {
+      console.warn('[useMusic] 不支持的平台:', platform)
+      return false
+    }
+
+    try {
+      if (platform === 'spotify') {
+        applySpotifyPlaylist(id)
+        console.log('[useMusic] 已切换到 Spotify 歌单:', id)
+        return true
+      } else {
+        await applyCustomPlaylist(platform, id)
+        console.log('[useMusic] 已加载歌单:', platform, id)
+        return true
+      }
+    } catch (error) {
+      console.error('[useMusic] 应用 URL 歌单失败:', error)
+      return false
+    }
+  }
+
   // 清理未完成的请求
   onUnmounted(() => {
     if (abortController.value) {
@@ -214,6 +248,7 @@ export const useMusic = () => {
     setSpotifyPlaylistId,
     applySpotifyPlaylist,
     resetSpotifyToDefault,
+    applyUrlPlaylist,
     DEFAULT_PLAYLIST_ID,
     DEFAULT_SPOTIFY_PLAYLIST_ID,
     PLATFORMS
