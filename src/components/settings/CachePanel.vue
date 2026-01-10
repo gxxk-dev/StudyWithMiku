@@ -26,4 +26,19 @@ defineEmits(['cache-clear'])
     font-size: 0.95rem;
   }
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .cache-panel {
+    height: 100%;
+
+    .placeholder-section {
+      padding: 0.8rem;
+    }
+
+    .placeholder-text {
+      font-size: 0.75rem;
+    }
+  }
+}
 </style>

@@ -68,4 +68,21 @@ defineEmits(['start', 'pause', 'reset'])
 .btn-icon {
   font-size: 1rem;
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .timer-controls {
+    gap: 0.5rem;
+    margin-bottom: 0;
+  }
+
+  .control-btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-icon {
+    font-size: 0.9rem;
+  }
+}
 </style>

@@ -616,6 +616,58 @@ onUnmounted(() => {
   }
 }
 
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .settings-panel {
+    width: 95vw;
+    max-width: none;
+    height: 88vh;
+    max-height: 88vh;
+    overflow: hidden; // 关键：去除面板滚动
+  }
+
+  .settings-header {
+    padding: 1rem 1.5rem;
+
+    h3 {
+      font-size: 1rem;
+    }
+  }
+
+  .settings-content {
+    padding: 0;
+    max-height: none; // 关键：去除高度限制
+    overflow: visible; // 关键：去除滚动
+    height: calc(88vh - 70px);
+  }
+
+  // 超小屏调整
+  @media (max-width: 667px) {
+    .settings-panel {
+      width: 98vw;
+      height: 92vh;
+      max-height: 92vh;
+    }
+
+    .settings-content {
+      height: calc(92vh - 70px);
+    }
+  }
+
+  // 大屏调整
+  @media (min-width: 901px) {
+    .settings-panel {
+      width: 90vw;
+      height: 82vh;
+      max-height: 82vh;
+    }
+
+    .settings-content {
+      height: calc(82vh - 70px);
+    }
+  }
+}
+
 // 动画
 .fade-enter-active,
 .fade-leave-active {

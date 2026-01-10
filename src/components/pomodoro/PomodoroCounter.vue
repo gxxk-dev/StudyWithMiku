@@ -53,4 +53,16 @@ defineProps({
     background: $color-focus;
   }
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .pomodoro-count {
+    font-size: 0.75rem;
+  }
+
+  .pomodoro-dot {
+    width: 8px;
+    height: 8px;
+  }
+}
 </style>

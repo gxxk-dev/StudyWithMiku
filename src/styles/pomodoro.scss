@@ -174,3 +174,26 @@ $radius-xl: 20px;
   }
 }
 
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .pomodoro-btn {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.75rem;
+  }
+
+  .pomodoro-input,
+  .pomodoro-select {
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .pomodoro-setting-group {
+    margin-bottom: 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .pomodoro-status-badge {
+    padding: 0.25rem 0.7rem;
+    font-size: 0.75rem;
+  }
+}

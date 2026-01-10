@@ -159,4 +159,45 @@ const strokeDashoffset = computed(() => {
     }
   }
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .timer-display--large {
+    margin-bottom: 0;
+    margin-top: 0;
+
+    .time-circle {
+      transform: scale(0.6);
+      transform-origin: center;
+      // 缩小后调整实际占用空间：200px * 0.6 = 120px，需要减少 80px
+      margin: -40px 0; // 上下各减少 40px
+    }
+
+    .time-text {
+      font-size: 2.8rem; // 保持原始字体大小，由 scale 统一缩放
+    }
+  }
+
+  // 超小屏
+  @media (max-width: 667px) {
+    .timer-display--large {
+      .time-circle {
+        transform: scale(0.5);
+        // 200px * 0.5 = 100px，需要减少 100px
+        margin: -50px 0;
+      }
+    }
+  }
+
+  // 大屏
+  @media (min-width: 901px) {
+    .timer-display--large {
+      .time-circle {
+        transform: scale(0.7);
+        // 200px * 0.7 = 140px，需要减少 60px
+        margin: -30px 0;
+      }
+    }
+  }
+}
 </style>

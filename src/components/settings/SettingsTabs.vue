@@ -235,4 +235,27 @@ provide('videoState', computed(() => ({
   flex-direction: column;
   height: 100%;
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .settings-tabs {
+    height: 100%;
+  }
+
+  :deep(.tabs-nav) {
+    padding: 0;
+    margin-bottom: 0;
+
+    .tab-item {
+      font-size: 0.8rem;
+      padding: 0.6rem 0.5rem;
+    }
+  }
+
+  :deep(.tab-content) {
+    padding: 1rem;
+    height: calc(100% - 50px);
+    overflow: hidden; // 防止整体滚动
+  }
+}
 </style>

@@ -152,4 +152,56 @@ const handleReset = () => {
   margin-bottom: 0.4rem;
   text-align: right;
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .setting-group {
+    margin-bottom: 0.6rem;
+    font-size: 0.75rem;
+
+    label {
+      font-size: 0.75rem;
+    }
+
+    input {
+      width: 120px;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.4rem;
+    }
+  }
+
+  .playlist-actions {
+    margin-top: 0.6rem;
+  }
+
+  .action-btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.7rem;
+  }
+
+  .platform-hint {
+    font-size: 0.7rem;
+    margin-top: -0.3rem;
+    margin-bottom: 0.3rem;
+  }
+
+  // 超小屏纵向堆叠
+  @media (max-width: 667px) {
+    .playlist-settings {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .setting-group {
+      flex-direction: column;
+      align-items: flex-start;
+
+      input {
+        width: 100%;
+        margin-top: 0.3rem;
+      }
+    }
+  }
+}
 </style>

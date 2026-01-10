@@ -86,4 +86,49 @@ const selectVideo = (index) => {
 
   /* selector-item 样式已在 settings.scss 中定义 */
 }
+
+// 横屏适配
+@media (orientation: landscape) and (max-height: 500px) {
+  .video-selector {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    h4 {
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .selector-list {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 0.8rem;
+
+      // 自定义滚动条
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+      }
+    }
+
+    .placeholder-section {
+      flex-shrink: 0;
+      padding: 0.8rem;
+      margin-top: 0.8rem;
+
+      .placeholder-text {
+        font-size: 0.8rem;
+      }
+    }
+  }
+}
 </style>
