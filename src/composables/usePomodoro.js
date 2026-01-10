@@ -56,9 +56,14 @@ export function usePomodoro() {
 
   const totalTime = computed(() => {
     const status = currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
-    return status === STATUS.FOCUS
-      ? focusDuration.value * 60
-      : breakDuration.value * 60
+    switch (status) {
+      case STATUS.FOCUS:
+        return focusDuration.value * 60
+      case STATUS.LONG_BREAK:
+        return breakDuration.value * 60 * 2  // 长休息是普通休息的 2 倍
+      default:
+        return breakDuration.value * 60
+    }
   })
 
   const circumference = computed(() => 2 * Math.PI * 54)
@@ -95,6 +100,7 @@ export function usePomodoro() {
 
   const handleTimerComplete = (isSilent = false) => {
     const previousStatus = statusText.value
+    const wasFocusMode = currentStatus.value === STATUS.FOCUS
     endTime.value = null // 确保清理状态
 
     // 只在实时完成时播放通知和音频
@@ -102,7 +108,7 @@ export function usePomodoro() {
       playNotificationSound()
     }
 
-    // 切换到下一阶段，但不自动开始
+    // 切换到下一阶段
     if (currentStatus.value === STATUS.FOCUS) {
       completedPomodoros.value++
 
@@ -114,6 +120,10 @@ export function usePomodoro() {
         timeLeft.value = breakDuration.value * 60
       }
     } else {
+      // 长休息或普通休息结束，检查是否需要重置计数器
+      if (currentStatus.value === STATUS.LONG_BREAK) {
+        completedPomodoros.value = 0
+      }
       currentStatus.value = STATUS.FOCUS
       timeLeft.value = focusDuration.value * 60
     }
@@ -125,9 +135,11 @@ export function usePomodoro() {
       showNotification()
     }
 
-    // 删除原有的自动开始逻辑
-    // 现在需要用户手动点击开始下一阶段
-    // 禁止自动累积多个阶段
+    // 专注完成后自动开始休息，休息完成后需要手动开始专注
+    if (wasFocusMode) {
+      console.log(`[Pomodoro] 专注完成，自动开始${statusText.value}`)
+      startTimer()
+    }
   }
 
   const startTimer = () => {
@@ -152,6 +164,7 @@ export function usePomodoro() {
 
       if (remaining <= 0) {
         timeLeft.value = 0
+        isRunning.value = false
         clearInterval(timer.value)
         endTime.value = null
 
