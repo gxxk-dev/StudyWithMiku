@@ -4,14 +4,21 @@
       <div class="statistics-panel">
         <!-- 头部 -->
         <div class="stats-header">
-          <h2>📊 专注统计</h2>
-          <button class="close-btn" @click="$emit('close')">×</button>
+          <h2>
+            <Icon icon="lucide:bar-chart-3" inline />
+            专注统计
+          </h2>
+          <button class="close-btn" @click="$emit('close')">
+            <Icon icon="mdi:close" />
+          </button>
         </div>
 
         <!-- 内容区 -->
         <div class="stats-content">
           <div class="dev-notice">
-            <div class="notice-icon">🚧</div>
+            <div class="notice-icon">
+              <Icon icon="mdi:alert-circle-outline" width="64" height="64" />
+            </div>
             <h3>功能开发中</h3>
             <p>专注统计功能正在开发，敬请期待！</p>
           </div>
@@ -22,6 +29,8 @@
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
+
 defineProps({
   visible: {
     type: Boolean,

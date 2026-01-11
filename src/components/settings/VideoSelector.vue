@@ -21,12 +21,17 @@
 
     <!-- 自定义视频占位符 -->
     <div class="placeholder-section">
-      <p class="placeholder-text">🎬 自定义视频功能正在开发中</p>
+      <p class="placeholder-text">
+        <Icon icon="lucide:video" inline />
+        自定义视频功能正在开发中
+      </p>
     </div>
   </div>
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
+
 const props = defineProps({
   currentVideoIndex: {
     type: Number,

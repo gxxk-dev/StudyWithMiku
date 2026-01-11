@@ -67,6 +67,58 @@ npm run deploy:worker    # 部署到 Cloudflare Workers
 - Service Worker 缓存策略：视频/音频 CacheFirst，API NetworkFirst
 - 支持离线使用
 
+## 图标使用规范
+
+**本项目使用 Iconify 作为统一的图标解决方案**，禁止使用 Unicode emoji 或硬编码 SVG。
+
+### 使用方式
+
+```vue
+<script setup>
+import { Icon } from '@iconify/vue'
+</script>
+
+<template>
+  <!-- 基础用法 -->
+  <Icon icon="mdi:play" />
+
+  <!-- 指定尺寸 -->
+  <Icon icon="lucide:settings" width="20" height="20" />
+
+  <!-- 内联文本 -->
+  <Icon icon="ph:timer" inline />
+</template>
+```
+
+### 推荐图标集
+
+- **MDI (Material Design Icons)**: `mdi:*` - 最全面，适合功能按钮
+- **Lucide**: `lucide:*` - 现代简洁，适合 UI 导航
+- **Phosphor**: `ph:*` - 优雅轻量，适合装饰性图标
+
+### 常用图标映射
+
+| 功能 | Iconify 图标 | ❌ 禁止使用 |
+|------|-------------|-----------|
+| 播放 | `mdi:play` | ▶ |
+| 暂停 | `mdi:pause` | ⏸ |
+| 设置 | `lucide:settings` | ⚙️ |
+| 音乐 | `lucide:music` | 🎵 |
+| 统计 | `lucide:bar-chart-3` | 📊 |
+| 关闭 | `mdi:close` | × |
+
+### 特殊情况
+
+- **功能性 SVG**（如进度圆环、动态图表）可保留硬编码 SVG
+- **所有装饰性图标**必须使用 Iconify
+
+### 技术优势
+
+- ✅ PWA 离线支持（图标内联到 bundle）
+- ✅ 视觉一致性（统一的线性图标风格）
+- ✅ 跨平台一致性（避免 emoji 在不同系统显示差异）
+- ✅ 易于维护（更换图标只需改字符串）
+
 ## 工作流程
 
 - GitHub Flow

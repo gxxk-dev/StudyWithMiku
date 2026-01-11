@@ -7,12 +7,7 @@
   >
     <!-- 右下角浮动按钮 -->
     <div class="pwa-fab" @click="togglePanel">
-      <span class="fab-icon">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </span>
+      <Icon icon="lucide:settings" width="24" height="24" class="fab-icon" />
       <span v-if="hasUpdate" class="update-badge"></span>
     </div>
 
@@ -29,7 +24,9 @@
               {{ isOnline ? '在线' : '离线' }}
             </span>
           </div>
-          <button class="close-btn" @click="closePanel">×</button>
+          <button class="close-btn" @click="closePanel">
+            <Icon icon="mdi:close" />
+          </button>
         </div>
 
         <!-- PWA 安装提示（仅网页模式显示） -->
@@ -37,7 +34,7 @@
           <!-- 浏览器支持自动安装 -->
           <div v-if="canInstall" class="install-auto">
             <div class="install-info">
-              <span class="install-icon">📲</span>
+              <Icon icon="mdi:cellphone-arrow-down" width="20" height="20" inline class="install-icon" />
               <span>安装应用以获得更好的体验</span>
             </div>
             <button class="install-btn" @click="handleInstall">安装到桌面</button>
@@ -46,7 +43,7 @@
           <!-- 手动安装指引 -->
           <div v-else class="install-manual">
             <div class="install-info">
-              <span class="install-icon">📲</span>
+              <Icon icon="mdi:cellphone-arrow-down" width="20" height="20" inline class="install-icon" />
               <span>将应用添加到主屏幕</span>
             </div>
             <div class="manual-steps">
@@ -197,6 +194,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { Icon } from '@iconify/vue'
 import { usePWA } from '../composables/usePWA.js'
 import { useCache } from '../composables/useCache.js'
 import { useMusic } from '../composables/useMusic.js'

@@ -34,6 +34,18 @@
       >
         {{ statusText }}
       </div>
+      <span class="countdown-divider" aria-hidden="true"></span>
+      <div
+        class="settings-icon"
+        @click.stop="toggleSettings"
+        @mouseenter="onUIMouseEnter"
+        @mouseleave="onUIMouseLeave"
+        @touchstart="onUITouchStart"
+        @touchend="onUITouchEnd"
+        title="设置"
+      >
+        <Icon icon="lucide:settings" width="18" height="18" />
+      </div>
     </div>
 
     <!-- 设置面板 -->
@@ -50,7 +62,9 @@
         <div class="settings-panel">
           <div class="settings-header">
             <h3>专注设置</h3>
-            <button class="close-btn" @click="closeSettings">×</button>
+            <button class="close-btn" @click="closeSettings">
+              <Icon icon="mdi:close" />
+            </button>
           </div>
 
           <div class="settings-content">
@@ -116,6 +130,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { Icon } from '@iconify/vue'
 import { useOnlineCount } from '../composables/useOnlineCount.js'
 import { useServerConfig } from '../composables/useServerConfig.js'
 import { useMusic } from '../composables/useMusic.js'
@@ -455,6 +470,27 @@ onUnmounted(() => {
 
   &:active {
     transform: scale(0.98);
+  }
+}
+
+.settings-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+  padding: 0.2rem;
+  border-radius: 4px;
+
+  &:hover {
+    color: rgba(255, 255, 255, 1);
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
   }
 }
 

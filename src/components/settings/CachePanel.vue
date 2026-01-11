@@ -1,12 +1,17 @@
 <template>
   <div class="cache-panel">
     <div class="placeholder-section">
-      <p class="placeholder-text">🗂️ 缓存管理功能正在开发中</p>
+      <p class="placeholder-text">
+        <Icon icon="lucide:folder-open" inline />
+        缓存管理功能正在开发中
+      </p>
     </div>
   </div>
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
+
 defineEmits(['cache-clear'])
 </script>
 

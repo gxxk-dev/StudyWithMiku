@@ -6,25 +6,27 @@
       @click="$emit('start')"
       :disabled="disabled"
     >
-      <span class="btn-icon">▶</span>
+      <Icon icon="mdi:play" class="btn-icon" />
     </button>
     <button
       v-else
       class="control-btn pause-btn"
       @click="$emit('pause')"
     >
-      <span class="btn-icon">⏸</span>
+      <Icon icon="mdi:pause" class="btn-icon" />
     </button>
     <button
       class="control-btn reset-btn"
       @click="$emit('reset')"
     >
-      <span class="btn-icon">↺</span>
+      <Icon icon="mdi:refresh" class="btn-icon" />
     </button>
   </div>
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
+
 defineProps({
   isRunning: {
     type: Boolean,
@@ -67,6 +69,9 @@ defineEmits(['start', 'pause', 'reset'])
 
 .btn-icon {
   font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 // 横屏适配

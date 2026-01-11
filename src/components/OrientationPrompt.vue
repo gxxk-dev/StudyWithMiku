@@ -3,12 +3,10 @@
     <div v-if="showPrompt" class="orientation-prompt">
       <div class="prompt-content">
         <div class="rotate-icon">
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M7 2H17C18.1046 2 19 2.89543 19 4V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V4C5 2.89543 5.89543 2 7 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 18H12.01" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M9 5H15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div class="rotate-arrow">↻</div>
+          <Icon icon="lucide:smartphone" width="80" height="80" class="phone-icon" />
+          <div class="rotate-arrow">
+            <Icon icon="mdi:refresh" width="48" height="48" />
+          </div>
         </div>
         <h2 class="prompt-title">请旋转设备</h2>
         <p class="prompt-description">为获得最佳体验，请使用横屏模式</p>
@@ -19,6 +17,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { Icon } from '@iconify/vue'
 
 const showPrompt = ref(false)
 

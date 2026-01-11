@@ -13,12 +13,15 @@
         <div class="stat-label">本周时长</div>
         <div class="stat-value info-color">-</div>
       </div>
-      <button class="detail-icon" title="查看详情">📊</button>
+      <button class="detail-icon" title="查看详情">
+        <Icon icon="lucide:bar-chart-3" width="20" height="20" />
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
 </script>
 
 <style scoped lang="scss">

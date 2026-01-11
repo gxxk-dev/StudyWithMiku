@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { CACHE_NAMES } from './src/config/constants.js'
+import Icons from 'unplugin-icons/vite'
 
 const buildMeta = (() => {
   const pad = (value) => value.toString().padStart(2, '0')
@@ -25,6 +26,10 @@ export default defineConfig({
   },
   plugins: [
     vue(),
+    Icons({
+      compiler: 'vue3',
+      autoInstall: true,
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [

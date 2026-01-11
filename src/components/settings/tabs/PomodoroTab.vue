@@ -47,7 +47,8 @@
 
       <!-- 查看详细统计按钮 -->
       <button class="view-stats-btn" @click="showStatistics = true">
-        📊 查看详细统计
+        <Icon icon="lucide:bar-chart-3" inline />
+        查看详细统计
       </button>
     </div>
 
@@ -63,6 +64,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Icon } from '@iconify/vue'
 import TodayOverview from '../TodayOverview.vue'
 import TimerDisplay from '../../pomodoro/TimerDisplay.vue'
 import TimerControls from '../../pomodoro/TimerControls.vue'

@@ -4,7 +4,9 @@
       <div class="server-panel">
         <div class="server-header">
           <h4>选择计数服务器</h4>
-          <button class="close-btn" @click="$emit('close')">×</button>
+          <button class="close-btn" @click="$emit('close')">
+            <Icon icon="mdi:close" />
+          </button>
         </div>
 
         <div class="server-list">
@@ -54,6 +56,8 @@
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
+
 defineProps({
   show: {
     type: Boolean,

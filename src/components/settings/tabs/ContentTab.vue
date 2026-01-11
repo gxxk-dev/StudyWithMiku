@@ -4,7 +4,10 @@
     <div class="content-left">
       <!-- 歌单管理占位符 -->
       <div class="placeholder-section">
-        <p class="placeholder-text">🎵 歌单管理功能正在开发中</p>
+        <p class="placeholder-text">
+          <Icon icon="lucide:music" inline />
+          歌单管理功能正在开发中
+        </p>
       </div>
 
       <!-- 现有歌单面板 -->
@@ -29,6 +32,7 @@
 </template>
 
 <script setup>
+import { Icon } from '@iconify/vue'
 import PlaylistPanel from '../../pomodoro/PlaylistPanel.vue'
 import VideoSelector from '../VideoSelector.vue'
 

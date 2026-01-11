@@ -14,7 +14,8 @@
         }"
         @click="switchTab(tab.id)"
       >
-        {{ tab.icon }} {{ tab.label }}
+        <Icon :icon="tab.icon" class="tab-icon" />
+        {{ tab.label }}
       </button>
     </div>
 
@@ -33,6 +34,7 @@
 
 <script setup>
 import { ref, computed, watch, provide } from 'vue'
+import { Icon } from '@iconify/vue'
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage.js'
 
 // 导入标签页组件
@@ -98,9 +100,9 @@ const emit = defineEmits([
 
 // 标签配置
 const tabs = [
-  { id: 'pomodoro', label: '番茄钟', icon: '🍅' },
-  { id: 'content', label: '内容', icon: '🎵' },
-  { id: 'advanced', label: '高级', icon: '⚙️' }
+  { id: 'pomodoro', label: '番茄钟', icon: 'ph:timer' },
+  { id: 'content', label: '内容', icon: 'lucide:music' },
+  { id: 'advanced', label: '高级', icon: 'lucide:settings' }
 ]
 
 // 当前激活的标签页
@@ -236,6 +238,13 @@ provide('videoState', computed(() => ({
   height: 100%;
 }
 
+.tab-icon {
+  margin-right: 0.4rem;
+  font-size: 1rem;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
 // 横屏适配
 @media (orientation: landscape) and (max-height: 500px) {
   .settings-tabs {
@@ -250,6 +259,11 @@ provide('videoState', computed(() => ({
       font-size: 0.8rem;
       padding: 0.6rem 0.5rem;
     }
+  }
+
+  .tab-icon {
+    font-size: 0.85rem;
+    margin-right: 0.3rem;
   }
 
   :deep(.tab-content) {

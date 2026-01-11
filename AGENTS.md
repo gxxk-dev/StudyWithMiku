@@ -15,6 +15,17 @@ The Vite + Vue 3 frontend lives under `src/`: `components/`, `composables/` (hoo
 ## Coding Style & Naming Conventions
 Use ES modules with single quotes and two-space indentation. Components stay PascalCase (`PomodoroTimer.vue`) and export default; composables and utilities use camelCase file names. Keep `<script setup>` blocks lean, share helpers through `utils/`, and favor descriptive refs (`currentVideo`, `aplayerInitialized`). Base styles live in `src/style.css`; scope component styles only when needed.
 
+### Icon Usage Guidelines
+**Always use Iconify** (`@iconify/vue`) for icons instead of Unicode emoji or hardcoded SVG. This ensures visual consistency, PWA offline support, and easier maintenance.
+
+- **Import**: Add `import { Icon } from '@iconify/vue'` in `<script setup>`.
+- **Icon sets**: Prefer MDI (`mdi:*`), Lucide (`lucide:*`), or Phosphor (`ph:*`) for consistency.
+- **Example**: `<Icon icon="mdi:play" />` or `<Icon icon="lucide:settings" width="20" height="20" />`.
+- **Never use**: Raw emoji (🎵, ⚙️, 📊) or inline `<svg>` tags for UI icons.
+- **Exception**: Functional SVG components (like progress rings) are allowed if they require dynamic rendering.
+
+When adding new UI elements with icons, choose appropriate Iconify icons that match the existing design language.
+
 ## Testing Guidelines
 There is no automated test suite yet, so rely on manual smoke tests for both the UI and worker endpoints. After code changes, run `npm run dev` and confirm video switching, Pomodoro flow, and the embedded APlayer. For worker updates, run `npm run dev:worker` and hit `/count` plus `/ws` to ensure the Durable Object increments correctly. When adding tests, use Vitest component specs under `src/__tests__` with descriptive names such as `pomodoro-timer.spec.js`.
 
