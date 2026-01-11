@@ -72,7 +72,7 @@ export const duckMusicForNotification = async (notificationDuration = 3000) => {
       volumeRestoreTimer = null
       return
     }
-    fadeVolume(originalVolume.value, VOLUME_DUCK_FADE_DURATION).catch(err => {
+    fadeVolume(originalVolume.value, VOLUME_DUCK_FADE_DURATION).catch((err) => {
       console.error('恢复通知后音量失败:', err)
     })
     volumeRestoreTimer = null

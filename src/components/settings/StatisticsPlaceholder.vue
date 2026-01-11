@@ -123,7 +123,7 @@ defineEmits(['close'])
   }
 
   h3 {
-    color: #FFC107;
+    color: #ffc107;
     margin: 0 0 1rem;
     font-size: 1.8rem;
   }

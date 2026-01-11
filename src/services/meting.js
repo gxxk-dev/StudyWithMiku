@@ -1,4 +1,8 @@
-import { safeLocalStorageGet, safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage.js'
+import {
+  safeLocalStorageGet,
+  safeLocalStorageSet,
+  safeLocalStorageRemove
+} from '../utils/storage.js'
 import { API_CONFIG, CACHE_CONFIG, STORAGE_KEYS } from '../config/constants.js'
 
 const { METING_API, DEFAULT_PLAYLIST_ID, FETCH_TIMEOUT } = API_CONFIG
@@ -53,14 +57,14 @@ export const fetchPlaylist = async (server = 'netease', id = DEFAULT_PLAYLIST_ID
 
     // 映射并过滤不完整的歌曲数据
     return data
-      .map(song => ({
+      .map((song) => ({
         name: song.title || song.name,
         artist: song.author || song.artist,
         url: song.url,
         cover: song.pic || song.cover,
         lrc: song.lrc
       }))
-      .filter(song => {
+      .filter((song) => {
         // 检查必需属性是否存在
         const hasRequiredFields = song.name && song.artist && song.url
         if (!hasRequiredFields) {

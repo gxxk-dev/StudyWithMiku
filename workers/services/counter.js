@@ -7,7 +7,7 @@ const getCounterStub = (env) => {
   }
 
   return env.ONLINE_COUNTER.getByName(COUNTER_NAME, {
-    locationHint: COUNTER_LOCATION_HINT,
+    locationHint: COUNTER_LOCATION_HINT
   })
 }
 

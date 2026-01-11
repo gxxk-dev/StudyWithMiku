@@ -22,7 +22,9 @@
               <div class="server-desc">{{ server.description }}</div>
             </div>
             <div class="server-status">
-              <span v-if="selectedServerId === server.id && isConnected" class="status-badge">已连接</span>
+              <span v-if="selectedServerId === server.id && isConnected" class="status-badge"
+                >已连接</span
+              >
               <span v-if="latencies[server.id]" class="latency">{{ latencies[server.id] }}ms</span>
             </div>
           </div>
@@ -32,12 +34,12 @@
         <div v-if="selectedServerId === 'custom'" class="custom-server-section">
           <input
             :value="customServerUrl"
-            @input="$emit('update:customServerUrl', $event.target.value)"
             type="text"
             placeholder="wss://example.com/ws"
             class="custom-url-input"
+            @input="$emit('update:customServerUrl', $event.target.value)"
           />
-          <button @click="$emit('applyCustom')" class="apply-btn">应用</button>
+          <button class="apply-btn" @click="$emit('applyCustom')">应用</button>
         </div>
 
         <div class="server-panel-footer">
@@ -239,7 +241,7 @@ const handleSelect = (serverId) => {
   cursor: pointer;
   font-size: 0.9rem;
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     cursor: pointer;
   }
 }
@@ -247,7 +249,9 @@ const handleSelect = (serverId) => {
 // Transition
 .fade-down-enter-active,
 .fade-down-leave-active {
-  transition: opacity 0.3s, transform 0.3s;
+  transition:
+    opacity 0.3s,
+    transform 0.3s;
 }
 
 .fade-down-enter-from,

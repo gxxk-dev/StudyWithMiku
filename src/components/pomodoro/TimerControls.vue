@@ -3,22 +3,15 @@
     <button
       v-if="!isRunning"
       class="control-btn start-btn"
-      @click="$emit('start')"
       :disabled="disabled"
+      @click="$emit('start')"
     >
       <Icon icon="mdi:play" class="btn-icon" />
     </button>
-    <button
-      v-else
-      class="control-btn pause-btn"
-      @click="$emit('pause')"
-    >
+    <button v-else class="control-btn pause-btn" @click="$emit('pause')">
       <Icon icon="mdi:pause" class="btn-icon" />
     </button>
-    <button
-      class="control-btn reset-btn"
-      @click="$emit('reset')"
-    >
+    <button class="control-btn reset-btn" @click="$emit('reset')">
       <Icon icon="mdi:refresh" class="btn-icon" />
     </button>
   </div>

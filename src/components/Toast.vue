@@ -1,11 +1,6 @@
 <template>
   <transition name="toast-slide">
-    <div
-      v-if="visible"
-      class="toast"
-      :class="[type]"
-      @click="close"
-    >
+    <div v-if="visible" class="toast" :class="[type]" @click="close">
       <div class="toast-content">
         <div class="toast-title">{{ title }}</div>
         <div v-if="message" class="toast-message">{{ message }}</div>
@@ -15,7 +10,7 @@
 </template>
 
 <script setup>
-const props = defineProps({
+defineProps({
   visible: { type: Boolean, default: false },
   type: { type: String, default: 'info' },
   title: { type: String, required: true },

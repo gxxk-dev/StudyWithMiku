@@ -1,5 +1,9 @@
 import { ref, onUnmounted } from 'vue'
-import { clearCache as clearMemoryCache, clearAllCache as clearAllMemoryCache, cache } from '../utils/cache.js'
+import {
+  clearCache as clearMemoryCache,
+  clearAllCache as clearAllMemoryCache,
+  cache
+} from '../utils/cache.js'
 import { prefetchPlaylistAudios, clearPrefetchTimestamps } from '../utils/audioPrefetch.js'
 import { isPWAMode } from '../utils/pwaDetector.js'
 import { ALL_CACHE_NAMES } from '../config/constants.js'
@@ -18,7 +22,7 @@ const createThrottledFunction = (func, delay) => {
   let lastCall = 0
   let timeout = null
 
-  const throttled = function(...args) {
+  const throttled = function (...args) {
     const now = Date.now()
     const timeSinceLastCall = now - lastCall
 
@@ -63,7 +67,7 @@ export const useCache = () => {
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
   // 获取Service Worker缓存统计
@@ -211,9 +215,12 @@ export const useCache = () => {
       ])
 
       // 检查失败的操作
-      const failed = results.filter(r => r.status === 'rejected')
+      const failed = results.filter((r) => r.status === 'rejected')
       if (failed.length > 0) {
-        console.warn('Some cache stats operations failed:', failed.map(f => f.reason))
+        console.warn(
+          'Some cache stats operations failed:',
+          failed.map((f) => f.reason)
+        )
       }
 
       cacheStats.value = {
@@ -274,7 +281,7 @@ export const useCache = () => {
     }
 
     // 统一删除收集到的 key
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       try {
         localStorage.removeItem(key)
       } catch (err) {
@@ -307,8 +314,8 @@ export const useCache = () => {
     // 清除所有localStorage（保留settings）
     // 使用 Promise.all 确保所有异步清除操作都被等待
     const clearPromises = Object.keys(LOCALSTORAGE_PATTERNS)
-      .filter(category => category !== 'settings')
-      .map(category => clearLocalStorageCategory(category))
+      .filter((category) => category !== 'settings')
+      .map((category) => clearLocalStorageCategory(category))
     await Promise.all(clearPromises)
 
     // 清除预加载时间戳（确保用户清理缓存后可以重新预加载）
@@ -346,8 +353,6 @@ export const useCache = () => {
       }
 
       return result
-    } catch (error) {
-      throw error
     } finally {
       if (timeoutId) clearTimeout(timeoutId)
     }
@@ -366,7 +371,7 @@ export const useCache = () => {
   return {
     cacheStats,
     loading,
-    isPWA,  // 新增：暴露 PWA 模式状态
+    isPWA, // 新增：暴露 PWA 模式状态
     refreshCacheStats,
     clearServiceWorkerCache,
     clearLocalStorageCategory,

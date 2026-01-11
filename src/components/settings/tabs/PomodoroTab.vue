@@ -25,10 +25,7 @@
       />
 
       <!-- 番茄钟计数 -->
-      <PomodoroCounter
-        :completed="completedPomodoros"
-        :total="4"
-      />
+      <PomodoroCounter :completed="completedPomodoros" :total="4" />
     </div>
 
     <!-- 横屏右侧区域 -->
@@ -54,10 +51,7 @@
 
     <!-- 统计占位符模态框（使用 Teleport 传送到 body） -->
     <Teleport to="body">
-      <StatisticsPlaceholder
-        :visible="showStatistics"
-        @close="showStatistics = false"
-      />
+      <StatisticsPlaceholder :visible="showStatistics" @close="showStatistics = false" />
     </Teleport>
   </div>
 </template>
@@ -72,7 +66,7 @@ import TimerSettings from '../../pomodoro/TimerSettings.vue'
 import PomodoroCounter from '../../pomodoro/PomodoroCounter.vue'
 import StatisticsPlaceholder from '../StatisticsPlaceholder.vue'
 
-const props = defineProps({
+defineProps({
   focusDuration: { type: Number, required: true },
   breakDuration: { type: Number, required: true },
   timeLeft: { type: Number, required: true },

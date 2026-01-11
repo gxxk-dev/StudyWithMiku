@@ -58,7 +58,9 @@ const props = defineProps({
 })
 
 const formattedMinutes = computed(() => {
-  return Math.floor(props.timeLeft / 60).toString().padStart(2, '0')
+  return Math.floor(props.timeLeft / 60)
+    .toString()
+    .padStart(2, '0')
 })
 
 const formattedSeconds = computed(() => {
@@ -66,8 +68,8 @@ const formattedSeconds = computed(() => {
 })
 
 // 计算圆形尺寸和半径
-const circleSize = computed(() => props.size === 'large' ? 200 : 120)
-const radius = computed(() => props.size === 'large' ? 90 : 54)
+const circleSize = computed(() => (props.size === 'large' ? 200 : 120))
+const radius = computed(() => (props.size === 'large' ? 90 : 54))
 
 const circumference = computed(() => {
   return 2 * Math.PI * radius.value

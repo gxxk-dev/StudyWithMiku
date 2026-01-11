@@ -4,7 +4,7 @@ const getCorsHeaders = (origin) => {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400',
+    'Access-Control-Max-Age': '86400'
   }
 }
 
@@ -15,7 +15,7 @@ const withCors = (response, origin) => {
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers,
+    headers
   })
 }
 
@@ -23,7 +23,7 @@ const handleCorsOptions = (request) => {
   const origin = request.headers.get('Origin')
   return new Response(null, {
     status: 204,
-    headers: getCorsHeaders(origin),
+    headers: getCorsHeaders(origin)
   })
 }
 

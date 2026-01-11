@@ -39,7 +39,9 @@ export function useUrlParams() {
 
     if (num < rule.min || num > rule.max) {
       const clamped = Math.max(rule.min, Math.min(rule.max, num))
-      validationWarnings.value.push(`${key}: ${num} 超出范围 [${rule.min}-${rule.max}]，截断为 ${clamped}`)
+      validationWarnings.value.push(
+        `${key}: ${num} 超出范围 [${rule.min}-${rule.max}]，截断为 ${clamped}`
+      )
       return clamped
     }
 
@@ -107,7 +109,7 @@ export function useUrlParams() {
   // 输出警告信息
   if (validationWarnings.value.length > 0) {
     console.warn('[URL Params] 参数验证警告:')
-    validationWarnings.value.forEach(warning => console.warn(`  - ${warning}`))
+    validationWarnings.value.forEach((warning) => console.warn(`  - ${warning}`))
   }
 
   // 是否有 URL 参数

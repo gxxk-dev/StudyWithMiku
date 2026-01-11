@@ -1,3 +1,4 @@
+/* global __APP_VERSION__, __BUILD_TIME__ */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { isPWAMode, watchPWAMode } from '../utils/pwaDetector.js'
 
@@ -17,8 +18,14 @@ export const usePWA = () => {
   const isOnline = ref(navigator.onLine)
   const canInstall = ref(false)
   const hasUpdate = ref(false)
-  const appVersion = ref(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : new Date().toISOString().slice(0, 10).replace(/-/g, ''))
-  const appBuildTime = ref(typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : formatFullTime())
+  const appVersion = ref(
+    typeof __APP_VERSION__ !== 'undefined'
+      ? __APP_VERSION__
+      : new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  )
+  const appBuildTime = ref(
+    typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : formatFullTime()
+  )
 
   // 使用 ref 避免跨实例引用混乱
   const deferredPrompt = ref(null)
@@ -46,8 +53,12 @@ export const usePWA = () => {
   }
 
   // 监听在线状态
-  const handleOnline = () => { isOnline.value = true }
-  const handleOffline = () => { isOnline.value = false }
+  const handleOnline = () => {
+    isOnline.value = true
+  }
+  const handleOffline = () => {
+    isOnline.value = false
+  }
 
   // 监听 PWA 安装完成
   const handleAppInstalled = () => {
@@ -77,14 +88,16 @@ export const usePWA = () => {
       // 2. 注销所有 Service Worker（关键改动）
       if ('serviceWorker' in navigator) {
         const registrations = await navigator.serviceWorker.getRegistrations()
-        await Promise.all(registrations.map(async (registration) => {
-          // 先尝试让等待中的 SW 跳过等待
-          if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-          }
-          // 然后注销 Service Worker
-          await registration.unregister()
-        }))
+        await Promise.all(
+          registrations.map(async (registration) => {
+            // 先尝试让等待中的 SW 跳过等待
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+            }
+            // 然后注销 Service Worker
+            await registration.unregister()
+          })
+        )
       }
     } catch (error) {
       console.warn('强制刷新时清理缓存失败:', error)

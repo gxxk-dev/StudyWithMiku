@@ -1,13 +1,13 @@
 <template>
   <div class="app-container" @mousemove="onMouseMove" @mouseleave="onMouseLeave">
     <transition name="fade-slow" mode="out-in">
-      <video 
+      <video
         :key="currentVideo"
-        ref="videoRef" 
-        class="video-background" 
-        :src="currentVideo" 
-        autoplay 
-        muted 
+        ref="videoRef"
+        class="video-background"
+        :src="currentVideo"
+        autoplay
+        muted
         loop
         playsinline
         webkit-playsinline
@@ -19,14 +19,30 @@
       <h1 class="title" @click="onTitleClick">Study with Miku</h1>
       <p class="subtitle">Love by SHSHOUSE / Fork by gxxk-dev</p>
     </div>
-    <button class="switch-video-btn" @click="switchVideo" :class="{ hidden: !showControls }" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" @touchstart="onUITouchStart" @touchend="onUITouchEnd">
+    <button
+      class="switch-video-btn"
+      :class="{ hidden: !showControls }"
+      @click="switchVideo"
+      @mouseenter="onUIMouseEnter"
+      @mouseleave="onUIMouseLeave"
+      @touchstart="onUITouchStart"
+      @touchend="onUITouchEnd"
+    >
       切换
     </button>
-    
-    <button class="fullscreen-btn" @click="toggleFullscreen" :class="{ hidden: !showControls }" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" @touchstart="onUITouchStart" @touchend="onUITouchEnd">
+
+    <button
+      class="fullscreen-btn"
+      :class="{ hidden: !showControls }"
+      @click="toggleFullscreen"
+      @mouseenter="onUIMouseEnter"
+      @mouseleave="onUIMouseLeave"
+      @touchstart="onUITouchStart"
+      @touchend="onUITouchEnd"
+    >
       {{ isFullscreen ? '退出全屏' : '全屏' }}
     </button>
-    
+
     <!-- 番茄钟！＞﹏＜ -->
     <PomodoroTimer
       :current-video-index="currentVideoIndex"
@@ -49,11 +65,7 @@
     />
 
     <!-- PWA 功能面板 -->
-    <PWAPanel
-      :visible="showControls"
-      @mouseenter="onUIMouseEnter"
-      @mouseleave="onUIMouseLeave"
-    />
+    <PWAPanel :visible="showControls" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" />
 
     <!-- Toast 通知 -->
     <Toast
@@ -74,11 +86,16 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import APlayer from 'aplayer'
 import { preloadVideos } from './utils/cache.js'
-import { setAPlayerInstance, setHoveringUI, isHoveringUI } from './utils/eventBus.js'
+import { setAPlayerInstance, isHoveringUI } from './utils/eventBus.js'
 import { useMusic } from './composables/useMusic.js'
 import { usePWA } from './composables/usePWA.js'
 import { setSwUpdateCallback } from './utils/swCallback.js'
-import { getVideoIndex, saveVideoIndex, getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
+import {
+  getVideoIndex,
+  saveVideoIndex,
+  getMusicIndex,
+  saveMusicIndex
+} from './utils/userSettings.js'
 import { initializeMediaSession, cleanupMediaSession } from './utils/mediaSession.js'
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
@@ -106,7 +123,10 @@ const { startTimer: pomodoroStartTimer } = usePomodoro()
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
 
 // 立即应用番茄钟配置（在 PomodoroTimer 组件初始化之前）
-if (hasUrlParams.value && (urlConfig.value.pomodoro || urlConfig.value.shortBreak || urlConfig.value.longBreak)) {
+if (
+  hasUrlParams.value &&
+  (urlConfig.value.pomodoro || urlConfig.value.shortBreak || urlConfig.value.longBreak)
+) {
   setUrlConfig(urlConfig.value)
   console.log('[App] 已提前应用 URL 番茄钟配置:', urlConfig.value)
 }
@@ -162,11 +182,7 @@ const onUITouchEnd = () => {
 
 const VIDEO_BASE_URL = 'https://assets.frez79.io/swm/bg-video'
 
-const videos = [
-      `${VIDEO_BASE_URL}/1.mp4`,
-      `${VIDEO_BASE_URL}/2.mp4`,
-      `${VIDEO_BASE_URL}/3.mp4`
-]
+const videos = [`${VIDEO_BASE_URL}/1.mp4`, `${VIDEO_BASE_URL}/2.mp4`, `${VIDEO_BASE_URL}/3.mp4`]
 
 const savedVideoIndex = getVideoIndex()
 const currentVideoIndex = ref(savedVideoIndex < videos.length ? savedVideoIndex : 0)
@@ -207,7 +223,8 @@ const aplayerInitialized = ref(false)
 const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
 // 事件监听器数组（不需要响应式）
 let autoplayUnlockListeners = []
-const { songs, loadSongs, loading, isSpotify, spotifyPlaylistId, platform, playlistId, applyUrlPlaylist } = useMusic()
+const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, playlistId, applyUrlPlaylist } =
+  useMusic()
 const { setHasUpdate } = usePWA()
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
@@ -278,11 +295,14 @@ const stopShowControlsWatch = watch(showControls, (newValue) => {
 })
 
 // 监听平台切换，清理旧播放器的 Media Session
-watch(() => platform.value, (newPlatform, oldPlatform) => {
-  if (oldPlatform !== newPlatform) {
-    cleanupMediaSession()
+watch(
+  () => platform.value,
+  (newPlatform, oldPlatform) => {
+    if (oldPlatform !== newPlatform) {
+      cleanupMediaSession()
+    }
   }
-})
+)
 
 const loadTimer = ref(null)
 
@@ -440,10 +460,10 @@ onMounted(() => {
 
     attemptAPlayerAutoplay()
   }
-  preloadAllVideos().catch(err => {
+  preloadAllVideos().catch((err) => {
     console.error('视频预加载失败:', err)
   })
-  
+
   loadTimer.value = setTimeout(() => {
     loadAPlayer()
   }, 500)
@@ -455,7 +475,7 @@ onUnmounted(() => {
     loadTimer.value = null
   }
 
-  if (stopShowControlsWatch) {  
+  if (stopShowControlsWatch) {
     stopShowControlsWatch()
   }
 

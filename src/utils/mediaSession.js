@@ -4,10 +4,9 @@
  */
 
 // ===== 内部状态变量 =====
-let currentPlayerType = null         // 'aplayer' | 'spotify' | null
-let aplayerInstance = null           // APlayer 实例引用
-let currentSongs = []                // 当前歌曲列表
-const eventListeners = new Map()     // 事件监听器引用（用于清理）
+let currentPlayerType = null // 'aplayer' | 'spotify' | null
+let aplayerInstance = null // APlayer 实例引用
+const eventListeners = new Map() // 事件监听器引用（用于清理）
 
 // 浏览器兼容性检测
 const isMediaSessionSupported = 'mediaSession' in navigator
@@ -30,14 +29,16 @@ function createMediaMetadata(song) {
     title: song.name || 'Unknown',
     artist: song.artist || 'Unknown Artist',
     album: '',
-    artwork: song.cover ? [
-      { src: song.cover, sizes: '96x96', type: 'image/jpeg' },
-      { src: song.cover, sizes: '128x128', type: 'image/jpeg' },
-      { src: song.cover, sizes: '192x192', type: 'image/jpeg' },
-      { src: song.cover, sizes: '256x256', type: 'image/jpeg' },
-      { src: song.cover, sizes: '384x384', type: 'image/jpeg' },
-      { src: song.cover, sizes: '512x512', type: 'image/jpeg' }
-    ] : []
+    artwork: song.cover
+      ? [
+          { src: song.cover, sizes: '96x96', type: 'image/jpeg' },
+          { src: song.cover, sizes: '128x128', type: 'image/jpeg' },
+          { src: song.cover, sizes: '192x192', type: 'image/jpeg' },
+          { src: song.cover, sizes: '256x256', type: 'image/jpeg' },
+          { src: song.cover, sizes: '384x384', type: 'image/jpeg' },
+          { src: song.cover, sizes: '512x512', type: 'image/jpeg' }
+        ]
+      : []
   })
 }
 
@@ -222,7 +223,6 @@ export function initializeMediaSession(type, playerInstance, metadata) {
   // 保存状态
   currentPlayerType = type
   aplayerInstance = playerInstance
-  currentSongs = songs
 
   // 设置初始元数据
   const currentSong = getCurrentSong(playerInstance, songs)
@@ -269,8 +269,16 @@ export function cleanupMediaSession() {
 
   // 2. 清除 action handlers
   if (isMediaSessionSupported) {
-    const actions = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekforward', 'seekbackward', 'seekto']
-    actions.forEach(action => {
+    const actions = [
+      'play',
+      'pause',
+      'previoustrack',
+      'nexttrack',
+      'seekforward',
+      'seekbackward',
+      'seekto'
+    ]
+    actions.forEach((action) => {
       try {
         navigator.mediaSession.setActionHandler(action, null)
       } catch (error) {
@@ -290,6 +298,5 @@ export function cleanupMediaSession() {
   // 4. 重置内部状态
   currentPlayerType = null
   aplayerInstance = null
-  currentSongs = []
   lastPositionUpdateTime = 0
 }

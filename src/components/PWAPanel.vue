@@ -34,7 +34,13 @@
           <!-- 浏览器支持自动安装 -->
           <div v-if="canInstall" class="install-auto">
             <div class="install-info">
-              <Icon icon="mdi:cellphone-arrow-down" width="20" height="20" inline class="install-icon" />
+              <Icon
+                icon="mdi:cellphone-arrow-down"
+                width="20"
+                height="20"
+                inline
+                class="install-icon"
+              />
               <span>安装应用以获得更好的体验</span>
             </div>
             <button class="install-btn" @click="handleInstall">安装到桌面</button>
@@ -43,7 +49,13 @@
           <!-- 手动安装指引 -->
           <div v-else class="install-manual">
             <div class="install-info">
-              <Icon icon="mdi:cellphone-arrow-down" width="20" height="20" inline class="install-icon" />
+              <Icon
+                icon="mdi:cellphone-arrow-down"
+                width="20"
+                height="20"
+                inline
+                class="install-icon"
+              />
               <span>将应用添加到主屏幕</span>
             </div>
             <div class="manual-steps">
@@ -67,19 +79,10 @@
             <span v-if="hasUpdate" class="update-hint">有新版本</span>
           </div>
           <div class="quick-actions">
-            <button
-              v-if="hasUpdate"
-              class="action-btn update-btn"
-              @click="handleRefresh"
-            >
+            <button v-if="hasUpdate" class="action-btn update-btn" @click="handleRefresh">
               立即更新
             </button>
-            <button
-              class="action-btn refresh-btn"
-              @click="handleRefresh"
-            >
-              刷新
-            </button>
+            <button class="action-btn refresh-btn" @click="handleRefresh">刷新</button>
           </div>
         </div>
 
@@ -88,9 +91,7 @@
           <div class="section-header">
             <h4>缓存管理</h4>
             <div class="header-actions">
-              <button class="small-btn danger" @click="confirmClearAll">
-                全部清除
-              </button>
+              <button class="small-btn danger" @click="confirmClearAll">全部清除</button>
             </div>
           </div>
 
@@ -101,11 +102,7 @@
               <span class="toggle-icon">{{ expandedSections.sw ? '▲' : '▼' }}</span>
             </div>
             <div v-show="expandedSections.sw" class="group-content">
-              <div
-                v-for="(stats, name) in cacheStats.serviceWorker"
-                :key="name"
-                class="cache-item"
-              >
+              <div v-for="(stats, name) in cacheStats.serviceWorker" :key="name" class="cache-item">
                 <div class="item-info">
                   <span class="item-name">{{ name }}</span>
                   <span class="item-count">{{ stats.count }} 条</span>
@@ -135,7 +132,9 @@
                   v-if="category !== 'settings'"
                   class="clear-btn"
                   @click="clearLsCategory(category)"
-                >清除</button>
+                >
+                  清除
+                </button>
               </div>
             </div>
           </div>
@@ -147,11 +146,7 @@
               <span class="toggle-icon">{{ expandedSections.memory ? '▲' : '▼' }}</span>
             </div>
             <div v-show="expandedSections.memory" class="group-content">
-              <div
-                v-for="(stats, type) in cacheStats.memory"
-                :key="type"
-                class="cache-item"
-              >
+              <div v-for="(stats, type) in cacheStats.memory" :key="type" class="cache-item">
                 <div class="item-info">
                   <span class="item-name">{{ memoryTypeLabels[type] }}</span>
                   <span class="item-count">{{ stats.count }} 项</span>
@@ -175,14 +170,12 @@
               <div class="prefetch-actions">
                 <button
                   class="action-btn"
-                  @click="handlePrefetch"
                   :disabled="prefetching || songs.length === 0"
+                  @click="handlePrefetch"
                 >
                   {{ prefetching ? '预加载中...' : '立即预加载' }}
                 </button>
-                <button class="action-btn" @click="handleClearPrefetchTimestamp">
-                  重置时间戳
-                </button>
+                <button class="action-btn" @click="handleClearPrefetchTimestamp">重置时间戳</button>
               </div>
             </div>
           </div>
@@ -199,11 +192,11 @@ import { usePWA } from '../composables/usePWA.js'
 import { useCache } from '../composables/useCache.js'
 import { useMusic } from '../composables/useMusic.js'
 
-const props = defineProps({
+defineProps({
   visible: {
     type: Boolean,
     default: true,
-    required: false  // visible 不是必需的，有默认值
+    required: false // visible 不是必需的，有默认值
   }
 })
 
@@ -213,21 +206,12 @@ const emit = defineEmits(['mouseenter', 'mouseleave'])
 const showInstallGuide = ref(false)
 
 // PWA 状态
-const {
-  isPWA,
-  isOnline,
-  canInstall,
-  hasUpdate,
-  appVersion,
-  appBuildTime,
-  installPWA,
-  refreshApp
-} = usePWA()
+const { isPWA, isOnline, canInstall, hasUpdate, appVersion, appBuildTime, installPWA, refreshApp } =
+  usePWA()
 
 // 缓存管理
 const {
   cacheStats,
-  loading: cacheLoading,
   refreshCacheStats,
   clearServiceWorkerCache,
   clearLocalStorageCategory,
@@ -407,17 +391,9 @@ const installSteps = computed(() => {
         '点击"添加"完成安装'
       ]
     case 'android-chrome':
-      return [
-        '点击右上角的三个点菜单',
-        '选择"添加到主屏幕"或"安装应用"',
-        '点击"添加"完成安装'
-      ]
+      return ['点击右上角的三个点菜单', '选择"添加到主屏幕"或"安装应用"', '点击"添加"完成安装']
     case 'safari':
-      return [
-        '点击工具栏的"分享"按钮',
-        '选择"添加到主屏幕"',
-        '点击"添加"完成'
-      ]
+      return ['点击工具栏的"分享"按钮', '选择"添加到主屏幕"', '点击"添加"完成']
     default:
       return [
         '打开浏览器菜单（通常是右上角的三个点或三条线）',
@@ -458,7 +434,10 @@ const onMouseLeave = () => emit('mouseleave')
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s, background 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    background 0.3s,
+    box-shadow 0.3s;
   position: relative;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -855,7 +834,9 @@ const onMouseLeave = () => emit('mouseleave')
 /* 动画 */
 .slide-up-enter-active,
 .slide-up-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 }
 
 .slide-up-enter-from,

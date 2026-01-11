@@ -1,4 +1,4 @@
-import { ref, computed, reactive, toRefs } from 'vue'
+import { computed, reactive, toRefs } from 'vue'
 
 const STORAGE_KEY = 'countServer'
 
@@ -131,7 +131,7 @@ export function useServerConfig() {
     }
 
     // 查找预设服务器
-    const server = predefinedServers.find(s => s.id === id)
+    const server = predefinedServers.find((s) => s.id === id)
     if (!server) {
       return resolveDefaultWsUrl()
     }
@@ -168,7 +168,7 @@ export function useServerConfig() {
 
   return {
     serverList,
-    ...toRefs(state),  // 使用 toRefs 解构 reactive 对象以保持响应性
+    ...toRefs(state), // 使用 toRefs 解构 reactive 对象以保持响应性
     getActiveServerUrl,
     selectServer,
     setCustomServerUrl,

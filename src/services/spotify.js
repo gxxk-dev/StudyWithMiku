@@ -61,7 +61,10 @@ export const saveSpotifyPlaylistId = (playlistId) => {
  * 获取已保存的 Spotify 歌单 ID
  */
 export const getSpotifyPlaylistId = () => {
-  return safeLocalStorageGet(SPOTIFY_PLAYLIST_KEY, DEFAULT_SPOTIFY_PLAYLIST_ID) || DEFAULT_SPOTIFY_PLAYLIST_ID
+  return (
+    safeLocalStorageGet(SPOTIFY_PLAYLIST_KEY, DEFAULT_SPOTIFY_PLAYLIST_ID) ||
+    DEFAULT_SPOTIFY_PLAYLIST_ID
+  )
 }
 
 /**

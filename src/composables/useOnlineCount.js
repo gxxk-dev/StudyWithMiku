@@ -97,7 +97,9 @@ export function useOnlineCount(wsUrl) {
     }
 
     const delay = getReconnectDelay()
-    console.log(`Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts.value + 1}/${MAX_RECONNECT_ATTEMPTS})`)
+    console.log(
+      `Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts.value + 1}/${MAX_RECONNECT_ATTEMPTS})`
+    )
 
     reconnectTimer.value = setTimeout(() => {
       reconnectTimer.value = null
@@ -134,7 +136,7 @@ export function useOnlineCount(wsUrl) {
     disconnect()
     currentWsUrl.value = newUrl
     // 等待一小段时间确保断开完成
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
     connect(newUrl)
   }
 
@@ -149,6 +151,6 @@ export function useOnlineCount(wsUrl) {
   return {
     onlineCount,
     isConnected,
-    reconnectToServer,
+    reconnectToServer
   }
 }

@@ -7,10 +7,10 @@
         <input
           type="number"
           :value="focusDuration"
-          @input="$emit('update:focusDuration', Number($event.target.value))"
           min="1"
           max="60"
           :disabled="disabled"
+          @input="$emit('update:focusDuration', Number($event.target.value))"
         />
       </div>
       <div class="setting-group">
@@ -18,10 +18,10 @@
         <input
           type="number"
           :value="breakDuration"
-          @input="$emit('update:breakDuration', Number($event.target.value))"
           min="1"
           max="30"
           :disabled="disabled"
+          @input="$emit('update:breakDuration', Number($event.target.value))"
         />
       </div>
     </div>

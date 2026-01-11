@@ -32,7 +32,7 @@
 <script setup>
 import { Icon } from '@iconify/vue'
 
-const props = defineProps({
+defineProps({
   currentVideoIndex: {
     type: Number,
     default: 0

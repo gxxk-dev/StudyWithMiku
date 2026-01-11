@@ -17,24 +17,23 @@ export const getVideo = (src) => {
       cache.videos.set(src, video)
       resolve(video)
     }
-    video.onerror = (event) => {
-      const errorMsg = video.error ?
-        `Code ${video.error.code}: ${video.error.message}` :
-        'Unknown error'
+    video.onerror = () => {
+      const errorMsg = video.error
+        ? `Code ${video.error.code}: ${video.error.message}`
+        : 'Unknown error'
       reject(new Error(`Failed to load video: ${src} - ${errorMsg}`))
     }
   })
 }
 
 export const preloadVideos = (urls) => {
-  return Promise.allSettled(urls.map(url => getVideo(url)))
-    .then(results => {
-      const failed = results.filter(r => r.status === 'rejected')
-      if (failed.length > 0) {
-        console.warn(`${failed.length}/${urls.length} videos failed to load`)
-      }
-      return results.filter(r => r.status === 'fulfilled').map(r => r.value)
-    })
+  return Promise.allSettled(urls.map((url) => getVideo(url))).then((results) => {
+    const failed = results.filter((r) => r.status === 'rejected')
+    if (failed.length > 0) {
+      console.warn(`${failed.length}/${urls.length} videos failed to load`)
+    }
+    return results.filter((r) => r.status === 'fulfilled').map((r) => r.value)
+  })
 }
 
 export const clearCache = (type) => {
@@ -52,7 +51,7 @@ export const clearCache = (type) => {
   }
 }
 export const clearAllCache = () => {
-  Object.keys(cache).forEach(type => clearCache(type))
+  Object.keys(cache).forEach((type) => clearCache(type))
 }
 
 export { cache }

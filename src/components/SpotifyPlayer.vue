@@ -47,14 +47,17 @@ const embedUrl = computed(() => {
 })
 
 // 监听 playlistId 变化，更新 Media Session 静态元数据
-watch(() => props.playlistId, (newId) => {
-  if (newId) {
-    initializeMediaSession('spotify', null, {
-      playlistId: newId,
-      platform: 'spotify'
-    })
+watch(
+  () => props.playlistId,
+  (newId) => {
+    if (newId) {
+      initializeMediaSession('spotify', null, {
+        playlistId: newId,
+        platform: 'spotify'
+      })
+    }
   }
-})
+)
 
 onMounted(() => {
   if (props.playlistId) {

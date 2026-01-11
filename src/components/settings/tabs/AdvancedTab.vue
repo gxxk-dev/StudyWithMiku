@@ -25,12 +25,10 @@
                   {{ serverLatencies[server.id] }}ms
                 </span>
               </span>
-              <span v-else-if="server.id === selectedServerId" style="color: #FFC107;">
+              <span v-else-if="server.id === selectedServerId" style="color: #ffc107">
                 连接中...
               </span>
-              <span v-else style="color: rgba(255,255,255,0.3);">
-                --
-              </span>
+              <span v-else style="color: rgba(255, 255, 255, 0.3)"> -- </span>
             </div>
           </div>
         </div>
@@ -39,9 +37,9 @@
         <div v-if="selectedServerId === 'custom'" class="custom-server">
           <input
             :value="customServerUrl"
-            @input="$emit('update:custom-server-url', $event.target.value)"
             type="url"
             placeholder="wss://example.com/ws"
+            @input="$emit('update:custom-server-url', $event.target.value)"
           />
           <button @click="$emit('server-apply-custom')">应用</button>
         </div>
@@ -50,8 +48,8 @@
         <label class="auto-fallback-option">
           <input
             :checked="autoFallback"
-            @change="$emit('update:auto-fallback', $event.target.checked)"
             type="checkbox"
+            @change="$emit('update:auto-fallback', $event.target.checked)"
           />
           连接失败时自动切换到默认服务器
         </label>
@@ -69,7 +67,7 @@
 <script setup>
 import CachePanel from '../CachePanel.vue'
 
-const props = defineProps({
+defineProps({
   serverList: { type: Array, required: true },
   selectedServerId: { type: String, required: true },
   customServerUrl: { type: String, default: '' },

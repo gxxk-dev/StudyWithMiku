@@ -73,7 +73,7 @@ export const clearPrefetchTimestamps = () => {
       }
     }
     // 逐个删除，每个操作都有 try-catch 保护
-    keysToRemove.forEach(key => {
+    keysToRemove.forEach((key) => {
       try {
         localStorage.removeItem(key)
       } catch (err) {
@@ -103,23 +103,18 @@ export const prefetchPlaylistAudios = async (songs = [], options = {}) => {
 
   try {
     const cache = await caches.open(PREFETCH_CACHE_NAME)
-    const uniqueUrls = Array.from(
-      new Set(
-        songs
-          .map(song => song?.url)
-          .filter(Boolean)
-      )
-    ).slice(0, MAX_PREFETCH_SONGS)
+    const uniqueUrls = Array.from(new Set(songs.map((song) => song?.url).filter(Boolean))).slice(
+      0,
+      MAX_PREFETCH_SONGS
+    )
 
     if (uniqueUrls.length === 0) {
       return { success: 0, failed: 0, skipped: 0, reason: 'no_valid_urls' }
     }
 
     // 并行加载以提升性能
-    const results = await Promise.allSettled(
-      uniqueUrls.map(url => fetchAndCache(cache, url))
-    )
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length
+    const results = await Promise.allSettled(uniqueUrls.map((url) => fetchAndCache(cache, url)))
+    const successCount = results.filter((r) => r.status === 'fulfilled' && r.value).length
     const failedCount = results.length - successCount
 
     markPrefetched(platform, id)

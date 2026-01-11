@@ -1,6 +1,12 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { duckMusicForNotification } from '../utils/eventBus.js'
-import { getPomodoroSettings, savePomodoroSettings, saveTimerState, getTimerState, clearTimerState } from '../utils/userSettings.js'
+import {
+  getPomodoroSettings,
+  savePomodoroSettings,
+  saveTimerState,
+  getTimerState,
+  clearTimerState
+} from '../utils/userSettings.js'
 
 const NOTIFICATION_AUDIO_URL = 'https://assets.frez79.io/swm/BreakOrWork.mp3'
 
@@ -44,7 +50,9 @@ export function usePomodoro() {
 
   // Computed properties
   const formattedMinutes = computed(() => {
-    return Math.floor(timeLeft.value / 60).toString().padStart(2, '0')
+    return Math.floor(timeLeft.value / 60)
+      .toString()
+      .padStart(2, '0')
   })
 
   const formattedSeconds = computed(() => {
@@ -53,33 +61,45 @@ export function usePomodoro() {
 
   const statusText = computed(() => {
     switch (currentStatus.value) {
-      case STATUS.FOCUS: return '专注'
-      case STATUS.BREAK: return '休息'
-      case STATUS.LONG_BREAK: return '长休'
-      case STATUS.PAUSED: return '暂停'
-      default: return '专注'
+      case STATUS.FOCUS:
+        return '专注'
+      case STATUS.BREAK:
+        return '休息'
+      case STATUS.LONG_BREAK:
+        return '长休'
+      case STATUS.PAUSED:
+        return '暂停'
+      default:
+        return '专注'
     }
   })
 
   const statusClass = computed(() => {
     switch (currentStatus.value) {
-      case STATUS.FOCUS: return 'focus'
-      case STATUS.BREAK: return 'break'
-      case STATUS.LONG_BREAK: return 'long-break'
-      case STATUS.PAUSED: return 'paused'
-      default: return 'focus'
+      case STATUS.FOCUS:
+        return 'focus'
+      case STATUS.BREAK:
+        return 'break'
+      case STATUS.LONG_BREAK:
+        return 'long-break'
+      case STATUS.PAUSED:
+        return 'paused'
+      default:
+        return 'focus'
     }
   })
 
   const totalTime = computed(() => {
-    const status = currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
+    const status =
+      currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
     switch (status) {
       case STATUS.FOCUS:
         return focusDuration.value * 60
-      case STATUS.LONG_BREAK:
+      case STATUS.LONG_BREAK: {
         // 支持 URL 自定义长休息时长
-        const longBreak = urlConfigOverride?.longBreak ?? (breakDuration.value * 2)
+        const longBreak = urlConfigOverride?.longBreak ?? breakDuration.value * 2
         return longBreak * 60
+      }
       default:
         return breakDuration.value * 60
     }
@@ -95,7 +115,7 @@ export function usePomodoro() {
   // Methods
   const playNotificationSound = async () => {
     duckMusicForNotification(3000)
-    await new Promise(resolve => setTimeout(resolve, 200))
+    await new Promise((resolve) => setTimeout(resolve, 200))
 
     // 复用音频实例
     if (!notificationAudio.value) {
@@ -103,7 +123,7 @@ export function usePomodoro() {
     }
 
     notificationAudio.value.currentTime = 0
-    notificationAudio.value.play().catch(error => {
+    notificationAudio.value.play().catch((error) => {
       console.warn('Notification sound play failed:', error)
     })
   }
@@ -134,7 +154,7 @@ export function usePomodoro() {
       if (completedPomodoros.value % 4 === 0) {
         currentStatus.value = STATUS.LONG_BREAK
         // 支持 URL 自定义长休息时长
-        const longBreak = urlConfigOverride?.longBreak ?? (breakDuration.value * 2)
+        const longBreak = urlConfigOverride?.longBreak ?? breakDuration.value * 2
         timeLeft.value = longBreak * 60
       } else {
         currentStatus.value = STATUS.BREAK
@@ -149,7 +169,9 @@ export function usePomodoro() {
       timeLeft.value = focusDuration.value * 60
     }
 
-    console.log(`[Pomodoro] ${previousStatus}阶段完成 → 切换到${statusText.value}阶段 (完成计数: ${completedPomodoros.value}, 静默模式: ${isSilent})`)
+    console.log(
+      `[Pomodoro] ${previousStatus}阶段完成 → 切换到${statusText.value}阶段 (完成计数: ${completedPomodoros.value}, 静默模式: ${isSilent})`
+    )
 
     // 只在实时完成时显示通知
     if (!isSilent) {
@@ -176,7 +198,9 @@ export function usePomodoro() {
     // 计算结束时间 (当前时间 + 剩余秒数 * 1000)
     endTime.value = Date.now() + timeLeft.value * 1000
     const endDate = new Date(endTime.value)
-    console.log(`[Pomodoro] 计时器启动 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒, 预计结束时间: ${endDate.toLocaleTimeString()}`)
+    console.log(
+      `[Pomodoro] 计时器启动 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒, 预计结束时间: ${endDate.toLocaleTimeString()}`
+    )
 
     isRunning.value = true
     timer.value = setInterval(() => {
@@ -194,7 +218,7 @@ export function usePomodoro() {
         if (isSilent) {
           console.log(`[Pomodoro] 延迟完成检测 - 延迟 ${Math.abs(remaining)} 秒，静默完成模式`)
         } else {
-          console.log(`[Pomodoro] 计时器完成 - 实时完成，播放通知`)
+          console.log('[Pomodoro] 计时器完成 - 实时完成，播放通知')
         }
         handleTimerComplete(isSilent)
       } else {
@@ -209,7 +233,9 @@ export function usePomodoro() {
       previousStatus.value = currentStatus.value
       currentStatus.value = STATUS.PAUSED
     }
-    console.log(`[Pomodoro] 计时器暂停 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒`)
+    console.log(
+      `[Pomodoro] 计时器暂停 - 当前阶段: ${statusText.value}, 剩余时间: ${timeLeft.value}秒`
+    )
     isRunning.value = false
     endTime.value = null // 清除绝对时间，保留 timeLeft
     if (timer.value) {
@@ -219,7 +245,7 @@ export function usePomodoro() {
   }
 
   const resetTimer = () => {
-    console.log(`[Pomodoro] 计时器重置`)
+    console.log('[Pomodoro] 计时器重置')
     pauseTimer(false) // 重置时不设置暂停状态
     timeLeft.value = focusDuration.value * 60
     currentStatus.value = STATUS.FOCUS
@@ -228,7 +254,8 @@ export function usePomodoro() {
 
   // Watch duration changes
   const stopDurationWatcher = watch([focusDuration, breakDuration], ([newFocus, newBreak]) => {
-    const effectiveStatus = currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
+    const effectiveStatus =
+      currentStatus.value === STATUS.PAUSED ? previousStatus.value : currentStatus.value
     if (effectiveStatus === STATUS.FOCUS && !isRunning.value) {
       timeLeft.value = newFocus * 60
     } else if (effectiveStatus !== STATUS.FOCUS && !isRunning.value) {
@@ -251,7 +278,9 @@ export function usePomodoro() {
       const remaining = Math.ceil((savedState.endTime - Date.now()) / 1000)
       const savedDate = new Date(savedState.savedAt)
 
-      console.log(`[Pomodoro] 检测到已保存的计时器状态 - 保存时间: ${savedDate.toLocaleString()}, 剩余: ${remaining}秒`)
+      console.log(
+        `[Pomodoro] 检测到已保存的计时器状态 - 保存时间: ${savedDate.toLocaleString()}, 剩余: ${remaining}秒`
+      )
 
       if (remaining > 0) {
         // 恢复状态
@@ -266,7 +295,7 @@ export function usePomodoro() {
         clearTimerState()
       }
     } else {
-      console.log(`[Pomodoro] 未检测到保存的计时器状态`)
+      console.log('[Pomodoro] 未检测到保存的计时器状态')
     }
 
     // 请求通知权限
@@ -278,7 +307,9 @@ export function usePomodoro() {
   onUnmounted(() => {
     // 如果正在运行，保存状态
     if (isRunning.value && endTime.value) {
-      console.log(`[Pomodoro] 组件卸载 - 保存计时器状态 (阶段: ${statusText.value}, 剩余: ${timeLeft.value}秒)`)
+      console.log(
+        `[Pomodoro] 组件卸载 - 保存计时器状态 (阶段: ${statusText.value}, 剩余: ${timeLeft.value}秒)`
+      )
       saveTimerState({
         endTime: endTime.value,
         isRunning: isRunning.value,
@@ -286,7 +317,7 @@ export function usePomodoro() {
         completedPomodoros: completedPomodoros.value
       })
     } else {
-      console.log(`[Pomodoro] 组件卸载 - 计时器未运行，清理状态`)
+      console.log('[Pomodoro] 组件卸载 - 计时器未运行，清理状态')
     }
 
     if (timer.value) {
@@ -313,7 +344,9 @@ export function usePomodoro() {
         completedPomodoros: completedPomodoros.value
       }
       saveTimerState(state)
-      console.log(`[Pomodoro] 状态已保存 - 阶段: ${statusText.value}, 结束时间: ${new Date(endTime.value).toLocaleTimeString()}`)
+      console.log(
+        `[Pomodoro] 状态已保存 - 阶段: ${statusText.value}, 结束时间: ${new Date(endTime.value).toLocaleTimeString()}`
+      )
     } else if (!isRunning.value) {
       clearTimerState()
     }

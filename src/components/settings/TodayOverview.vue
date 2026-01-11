@@ -66,7 +66,7 @@ import { Icon } from '@iconify/vue'
   }
 
   &.info-color {
-    color: #2196F3;
+    color: #2196f3;
   }
 }
 
@@ -77,7 +77,7 @@ import { Icon } from '@iconify/vue'
   border-radius: 6px;
   background: rgba(33, 150, 243, 0.1);
   border: 1px solid rgba(33, 150, 243, 0.3);
-  color: #2196F3;
+  color: #2196f3;
   font-size: 1.2rem;
   cursor: pointer;
   transition: all 0.3s ease;

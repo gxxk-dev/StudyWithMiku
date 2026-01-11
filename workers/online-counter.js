@@ -1,3 +1,4 @@
+/* global WebSocketPair */
 export class OnlineCounter {
   constructor(state, env) {
     this.state = state
@@ -23,7 +24,7 @@ export class OnlineCounter {
 
     return new Response(null, {
       status: 101,
-      webSocket: client,
+      webSocket: client
     })
   }
 
@@ -75,8 +76,8 @@ export class OnlineCounter {
     return new Response(JSON.stringify({ count }), {
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-store',
-      },
+        'Cache-Control': 'no-store'
+      }
     })
   }
 }

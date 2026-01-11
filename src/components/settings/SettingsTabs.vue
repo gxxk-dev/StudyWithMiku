@@ -7,7 +7,7 @@
         :key="tab.id"
         class="tab-item"
         :class="{
-          'active': activeTab === tab.id,
+          active: activeTab === tab.id,
           'pomodoro-active': activeTab === 'pomodoro' && tab.id === 'pomodoro',
           'content-active': activeTab === 'content' && tab.id === 'content',
           'advanced-active': activeTab === 'advanced' && tab.id === 'advanced'
@@ -22,11 +22,7 @@
     <!-- 标签内容 -->
     <transition name="tab-slide" mode="out-in">
       <div :key="activeTab" class="tab-content">
-        <component
-          :is="currentTabComponent"
-          v-bind="tabProps"
-          v-on="tabEvents"
-        />
+        <component :is="currentTabComponent" v-bind="tabProps" v-on="tabEvents" />
       </div>
     </transition>
   </div>
@@ -121,9 +117,9 @@ const switchTab = (tabId) => {
 // 当前标签页组件
 const currentTabComponent = computed(() => {
   const components = {
-    'pomodoro': PomodoroTab,
-    'content': ContentTab,
-    'advanced': AdvancedTab
+    pomodoro: PomodoroTab,
+    content: ContentTab,
+    advanced: AdvancedTab
   }
   return components[activeTab.value]
 })
@@ -195,38 +191,50 @@ const tabEvents = computed(() => {
 })
 
 // 提供状态给子组件（使用 provide/inject 避免 props 层级过深）
-provide('pomodoroState', computed(() => ({
-  focusDuration: props.focusDuration,
-  breakDuration: props.breakDuration,
-  timeLeft: props.timeLeft,
-  isRunning: props.isRunning,
-  completedPomodoros: props.completedPomodoros,
-  formattedMinutes: props.formattedMinutes,
-  formattedSeconds: props.formattedSeconds,
-  statusText: props.statusText,
-  statusClass: props.statusClass,
-  totalTime: props.totalTime
-})))
+provide(
+  'pomodoroState',
+  computed(() => ({
+    focusDuration: props.focusDuration,
+    breakDuration: props.breakDuration,
+    timeLeft: props.timeLeft,
+    isRunning: props.isRunning,
+    completedPomodoros: props.completedPomodoros,
+    formattedMinutes: props.formattedMinutes,
+    formattedSeconds: props.formattedSeconds,
+    statusText: props.statusText,
+    statusClass: props.statusClass,
+    totalTime: props.totalTime
+  }))
+)
 
-provide('musicState', computed(() => ({
-  platform: props.platform,
-  songs: props.songs,
-  platforms: props.platforms
-})))
+provide(
+  'musicState',
+  computed(() => ({
+    platform: props.platform,
+    songs: props.songs,
+    platforms: props.platforms
+  }))
+)
 
-provide('serverState', computed(() => ({
-  serverList: props.serverList,
-  selectedServerId: props.selectedServerId,
-  customServerUrl: props.customServerUrl,
-  autoFallback: props.autoFallback,
-  isConnected: props.isConnected,
-  serverLatencies: props.serverLatencies
-})))
+provide(
+  'serverState',
+  computed(() => ({
+    serverList: props.serverList,
+    selectedServerId: props.selectedServerId,
+    customServerUrl: props.customServerUrl,
+    autoFallback: props.autoFallback,
+    isConnected: props.isConnected,
+    serverLatencies: props.serverLatencies
+  }))
+)
 
-provide('videoState', computed(() => ({
-  currentVideoIndex: props.currentVideoIndex,
-  videoList: props.videoList
-})))
+provide(
+  'videoState',
+  computed(() => ({
+    currentVideoIndex: props.currentVideoIndex,
+    videoList: props.videoList
+  }))
+)
 </script>
 
 <style scoped lang="scss">

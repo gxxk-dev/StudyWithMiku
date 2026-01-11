@@ -36,7 +36,7 @@ import { Icon } from '@iconify/vue'
 import PlaylistPanel from '../../pomodoro/PlaylistPanel.vue'
 import VideoSelector from '../VideoSelector.vue'
 
-const props = defineProps({
+defineProps({
   platform: { type: String, required: true },
   songs: { type: Array, default: () => [] },
   platforms: { type: Array, required: true },

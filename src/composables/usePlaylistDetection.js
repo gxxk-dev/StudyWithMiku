@@ -2,14 +2,8 @@ import { computed } from 'vue'
 import { isSpotifyLink, extractSpotifyPlaylistId } from '../services/spotify.js'
 
 const URL_PATTERNS = {
-  netease: [
-    /music\.163\.com.*[?&]id=(\d+)/,
-    /music\.163\.com\/playlist\/(\d+)/
-  ],
-  tencent: [
-    /y\.qq\.com.*[?&]id=(\d+)/,
-    /y\.qq\.com\/n\/ryqq\/playlist\/(\d+)/
-  ]
+  netease: [/music\.163\.com.*[?&]id=(\d+)/, /music\.163\.com\/playlist\/(\d+)/],
+  tencent: [/y\.qq\.com.*[?&]id=(\d+)/, /y\.qq\.com\/n\/ryqq\/playlist\/(\d+)/]
 }
 
 /**

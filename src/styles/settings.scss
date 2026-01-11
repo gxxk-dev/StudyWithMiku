@@ -35,13 +35,13 @@
     }
 
     &.content-active {
-      border-bottom-color: #9C27B0;
-      color: #9C27B0;
+      border-bottom-color: #9c27b0;
+      color: #9c27b0;
     }
 
     &.advanced-active {
-      border-bottom-color: #607D8B;
-      color: #607D8B;
+      border-bottom-color: #607d8b;
+      color: #607d8b;
     }
   }
 
@@ -64,11 +64,7 @@
 // 分隔线
 .divider {
   height: 1px;
-  background: linear-gradient(90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   margin: 1.5rem 0;
 }
 
@@ -86,7 +82,7 @@
   gap: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  color: #2196F3;
+  color: #2196f3;
   font-size: 0.9rem;
   font-weight: 500;
 
@@ -126,8 +122,8 @@
       border-color: rgba(33, 150, 243, 0.4);
 
       .radio-indicator {
-        background: #2196F3;
-        border-color: #2196F3;
+        background: #2196f3;
+        border-color: #2196f3;
 
         &::after {
           transform: translate(-50%, -50%) scale(1);
@@ -276,7 +272,7 @@
     color: rgba(255, 255, 255, 0.8);
     cursor: pointer;
 
-    input[type="checkbox"] {
+    input[type='checkbox'] {
       width: 16px;
       height: 16px;
       cursor: pointer;
@@ -425,7 +421,9 @@
 // 标签页过渡动画
 .tab-slide-enter-active,
 .tab-slide-leave-active {
-  transition: transform 0.3s ease, opacity 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 }
 
 .tab-slide-enter-from {

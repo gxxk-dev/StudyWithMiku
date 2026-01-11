@@ -26,7 +26,7 @@ if ('serviceWorker' in navigator && isPWAMode()) {
     onOfflineReady() {
       console.log('✓ PWA 离线就绪')
     },
-    onRegistered(registration) {
+    onRegistered() {
       console.log('✓ Service Worker 已注册')
     },
     onRegisterError(error) {

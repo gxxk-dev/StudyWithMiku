@@ -1,7 +1,19 @@
 import { ref, computed, onUnmounted } from 'vue'
-import { fetchPlaylist, getStoredConfig, saveConfig, DEFAULT_PLAYLIST_ID, getCachedPlaylist, cachePlaylist } from '../services/meting.js'
+import {
+  fetchPlaylist,
+  getStoredConfig,
+  saveConfig,
+  DEFAULT_PLAYLIST_ID,
+  getCachedPlaylist,
+  cachePlaylist
+} from '../services/meting.js'
 import { prefetchPlaylistAudios } from '../utils/audioPrefetch.js'
-import { getSpotifyPlaylistId, saveSpotifyPlaylistId, resetSpotifyPlaylistId, DEFAULT_SPOTIFY_PLAYLIST_ID } from '../services/spotify.js'
+import {
+  getSpotifyPlaylistId,
+  saveSpotifyPlaylistId,
+  resetSpotifyPlaylistId,
+  DEFAULT_SPOTIFY_PLAYLIST_ID
+} from '../services/spotify.js'
 import { safeLocalStorageGet, safeLocalStorageSet } from '../utils/storage.js'
 
 /**
@@ -42,7 +54,11 @@ export const useMusic = () => {
   // 开始预加载歌单音频
   const startPrefetch = async (playlistSongs, platform, id, forceRefresh) => {
     if (!playlistSongs?.length) return
-    const result = await prefetchPlaylistAudios(playlistSongs, { platform, id, force: forceRefresh })
+    const result = await prefetchPlaylistAudios(playlistSongs, {
+      platform,
+      id,
+      force: forceRefresh
+    })
     if (result && result.failed > 0) {
       console.warn(`预加载完成: 成功 ${result.success} 首，失败 ${result.failed} 首`)
     }

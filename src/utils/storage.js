@@ -49,4 +49,3 @@ export const safeLocalStorageRemove = (key) => {
     return false
   }
 }
-

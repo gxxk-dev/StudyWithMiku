@@ -11,11 +11,7 @@
       </div>
       <div class="setting-group">
         <label>歌单ID</label>
-        <input
-          type="text"
-          v-model="inputPlaylistId"
-          placeholder="粘贴歌单链接或ID"
-        />
+        <input v-model="inputPlaylistId" type="text" placeholder="粘贴歌单链接或ID" />
       </div>
       <div v-if="detectedPlatformHint" class="platform-hint">
         {{ detectedPlatformHint }}
@@ -30,7 +26,11 @@
 
 <script setup>
 import { ref, watch } from 'vue'
-import { usePlaylistDetection, extractPlaylistId, detectPlatformFromText } from '../../composables/usePlaylistDetection.js'
+import {
+  usePlaylistDetection,
+  extractPlaylistId,
+  detectPlatformFromText
+} from '../../composables/usePlaylistDetection.js'
 import { extractSpotifyPlaylistId } from '../../services/spotify.js'
 
 const props = defineProps({
@@ -51,9 +51,12 @@ const selectedPlatform = ref(props.initialPlatform)
 
 const { detectedPlatformHint } = usePlaylistDetection(inputPlaylistId)
 
-watch(() => props.initialPlatform, (val) => {
-  selectedPlatform.value = val
-})
+watch(
+  () => props.initialPlatform,
+  (val) => {
+    selectedPlatform.value = val
+  }
+)
 
 const handleApply = () => {
   if (!inputPlaylistId.value) return

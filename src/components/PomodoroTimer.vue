@@ -37,12 +37,12 @@
       <span class="countdown-divider" aria-hidden="true"></span>
       <div
         class="settings-icon"
+        title="设置"
         @click.stop="toggleSettings"
         @mouseenter="onUIMouseEnter"
         @mouseleave="onUIMouseLeave"
         @touchstart="onUITouchStart"
         @touchend="onUITouchEnd"
-        title="设置"
       >
         <Icon icon="lucide:settings" width="18" height="18" />
       </div>
@@ -112,13 +112,13 @@
 
     <!-- 服务器选择面板 -->
     <ServerPanel
+      v-model:custom-server-url="customServerUrl"
+      v-model:auto-fallback="autoFallback"
       :show="showServerPanel"
       :server-list="serverList"
       :selected-server-id="selectedServerId"
       :is-connected="isConnected"
       :latencies="serverLatencies"
-      v-model:custom-server-url="customServerUrl"
-      v-model:auto-fallback="autoFallback"
       @close="closeServerPanel"
       @select="handleSelectServer"
       @apply-custom="applyCustomServer"
@@ -138,16 +138,11 @@ import { usePomodoro } from '../composables/usePomodoro.js'
 import { setHoveringUI, getAPlayerInstance } from '../utils/eventBus.js'
 
 // 子组件
-import TimerDisplay from './pomodoro/TimerDisplay.vue'
-import TimerControls from './pomodoro/TimerControls.vue'
-import TimerSettings from './pomodoro/TimerSettings.vue'
-import PlaylistPanel from './pomodoro/PlaylistPanel.vue'
 import ServerPanel from './pomodoro/ServerPanel.vue'
-import PomodoroCounter from './pomodoro/PomodoroCounter.vue'
 import SettingsTabs from './settings/SettingsTabs.vue'
 
 // 定义 emits
-const emit = defineEmits(['video-change'])
+defineEmits(['video-change'])
 
 // 定义 props（从 App.vue 接收视频状态）
 const props = defineProps({
@@ -170,7 +165,6 @@ const {
   getActiveServerUrl,
   selectServer: changeServer,
   setCustomServerUrl,
-  toggleAutoFallback,
   testConnection,
   validateServerUrl
 } = useServerConfig()
@@ -180,14 +174,8 @@ const initialWsUrl = getActiveServerUrl()
 const { onlineCount, isConnected, reconnectToServer } = useOnlineCount(initialWsUrl)
 
 // 音乐
-const {
-  platform,
-  applyCustomPlaylist,
-  resetToDefault,
-  songs,
-  PLATFORMS,
-  applySpotifyPlaylist
-} = useMusic()
+const { platform, applyCustomPlaylist, resetToDefault, songs, PLATFORMS, applySpotifyPlaylist } =
+  useMusic()
 
 // 番茄钟
 const {
@@ -586,11 +574,7 @@ onUnmounted(() => {
     transform: translateX(-50%);
     width: 60px;
     height: 2px;
-    background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.3),
-      transparent
-    );
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   }
 }
 
