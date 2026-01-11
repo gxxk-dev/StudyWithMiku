@@ -18,6 +18,10 @@ npm run build            # 生成图标 + Vite 构建 + 复制静态资源
 
 # 部署
 npm run deploy:worker    # 部署到 Cloudflare Workers
+
+# 代码质量
+npm run lint             # ESLint 检查并自动修复
+npm run format           # Prettier 格式化代码
 ```
 
 ## 架构
@@ -123,3 +127,7 @@ import { Icon } from '@iconify/vue'
 
 - GitHub Flow
 - 提交规范：约定式提交 (Conventional Commits)
+  - 格式：`<type>(<scope>): <subject>`
+  - 示例：`feat(icons): 使用 Iconify 替换硬编码图标`
+- 代码规范：使用 ESLint + Prettier 自动格式化
+- **提交前务必运行 `npm run lint` 检查代码**

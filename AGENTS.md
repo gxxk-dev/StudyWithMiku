@@ -11,6 +11,9 @@ The Vite + Vue 3 frontend lives under `src/`: `components/`, `composables/` (hoo
 - `npm run preview` — serve the built bundle locally.
 - `npm run dev:worker` — rebuild and run `wrangler dev --local` for the Hono worker and `OnlineCounter`.
 - `npm run deploy:worker` — publish via Wrangler; ensure bindings and secrets are correct.
+- `npm run lint` — run ESLint and auto-fix issues.
+- `npm run format` — format code with Prettier.
+- **Always run `npm run lint` before committing to ensure code quality.**
 
 ## Coding Style & Naming Conventions
 Use ES modules with single quotes and two-space indentation. Components stay PascalCase (`PomodoroTimer.vue`) and export default; composables and utilities use camelCase file names. Keep `<script setup>` blocks lean, share helpers through `utils/`, and favor descriptive refs (`currentVideo`, `aplayerInitialized`). Base styles live in `src/style.css`; scope component styles only when needed.
