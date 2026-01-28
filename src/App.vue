@@ -71,6 +71,32 @@
 
     <!-- 横屏提示 -->
     <OrientationPrompt />
+
+    <!-- 重构公告横幅 -->
+    <transition name="slide-up">
+      <div v-if="showAnnouncement" class="announcement-banner">
+        <div class="announcement-content">
+          <Icon icon="mdi:information-outline" class="announcement-icon" />
+          <div class="announcement-text">
+            <strong>本站正在进行重构</strong>
+            <span class="announcement-detail">
+              建议前往上游仓库使用：
+              <a href="https://github.com/shshouse/StudyWithMiku/" target="_blank" rel="noopener"
+                >GitHub</a
+              >
+              /
+              <a href="https://study.mikugame.icu/" target="_blank" rel="noopener">在线体验</a>
+            </span>
+            <span class="announcement-dev">
+              已开发模块可在相关调试工具中通过 <code>swm_dev</code> 调用
+            </span>
+          </div>
+          <button class="announcement-close" @click="dismissAnnouncement">
+            <Icon icon="mdi:close" />
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -96,16 +122,24 @@ import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
+import { Icon } from '@iconify/vue'
 
 // 加载开发者控制台 (swm_dev)
 import './dev/index.js'
 
 const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
+const ANNOUNCEMENT_DISMISSED_KEY = 'swm_announcement_dismissed'
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
 const inactivityTimer = ref(null)
 const vConsoleInstance = ref(null)
+const showAnnouncement = ref(localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY) !== 'v1')
+
+const dismissAnnouncement = () => {
+  showAnnouncement.value = false
+  localStorage.setItem(ANNOUNCEMENT_DISMISSED_KEY, 'v1')
+}
 
 // Toast 状态
 const { toastState, showToast, hideToast } = useToast()
@@ -593,5 +627,90 @@ onUnmounted(() => {
 .album-selector select option {
   background: #333;
   color: white;
+}
+
+/* 重构公告横幅 */
+.announcement-banner {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  max-width: 520px;
+  width: calc(100% - 32px);
+}
+
+.announcement-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(20, 20, 30, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 180, 50, 0.4);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: #f0f0f0;
+  font-size: 13px;
+  line-height: 1.6;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.announcement-icon {
+  color: #ffb432;
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.announcement-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.announcement-text strong {
+  color: #ffb432;
+  font-size: 14px;
+}
+
+.announcement-detail a {
+  color: #5bc0eb;
+  text-decoration: none;
+}
+
+.announcement-detail a:hover {
+  text-decoration: underline;
+}
+
+.announcement-dev {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.announcement-dev code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-family: monospace;
+  color: #ccc;
+}
+
+.announcement-close {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.announcement-close:hover {
+  color: #fff;
 }
 </style>

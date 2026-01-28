@@ -1,8 +1,15 @@
 <p align="center"><b><a href="https://github.com/shshouse/StudyWithMiku">上游仓库</a> / <a href="https://github.com/gxxk-dev/StudyWithMiku/wiki">Wiki</a> / <a href="https://swm.frez79.io">快速体验</a> / <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/gxxk-dev/StudyWithMiku.git">自行部署</a> / <a href="https://www.bilibili.com/video/BV18TSWBzE4o">介绍视频</a></b></p>
 
-# Study with Miku
+> [!IMPORTANT]
+> **本仓库正在进行大规模重构，目前处于不稳定状态。**
+>
+> 如需正常使用，请前往上游仓库：
+> - 源码：[github.com/shshouse/StudyWithMiku](https://github.com/shshouse/StudyWithMiku/)
+> - 在线体验：[study.mikugame.icu](https://study.mikugame.icu/)
+>
+> 重构期间，已完成开发的模块可通过浏览器 DevTools 或 vConsole 中调用 `swm_dev` 对象进行预览和测试。
 
-*此仓库目前仅为实验性项目，若您需要更加稳定的使用体验，请前往上游仓库进行使用*
+# Study with Miku
 
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/gxxk-dev/StudyWithMiku/pulls)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3(or--later)-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
