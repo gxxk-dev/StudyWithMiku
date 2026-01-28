@@ -97,6 +97,9 @@ import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
 
+// 加载开发者控制台 (swm_dev)
+import './dev/index.js'
+
 const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
