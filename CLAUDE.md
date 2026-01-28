@@ -10,18 +10,18 @@ Study with Miku - 一个「Study with Miku」企划主题的番茄钟应用，�
 
 ```bash
 # 开发
-npm run dev              # 启动 Vite 开发服务器 (端口 3000)
-npm run dev:worker       # 构建并启动本地 Cloudflare Worker
+bun run dev              # 启动 Vite 开发服务器 (端口 3000)
+bun run dev:worker       # 构建并启动本地 Cloudflare Worker
 
 # 构建
-npm run build            # 生成图标 + Vite 构建 + 复制静态资源
+bun run build            # 生成图标 + Vite 构建 + 复制静态资源
 
 # 部署
-npm run deploy:worker    # 部署到 Cloudflare Workers
+bun run deploy:worker    # 部署到 Cloudflare Workers
 
 # 代码质量
-npm run lint             # ESLint 检查并自动修复
-npm run format           # Prettier 格式化代码
+bun run lint             # ESLint 检查并自动修复
+bun run format           # Prettier 格式化代码
 ```
 
 ## 架构
@@ -130,4 +130,4 @@ import { Icon } from '@iconify/vue'
   - 格式：`<type>(<scope>): <subject>`
   - 示例：`feat(icons): 使用 Iconify 替换硬编码图标`
 - 代码规范：使用 ESLint + Prettier 自动格式化
-- **提交前务必运行 `npm run lint` 检查代码**
+- **提交前务必运行 `bun run lint` 检查代码**

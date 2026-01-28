@@ -3,3 +3,4 @@ dist
 .env
 .wrangler
 dev-dist
+bun.lock
