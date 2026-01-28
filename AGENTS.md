@@ -45,10 +45,11 @@ The project uses **Vitest** for unit/integration tests and **Playwright** for E2
 tests/
 ├── setup/
 │   ├── vitest.setup.js      # Global mocks (localStorage, OPFS, Cache API, etc.)
-│   └── fixtures/            # Test data (songs.js, playlists.js)
+│   └── fixtures/            # Test data (songs.js, playlists.js, focusRecords.js)
 ├── unit/
 │   ├── services/            # Service layer tests
 │   ├── composables/         # Vue composables tests
+│   │   └── focus/           # Focus module tests (useTimer, useRecords, useSession, useStats)
 │   └── utils/               # Utility function tests
 ├── integration/             # Integration tests (playlist flow, cache flow)
 └── e2e/                     # E2E smoke tests
@@ -68,3 +69,66 @@ Follow Conventional Commits (`feat: add pomodoro presets`, `fix(worker): guard w
 
 ## Deployment & Configuration Tips
 `wrangler.toml` defines the `OnlineCounter` Durable Object and binds assets through the `ASSETS` namespace. Increment migration tags sequentially and keep prior tags intact. Before deploying, verify `wrangler whoami`, configure secrets outside git, and confirm `dist/` was freshly built because the worker serves those files for unknown routes.
+
+## Focus Module (Pomodoro System)
+
+The `useFocus` composable provides a complete pomodoro timer system with state machine, records storage, statistics, and data export.
+
+### Architecture
+```
+src/composables/
+├── useFocus.js              # Unified entry point (Facade)
+└── focus/
+    ├── constants.js         # Enums, defaults, storage keys
+    ├── useTimer.js          # Pure timer (timestamp-based, handles background throttling)
+    ├── useRecords.js        # CRUD + query methods
+    ├── useSession.js        # State machine + interruption recovery
+    └── useStats.js          # Statistics + heatmap data
+```
+
+### State Machine
+```
+IDLE ──start──▶ RUNNING ──complete──▶ IDLE
+                   │
+                   ├──pause──▶ PAUSED ──resume──▶ RUNNING
+                   ├──cancel──▶ IDLE (cancelled)
+                   └──skip──▶ IDLE (skipped, advances to next phase)
+```
+
+### Basic Usage
+```javascript
+import { useFocus } from '@/composables/useFocus.js'
+
+const {
+  // State
+  state, mode, elapsed, remaining, progress,
+  isRunning, isPaused, isIdle,
+
+  // Actions
+  start, pause, resume, cancel, skip,
+
+  // Settings
+  settings, updateSettings,
+
+  // Statistics
+  todayStats, weekStats, getHeatmapData,
+
+  // Records
+  records, queryRecords, clearRecords,
+
+  // Export
+  exportData
+} = useFocus()
+
+// Start a focus session
+start()
+
+// Export records as JSON
+exportData('json', { includeStats: true })
+```
+
+### Storage Keys
+- `swm_focus_records` - Session records array
+- `swm_focus_settings` - User settings
+- `swm_focus_current` - Runtime state (for interruption recovery)
+

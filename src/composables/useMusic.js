@@ -1,4 +1,4 @@
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, getCurrentInstance } from 'vue'
 import {
   fetchPlaylist,
   getStoredConfig,
@@ -390,13 +390,15 @@ export const useMusic = () => {
     return await loadFromPlaylist(currentPlaylist.value)
   }
 
-  // 清理未完成的请求和本地音频 URLs
-  onUnmounted(() => {
-    if (abortController.value) {
-      abortController.value.abort()
-    }
-    cleanupLocalAudioURLs()
-  })
+  // 清理未完成的请求和本地音频 URLs（仅在组件上下文中注册）
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      if (abortController.value) {
+        abortController.value.abort()
+      }
+      cleanupLocalAudioURLs()
+    })
+  }
 
   return {
     songs,

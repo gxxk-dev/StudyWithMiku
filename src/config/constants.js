@@ -41,7 +41,11 @@ export const STORAGE_KEYS = {
   // 歌单管理
   PLAYLISTS: 'swm_playlists',
   CURRENT_PLAYLIST: 'swm_current_playlist',
-  DEFAULT_PLAYLIST: 'swm_default_playlist'
+  DEFAULT_PLAYLIST: 'swm_default_playlist',
+  // Focus 番茄钟
+  FOCUS_RECORDS: 'swm_focus_records',
+  FOCUS_SETTINGS: 'swm_focus_settings',
+  FOCUS_CURRENT: 'swm_focus_current'
 }
 
 /**

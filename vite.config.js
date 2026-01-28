@@ -28,13 +28,11 @@ export default defineConfig({
     vue(),
     Icons({
       compiler: 'vue3',
-      autoInstall: true,
+      autoInstall: true
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: [
-        'favicon.ico'
-      ],
+      includeAssets: ['favicon.ico'],
       manifest: {
         name: 'Study with Miku',
         short_name: 'Study with Miku',
@@ -53,9 +51,19 @@ export default defineConfig({
           { src: '/icons/icon-128x128.png', sizes: '128x128', type: 'image/png' },
           { src: '/icons/icon-144x144.png', sizes: '144x144', type: 'image/png' },
           { src: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
-          { src: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          {
+            src: '/icons/icon-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
           { src: '/icons/icon-384x384.png', sizes: '384x384', type: 'image/png' },
-          { src: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          {
+            src: '/icons/icon-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
         ],
         categories: ['education', 'productivity', 'entertainment']
       },
@@ -145,11 +153,11 @@ export default defineConfig({
         // - 超过此限制的文件不会被缓存（避免占用过多存储空间）
         maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
         cleanupOutdatedCaches: true, // 自动清理旧版本缓存
-        skipWaiting: true,           // SW 更新后立即激活
-        clientsClaim: true           // SW 激活后立即控制所有页面
+        skipWaiting: true, // SW 更新后立即激活
+        clientsClaim: true // SW 激活后立即控制所有页面
       },
       devOptions: {
-        enabled: false, 
+        enabled: false,
         type: 'module'
       }
     })
@@ -161,8 +169,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['vue'],
-          'aplayer': ['aplayer']
+          vendor: ['vue'],
+          aplayer: ['aplayer']
         }
       }
     }
@@ -170,5 +178,10 @@ export default defineConfig({
   server: { port: 3000 },
   publicDir: 'public',
   assetsInclude: ['**/*.mp4', '**/*.webm', '**/*.ogg'],
-  optimizeDeps: { include: ['vue'] }
+  optimizeDeps: {
+    include: ['vue'],
+    esbuildOptions: {
+      sourcemap: false
+    }
+  }
 })

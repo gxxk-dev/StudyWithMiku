@@ -417,7 +417,8 @@ onMounted(() => {
       playlistId: playlistId.value
     })
 
-    attemptAPlayerAutoplay()
+    // 禁用自动播放，等待用户交互
+    // attemptAPlayerAutoplay()
   }
   preloadAllVideos().catch((err) => {
     console.error('视频预加载失败:', err)

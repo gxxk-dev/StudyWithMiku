@@ -46,6 +46,13 @@ bun run test:all         # 运行全部测试
   - `useCache.js` - 缓存管理 (Service Worker/localStorage/内存)
   - `usePWA.js` - PWA 安装和更新提示
   - `usePlaylistDetection.js` - 歌单 URL 检测和解析
+  - `useFocus.js` - 番茄钟系统统一入口 (Facade)
+  - `focus/` - 番茄钟系统模块
+    - `constants.js` - 状态枚举、默认配置、存储键
+    - `useTimer.js` - 纯计时器（时间戳差值计算，解决后台节流）
+    - `useRecords.js` - 记录 CRUD + 查询方法
+    - `useSession.js` - 状态机 + 中断恢复
+    - `useStats.js` - 统计计算 + 热力图数据
 - `src/config/` - 配置文件
   - `constants.js` - 统一常量配置（缓存名称、API配置、存储键、重连策略等）
 - `src/services/` - 服务层
@@ -59,6 +66,7 @@ bun run test:all         # 运行全部测试
   - `storage.js` - localStorage 安全封装，提供容错机制
   - `pwaDetector.js` - PWA 模式检测 (独立窗口/浏览器标签页)
   - `swCallback.js` - Service Worker 更新回调处理
+  - `exportUtils.js` - 数据导出工具 (JSON/CSV/Markdown)
 - `src/styles/` - 样式文件
   - `common.scss` - 全局公共样式和 Vue 过渡动画定义
   - `pomodoro.scss` - 番茄钟组件专用样式
@@ -84,10 +92,11 @@ bun run test:all         # 运行全部测试
 - `vitest.config.js` - Vitest 配置，使用 happy-dom 环境
 - `playwright.config.js` - Playwright E2E 测试配置
 - `tests/setup/vitest.setup.js` - 全局 mock (localStorage, OPFS, Cache API 等)
-- `tests/setup/fixtures/` - 测试数据 (歌曲、歌单)
+- `tests/setup/fixtures/` - 测试数据 (歌曲、歌单、番茄钟记录)
 - `tests/unit/` - 单元测试
   - `services/` - 服务层测试 (meting, spotify, localAudioStorage 等)
   - `composables/` - Composables 测试 (useMusic, useCache, usePWA 等)
+  - `composables/focus/` - Focus 模块测试 (useTimer, useRecords, useSession, useStats)
   - `utils/` - 工具函数测试
 - `tests/integration/` - 集成测试 (歌单流程、缓存流程)
 - `tests/e2e/` - E2E 测试 (应用冒烟测试)

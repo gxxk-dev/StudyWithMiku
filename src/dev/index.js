@@ -12,8 +12,10 @@
 
 import { usePlaylistManager } from '../composables/usePlaylistManager.js'
 import { useMusic } from '../composables/useMusic.js'
+import { useFocus } from '../composables/useFocus.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
+import * as exportUtils from '../utils/exportUtils.js'
 
 // 初始化 playlistManager
 const playlistManager = usePlaylistManager()
@@ -32,6 +34,12 @@ window.swm_dev = {
 
   // 音乐播放
   music: useMusic(),
+
+  // 番茄钟系统
+  focus: useFocus(),
+
+  // 数据导出工具
+  exportUtils,
 
   // 帮助函数 - 自动发现并列出所有模块
   help() {
