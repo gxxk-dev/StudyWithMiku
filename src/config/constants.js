@@ -22,14 +22,6 @@ export const CACHE_NAMES = {
 export const ALL_CACHE_NAMES = Object.values(CACHE_NAMES)
 
 /**
- * 默认番茄钟配置
- */
-export const DEFAULT_POMODORO_CONFIG = {
-  FOCUS_DURATION: 25,
-  BREAK_DURATION: 5
-}
-
-/**
  * localStorage 键名
  */
 export const STORAGE_KEYS = {

@@ -3,10 +3,6 @@ import { safeLocalStorageGet, safeLocalStorageSet } from './storage.js'
 const STORAGE_KEY = 'study_with_miku_settings'
 
 const defaultSettings = {
-  pomodoro: {
-    focusDuration: 25,
-    breakDuration: 5
-  },
   video: {
     currentIndex: 0
   },
@@ -42,16 +38,6 @@ const saveSettings = (settings) => {
   safeLocalStorageSet(STORAGE_KEY, JSON.stringify(merged))
 }
 
-export const savePomodoroSettings = (focusDuration, breakDuration) => {
-  const settings = getSettings()
-  settings.pomodoro = { focusDuration, breakDuration }
-  saveSettings(settings)
-}
-
-export const getPomodoroSettings = () => {
-  return getSettings().pomodoro
-}
-
 export const saveVideoIndex = (index) => {
   const settings = getSettings()
   settings.video = { currentIndex: index }
@@ -70,36 +56,4 @@ export const saveMusicIndex = (index) => {
 
 export const getMusicIndex = () => {
   return getSettings().music.currentSongIndex
-}
-
-export const saveTimerState = (state) => {
-  const settings = getSettings()
-  settings.timerState = {
-    endTime: state.endTime,
-    isRunning: state.isRunning,
-    currentStatus: state.currentStatus,
-    completedPomodoros: state.completedPomodoros,
-    savedAt: Date.now()
-  }
-  saveSettings(settings)
-}
-
-export const getTimerState = () => {
-  try {
-    return getSettings().timerState || null
-  } catch (e) {
-    console.error('[Settings] 读取计时器状态失败:', e.message)
-    return null
-  }
-}
-
-export const clearTimerState = () => {
-  try {
-    const settings = getSettings()
-    delete settings.timerState
-    saveSettings(settings)
-    console.log('[Settings] 计时器状态已清理')
-  } catch (e) {
-    console.error('[Settings] 清理计时器状态失败:', e.message)
-  }
 }

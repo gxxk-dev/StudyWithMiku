@@ -43,13 +43,6 @@
       {{ isFullscreen ? '退出全屏' : '全屏' }}
     </button>
 
-    <!-- 番茄钟！＞﹏＜ -->
-    <PomodoroTimer
-      :current-video-index="currentVideoIndex"
-      :video-list="videos"
-      @video-change="handleVideoChange"
-    />
-
     <!-- APlayer 播放器 (网易云/QQ音乐) -->
     <div v-show="!isSpotify" id="aplayer" class="aplayer-container"></div>
 
@@ -99,8 +92,6 @@ import {
 import { initializeMediaSession, cleanupMediaSession } from './utils/mediaSession.js'
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
-import { setUrlConfig, usePomodoro } from './composables/usePomodoro.js'
-import PomodoroTimer from './components/PomodoroTimer.vue'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
@@ -116,20 +107,8 @@ const vConsoleInstance = ref(null)
 // Toast 状态
 const { toastState, showToast, hideToast } = useToast()
 
-// 番茄钟控制（用于自动启动）
-const { startTimer: pomodoroStartTimer } = usePomodoro()
-
 // === URL 参数处理（必须在组件初始化之前执行）===
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
-
-// 立即应用番茄钟配置（在 PomodoroTimer 组件初始化之前）
-if (
-  hasUrlParams.value &&
-  (urlConfig.value.pomodoro || urlConfig.value.shortBreak || urlConfig.value.longBreak)
-) {
-  setUrlConfig(urlConfig.value)
-  console.log('[App] 已提前应用 URL 番茄钟配置:', urlConfig.value)
-}
 
 const startHideTimer = () => {
   if (inactivityTimer.value) {
@@ -192,15 +171,6 @@ const switchVideo = () => {
   currentVideoIndex.value = (currentVideoIndex.value + 1) % videos.length
   currentVideo.value = videos[currentVideoIndex.value]
   saveVideoIndex(currentVideoIndex.value)
-}
-
-// 处理视频切换（从设置面板）
-const handleVideoChange = (index) => {
-  if (index >= 0 && index < videos.length) {
-    currentVideoIndex.value = index
-    currentVideo.value = videos[index]
-    saveVideoIndex(index)
-  }
 }
 
 const hideVConsoleSwitch = () => {
@@ -319,9 +289,6 @@ onMounted(() => {
 
     // 1. 构建配置摘要
     const parts = []
-    if (config.pomodoro) parts.push(`专注 ${config.pomodoro} 分钟`)
-    if (config.shortBreak) parts.push(`短休 ${config.shortBreak} 分钟`)
-    if (config.longBreak) parts.push(`长休 ${config.longBreak} 分钟`)
     if (config.playlist) {
       const platformLabels = {
         netease: '网易云',
@@ -346,18 +313,7 @@ onMounted(() => {
       showToast('error', '部分参数无效', warningMessage, 5000)
     }
 
-    // 4. 自动启动番茄钟
-    if (config.autoStart) {
-      const duration = config.pomodoro || 25
-      // 延迟 800ms 确保所有组件初始化完成
-      setTimeout(() => {
-        pomodoroStartTimer()
-        showToast('success', '番茄钟已启动', `专注 ${duration} 分钟`, 3000)
-        console.log('[App] 自动启动番茄钟')
-      }, 800)
-    }
-
-    // 5. 应用歌单配置（延迟 1 秒，异步执行）
+    // 4. 应用歌单配置（延迟 1 秒，异步执行）
     if (config.playlist) {
       setTimeout(async () => {
         try {
