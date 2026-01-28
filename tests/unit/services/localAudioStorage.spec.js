@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { PLAYLIST_CONFIG } from '@/config/constants.js'
 import { ErrorTypes } from '@/types/playlist.js'
-import { localManagedSongs, localReferenceSongs } from '../../setup/fixtures/songs.js'
+import { localManagedSongs } from '../../setup/fixtures/songs.js'
 
 describe('localAudioStorage.js', () => {
   beforeEach(() => {
@@ -351,6 +351,83 @@ describe('localAudioStorage.js', () => {
         expect(result.success).toBe(false)
         expect(result.error).toBe(ErrorTypes.INVALID_DATA)
       })
+
+      it('引用模式应该从 FileHandle 获取', async () => {
+        const { saveFileHandle, getFileHandle } = await getModule()
+        window.showOpenFilePicker = vi.fn()
+
+        // 使用可被 structured clone 的普通对象作为 handle
+        const mockHandle = { kind: 'file', name: 'ref.mp3' }
+        await saveFileHandle('test-handle-key', mockHandle)
+
+        // getFileHandle 应该能取到存储的 handle
+        const handleResult = await getFileHandle('test-handle-key')
+        expect(handleResult.success).toBe(true)
+        expect(handleResult.handle).toEqual(mockHandle)
+
+        delete window.showOpenFilePicker
+      })
+    })
+  })
+
+  describe('getAudioDuration', () => {
+    let originalAudio
+    let originalCreateObjectURL
+    let originalRevokeObjectURL
+
+    beforeEach(() => {
+      originalAudio = globalThis.Audio
+      originalCreateObjectURL = URL.createObjectURL
+      originalRevokeObjectURL = URL.revokeObjectURL
+      URL.createObjectURL = vi.fn(() => 'blob:test-audio-url')
+      URL.revokeObjectURL = vi.fn()
+    })
+
+    afterEach(() => {
+      globalThis.Audio = originalAudio
+      URL.createObjectURL = originalCreateObjectURL
+      URL.revokeObjectURL = originalRevokeObjectURL
+    })
+
+    it('应该成功获取音频时长', async () => {
+      globalThis.Audio = function () {
+        this.src = ''
+        this.addEventListener = vi.fn((event, cb) => {
+          if (event === 'loadedmetadata') {
+            setTimeout(() => {
+              this.duration = 125.7
+              cb()
+            }, 0)
+          }
+        })
+      }
+
+      const { getAudioDuration } = await getModule()
+      const file = new File(['audio'], 'test.mp3', { type: 'audio/mpeg' })
+
+      const result = await getAudioDuration(file)
+
+      expect(result).toBe(126)
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-audio-url')
+    })
+
+    it('音频加载失败时应该返回 null', async () => {
+      globalThis.Audio = function () {
+        this.src = ''
+        this.addEventListener = vi.fn((event, cb) => {
+          if (event === 'error') {
+            setTimeout(() => cb(), 0)
+          }
+        })
+      }
+
+      const { getAudioDuration } = await getModule()
+      const file = new File(['not audio'], 'bad.mp3', { type: 'audio/mpeg' })
+
+      const result = await getAudioDuration(file)
+
+      expect(result).toBeNull()
+      expect(URL.revokeObjectURL).toHaveBeenCalled()
     })
   })
 })

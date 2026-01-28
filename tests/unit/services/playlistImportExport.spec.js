@@ -8,7 +8,8 @@ import {
   downloadPlaylistsAsFile,
   parseImportJSON,
   importFromFile,
-  mergePlaylists
+  mergePlaylists,
+  selectAndImportFile
 } from '@/services/playlistImportExport.js'
 import { PLAYLIST_CONFIG } from '@/config/constants.js'
 import { ErrorTypes } from '@/types/playlist.js'
@@ -260,6 +261,75 @@ describe('playlistImportExport.js', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBe(ErrorTypes.PARSE_ERROR)
+    })
+  })
+
+  describe('selectAndImportFile', () => {
+    it('应该成功选择文件并解析', async () => {
+      const exportData = createExportData([neteasePlaylist])
+      const file = new File([JSON.stringify(exportData)], 'test.json', {
+        type: 'application/json'
+      })
+
+      const mockInput = {
+        type: '',
+        accept: '',
+        onchange: null,
+        oncancel: null,
+        click: vi.fn()
+      }
+      mockInput.click.mockImplementation(() => {
+        Object.defineProperty(mockInput, 'files', { value: [file], configurable: true })
+        mockInput.onchange({ target: mockInput })
+      })
+
+      vi.spyOn(document, 'createElement').mockReturnValueOnce(mockInput)
+
+      const result = await selectAndImportFile()
+
+      expect(result.success).toBe(true)
+      expect(result.data.playlists).toHaveLength(1)
+    })
+
+    it('用户取消选择时应该返回 CANCELLED 错误', async () => {
+      const mockInput = {
+        type: '',
+        accept: '',
+        onchange: null,
+        oncancel: null,
+        click: vi.fn()
+      }
+      mockInput.click.mockImplementation(() => {
+        mockInput.oncancel()
+      })
+
+      vi.spyOn(document, 'createElement').mockReturnValueOnce(mockInput)
+
+      const result = await selectAndImportFile()
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('CANCELLED')
+    })
+
+    it('未选择文件时应该返回 FILE_NOT_FOUND', async () => {
+      const mockInput = {
+        type: '',
+        accept: '',
+        onchange: null,
+        oncancel: null,
+        click: vi.fn()
+      }
+      mockInput.click.mockImplementation(() => {
+        Object.defineProperty(mockInput, 'files', { value: [], configurable: true })
+        mockInput.onchange({ target: mockInput })
+      })
+
+      vi.spyOn(document, 'createElement').mockReturnValueOnce(mockInput)
+
+      const result = await selectAndImportFile()
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe(ErrorTypes.FILE_NOT_FOUND)
     })
   })
 
