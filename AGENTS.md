@@ -30,7 +30,38 @@ Use ES modules with single quotes and two-space indentation. Components stay Pas
 When adding new UI elements with icons, choose appropriate Iconify icons that match the existing design language.
 
 ## Testing Guidelines
-There is no automated test suite yet, so rely on manual smoke tests for both the UI and worker endpoints. After code changes, run `bun run dev` and confirm video switching, Pomodoro flow, and the embedded APlayer. For worker updates, run `bun run dev:worker` and hit `/count` plus `/ws` to ensure the Durable Object increments correctly. When adding tests, use Vitest component specs under `src/__tests__` with descriptive names such as `pomodoro-timer.spec.js`.
+The project uses **Vitest** for unit/integration tests and **Playwright** for E2E tests.
+
+### Test Commands
+- `bun run test` — run all unit and integration tests.
+- `bun run test:watch` — run tests in watch mode during development.
+- `bun run test:coverage` — generate coverage report (target: 60% lines/functions, 50% branches).
+- `bun run test:e2e` — run Playwright E2E tests.
+- `bun run test:e2e:ui` — run E2E tests with interactive UI.
+- `bun run test:all` — run both unit and E2E tests.
+
+### Test Structure
+```
+tests/
+├── setup/
+│   ├── vitest.setup.js      # Global mocks (localStorage, OPFS, Cache API, etc.)
+│   └── fixtures/            # Test data (songs.js, playlists.js)
+├── unit/
+│   ├── services/            # Service layer tests
+│   ├── composables/         # Vue composables tests
+│   └── utils/               # Utility function tests
+├── integration/             # Integration tests (playlist flow, cache flow)
+└── e2e/                     # E2E smoke tests
+```
+
+### Writing Tests
+- Use dynamic imports for singleton composables: `const { useMusic } = await import('@/composables/useMusic.js')`
+- Call `vi.resetModules()` in `beforeEach` to reset module state between tests
+- Use `vi.useFakeTimers()` for testing throttled/debounced functions
+- Test files follow the pattern `*.spec.js`
+
+### Before Committing
+Always run `bun run test` to ensure all tests pass before committing.
 
 ## Commit & Pull Request Guidelines
 Follow Conventional Commits (`feat: add pomodoro presets`, `fix(worker): guard ws cors`) and keep each change scoped. Use GitHub Flow: branch from `main`, push frequently, and open a PR once manual tests pass. PR descriptions should state the motivation, include test evidence (commands and screenshots for UI work), and link related issues or migrations that must run after merge.

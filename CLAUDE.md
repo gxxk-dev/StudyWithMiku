@@ -22,6 +22,14 @@ bun run deploy:worker    # 部署到 Cloudflare Workers
 # 代码质量
 bun run lint             # ESLint 检查并自动修复
 bun run format           # Prettier 格式化代码
+
+# 测试
+bun run test             # 运行单元和集成测试
+bun run test:watch       # 监听模式
+bun run test:coverage    # 带覆盖率报告
+bun run test:e2e         # 运行 E2E 测试
+bun run test:e2e:ui      # E2E 测试 UI 模式
+bun run test:all         # 运行全部测试
 ```
 
 ## 架构
@@ -70,6 +78,19 @@ bun run format           # Prettier 格式化代码
 - `vite.config.js` 中配置 VitePWA 插件
 - Service Worker 缓存策略：视频/音频 CacheFirst，API NetworkFirst
 - 支持离线使用
+
+### 测试 (Vitest + Playwright)
+
+- `vitest.config.js` - Vitest 配置，使用 happy-dom 环境
+- `playwright.config.js` - Playwright E2E 测试配置
+- `tests/setup/vitest.setup.js` - 全局 mock (localStorage, OPFS, Cache API 等)
+- `tests/setup/fixtures/` - 测试数据 (歌曲、歌单)
+- `tests/unit/` - 单元测试
+  - `services/` - 服务层测试 (meting, spotify, localAudioStorage 等)
+  - `composables/` - Composables 测试 (useMusic, useCache, usePWA 等)
+  - `utils/` - 工具函数测试
+- `tests/integration/` - 集成测试 (歌单流程、缓存流程)
+- `tests/e2e/` - E2E 测试 (应用冒烟测试)
 
 ## 图标使用规范
 
@@ -131,3 +152,4 @@ import { Icon } from '@iconify/vue'
   - 示例：`feat(icons): 使用 Iconify 替换硬编码图标`
 - 代码规范：使用 ESLint + Prettier 自动格式化
 - **提交前务必运行 `bun run lint` 检查代码**
+- **提交前运行 `bun run test` 确保测试通过**

@@ -35,34 +35,37 @@ window.swm_dev = {
 
   // 帮助函数 - 自动发现并列出所有模块
   help() {
+    const lines = ['swm_dev']
+
     const getIcon = (val) => {
       if (typeof val === 'function') return 'ƒ'
       if (val && typeof val === 'object') return '○'
       return '●'
     }
 
-    const printTree = (obj, indent = '') => {
+    const collectTree = (obj, indent = '') => {
       const keys = Object.keys(obj).filter((k) => k !== 'help')
       keys.forEach((key, i) => {
         const isLast = i === keys.length - 1
         const val = obj[key]
-        console.log(`${indent}${isLast ? '└─' : '├─'} ${getIcon(val)} ${key}`)
+        lines.push(`${indent}${isLast ? '└─' : '├─'} ${getIcon(val)} ${key}`)
       })
     }
 
-    console.log('swm_dev')
     const modules = Object.keys(this).filter((k) => k !== 'help')
     if (modules.length === 0) {
-      console.log('└─ (空)')
-      return
+      lines.push('└─ (空)')
+    } else {
+      modules.forEach((mod, i) => {
+        const isLast = i === modules.length - 1
+        lines.push(`${isLast ? '└─' : '├─'} ${mod}`)
+        if (this[mod] && typeof this[mod] === 'object') {
+          collectTree(this[mod], isLast ? '   ' : '│  ')
+        }
+      })
     }
-    modules.forEach((mod, i) => {
-      const isLast = i === modules.length - 1
-      console.log(`${isLast ? '└─' : '├─'} ${mod}`)
-      if (this[mod] && typeof this[mod] === 'object') {
-        printTree(this[mod], isLast ? '   ' : '│  ')
-      }
-    })
+
+    console.log(lines.join('\n'))
   }
 }
 

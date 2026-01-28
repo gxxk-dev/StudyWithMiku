@@ -4,3 +4,9 @@ dist
 .wrangler
 dev-dist
 bun.lock
+
+# Test
+coverage/
+test-results/
+playwright-report/
+.playwright/
