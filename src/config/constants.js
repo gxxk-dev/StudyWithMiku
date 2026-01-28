@@ -37,7 +37,11 @@ export const STORAGE_KEYS = {
   SPOTIFY_PLAYLIST_ID: 'spotify_playlist_id',
   // 缓存前缀
   PLAYLIST_CACHE_PREFIX: 'meting_playlist_cache',
-  PREFETCH_TIMESTAMP_PREFIX: 'meting_playlist_prefetch'
+  PREFETCH_TIMESTAMP_PREFIX: 'meting_playlist_prefetch',
+  // 歌单管理
+  PLAYLISTS: 'swm_playlists',
+  CURRENT_PLAYLIST: 'swm_current_playlist',
+  DEFAULT_PLAYLIST: 'swm_default_playlist'
 }
 
 /**
@@ -75,4 +79,22 @@ export const API_CONFIG = {
 export const WS_CONFIG = {
   PING_INTERVAL: 30000, // 30秒
   CONNECTION_TIMEOUT: 5000 // 5秒
+}
+
+/**
+ * 歌单系统配置
+ */
+export const PLAYLIST_CONFIG = {
+  // 导出格式版本
+  EXPORT_VERSION: 1,
+  // OPFS 音频目录
+  OPFS_AUDIO_DIR: 'audio',
+  // IndexedDB 配置
+  IDB_DATABASE: 'swm-local-audio',
+  IDB_VERSION: 1,
+  IDB_STORE_HANDLES: 'file-handles',
+  // 限制
+  MAX_LOCAL_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+  MAX_PLAYLISTS: 50,
+  MAX_SONGS_PER_COLLECTION: 500
 }

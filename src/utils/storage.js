@@ -49,3 +49,39 @@ export const safeLocalStorageRemove = (key) => {
     return false
   }
 }
+
+/**
+ * 安全获取并解析 JSON 格式的 localStorage 值
+ * @template T
+ * @param {string} key - 存储键名
+ * @param {T} defaultValue - 默认值（当获取失败、不存在或解析失败时返回）
+ * @returns {T} 解析后的对象或默认值
+ */
+export const safeLocalStorageGetJSON = (key, defaultValue) => {
+  try {
+    const value = localStorage.getItem(key)
+    if (value === null) {
+      return defaultValue
+    }
+    return JSON.parse(value)
+  } catch (err) {
+    console.warn(`localStorage.getItem/JSON.parse 失败 (${key}):`, err)
+    return defaultValue
+  }
+}
+
+/**
+ * 安全地将值序列化为 JSON 并存储到 localStorage
+ * @param {string} key - 存储键名
+ * @param {*} value - 要存储的值（会被 JSON.stringify）
+ * @returns {boolean} 是否成功
+ */
+export const safeLocalStorageSetJSON = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+    return true
+  } catch (err) {
+    console.warn(`JSON.stringify/localStorage.setItem 失败 (${key}):`, err)
+    return false
+  }
+}

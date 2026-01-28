@@ -15,6 +15,8 @@ import {
   DEFAULT_SPOTIFY_PLAYLIST_ID
 } from '../services/spotify.js'
 import { safeLocalStorageGet, safeLocalStorageSet } from '../utils/storage.js'
+import { getLocalAudioURL } from '../services/localAudioStorage.js'
+import { usePlaylistManager } from './usePlaylistManager.js'
 
 /**
  * 模块级状态 - 单例模式 (Singleton Pattern)
@@ -35,6 +37,13 @@ const playlistId = ref(safeLocalStorageGet('playlist_id', DEFAULT_PLAYLIST_ID))
 const platform = ref(safeLocalStorageGet('music_platform', 'netease'))
 const spotifyPlaylistId = ref(getSpotifyPlaylistId())
 const abortController = ref(null)
+
+/**
+ * 本地音频 Object URL 缓存
+ * key: 歌曲 ID, value: Object URL
+ * @type {Map<string, string>}
+ */
+const localAudioURLs = new Map()
 
 const PLATFORMS = [
   { value: 'netease', label: '网易云' },
@@ -239,11 +248,154 @@ export const useMusic = () => {
     }
   }
 
-  // 清理未完成的请求
+  // ============ 歌单系统集成 ============
+
+  /**
+   * 清理本地音频 Object URLs
+   * 释放之前创建的 Blob URLs 以避免内存泄漏
+   */
+  const cleanupLocalAudioURLs = () => {
+    for (const url of localAudioURLs.values()) {
+      URL.revokeObjectURL(url)
+    }
+    localAudioURLs.clear()
+  }
+
+  /**
+   * 将歌曲转换为 APlayer 格式
+   * @param {import('../types/playlist.js').Song} song - 歌曲对象
+   * @returns {Promise<Object|null>} APlayer 格式的歌曲，失败返回 null
+   */
+  const convertSongToAPlayerFormat = async (song) => {
+    if (song.type === 'online') {
+      // 在线歌曲：需要通过 Meting API 获取播放 URL
+      // 这里返回基础信息，实际 URL 由 APlayer 的 customAudioType 或预加载处理
+      return {
+        name: song.name,
+        artist: song.artist,
+        cover: song.cover || '',
+        // 使用 sourceId 作为标识，让 APlayer 通过 customAudioType 处理
+        url: `meting://${song.source}/${song.sourceId}`,
+        // 保留原始信息供后续处理
+        _source: song.source,
+        _sourceId: song.sourceId
+      }
+    }
+
+    if (song.type === 'local') {
+      // 本地歌曲：获取 Object URL
+      // 先检查缓存
+      if (localAudioURLs.has(song.id)) {
+        return {
+          name: song.name,
+          artist: song.artist,
+          cover: '',
+          url: localAudioURLs.get(song.id)
+        }
+      }
+
+      // 获取新的 URL
+      const result = await getLocalAudioURL(song)
+      if (!result.success) {
+        console.warn(`[useMusic] 无法获取本地音频: ${song.name}`, result.error)
+        return null
+      }
+
+      // 缓存 URL
+      localAudioURLs.set(song.id, result.url)
+
+      return {
+        name: song.name,
+        artist: song.artist,
+        cover: '',
+        url: result.url
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * 从 Playlist 对象加载歌曲
+   * @param {import('../types/playlist.js').Playlist} playlist - 歌单对象
+   * @returns {Promise<boolean>} 是否成功
+   */
+  const loadFromPlaylist = async (playlist) => {
+    if (!playlist) {
+      console.warn('[useMusic] loadFromPlaylist: 歌单为空')
+      return false
+    }
+
+    loading.value = true
+
+    try {
+      // 清理之前的本地音频 URLs
+      cleanupLocalAudioURLs()
+
+      if (playlist.mode === 'playlist') {
+        // playlist 模式：使用 Meting API 加载
+        if (playlist.source === 'spotify') {
+          // Spotify 歌单
+          applySpotifyPlaylist(playlist.sourceId)
+          loading.value = false
+          return true
+        }
+
+        // 网易云/QQ音乐歌单
+        await loadMetingSongs(playlist.source, playlist.sourceId, { forceRefresh: false })
+        return true
+      }
+
+      if (playlist.mode === 'collection') {
+        // collection 模式：转换歌曲格式
+        const convertedSongs = []
+
+        for (const song of playlist.songs) {
+          const converted = await convertSongToAPlayerFormat(song)
+          if (converted) {
+            convertedSongs.push(converted)
+          }
+        }
+
+        songs.value = convertedSongs
+        return true
+      }
+
+      console.warn('[useMusic] loadFromPlaylist: 未知的歌单模式', playlist.mode)
+      return false
+    } catch (error) {
+      console.error('[useMusic] loadFromPlaylist 失败:', error)
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 从当前选中的歌单加载歌曲
+   * 使用 usePlaylistManager 的 currentPlaylist
+   * @returns {Promise<boolean>} 是否成功
+   */
+  const loadFromCurrentPlaylist = async () => {
+    const { currentPlaylist, initialize } = usePlaylistManager()
+
+    // 确保 PlaylistManager 已初始化
+    initialize()
+
+    if (!currentPlaylist.value) {
+      console.warn('[useMusic] loadFromCurrentPlaylist: 没有选中的歌单')
+      return false
+    }
+
+    return await loadFromPlaylist(currentPlaylist.value)
+  }
+
+  // 清理未完成的请求和本地音频 URLs
   onUnmounted(() => {
     if (abortController.value) {
       abortController.value.abort()
     }
+    cleanupLocalAudioURLs()
   })
 
   return {
@@ -265,6 +417,10 @@ export const useMusic = () => {
     applySpotifyPlaylist,
     resetSpotifyToDefault,
     applyUrlPlaylist,
+    // 歌单系统集成
+    loadFromPlaylist,
+    loadFromCurrentPlaylist,
+    cleanupLocalAudioURLs,
     DEFAULT_PLAYLIST_ID,
     DEFAULT_SPOTIFY_PLAYLIST_ID,
     PLATFORMS
