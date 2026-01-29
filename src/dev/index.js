@@ -17,6 +17,7 @@ import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
 import * as exportUtils from '../utils/exportUtils.js'
 import { onlineServer } from '../services/onlineServer.js'
+import { runtimeConfigService } from '../services/runtimeConfig.js'
 
 // 初始化 playlistManager
 const playlistManager = usePlaylistManager()
@@ -44,6 +45,9 @@ window.swm_dev = {
 
   // 在线服务器连接
   server: onlineServer,
+
+  // 运行时配置
+  config: runtimeConfigService,
 
   // 帮助函数 - 自动发现并列出所有模块
   help() {
