@@ -80,7 +80,7 @@ export const clearPrefetchTimestamps = () => {
         console.warn(`删除预加载时间戳失败 (${key}):`, err)
       }
     })
-    console.log(`已清理 ${keysToRemove.length} 个预加载时间戳`)
+    console.debug(`已清理 ${keysToRemove.length} 个预加载时间戳`)
   } catch (error) {
     console.warn('清理预加载时间戳失败:', error)
   }

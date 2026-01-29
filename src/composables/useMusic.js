@@ -103,7 +103,7 @@ export const useMusic = () => {
     } catch (error) {
       // 如果是取消请求的错误,静默处理
       if (error.name === 'AbortError') {
-        console.log('Request cancelled')
+        console.debug('Request cancelled')
         return false
       }
 
@@ -235,11 +235,11 @@ export const useMusic = () => {
     try {
       if (platform === 'spotify') {
         applySpotifyPlaylist(id)
-        console.log('[useMusic] 已切换到 Spotify 歌单:', id)
+        console.debug('[useMusic] 已切换到 Spotify 歌单:', id)
         return true
       } else {
         await applyCustomPlaylist(platform, id)
-        console.log('[useMusic] 已加载歌单:', platform, id)
+        console.debug('[useMusic] 已加载歌单:', platform, id)
         return true
       }
     } catch (error) {

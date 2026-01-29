@@ -24,18 +24,18 @@ if ('serviceWorker' in navigator && isPWAMode()) {
       }
     },
     onOfflineReady() {
-      console.log('✓ PWA 离线就绪')
+      console.log('PWA 离线就绪')
     },
     onRegistered() {
-      console.log('✓ Service Worker 已注册')
+      console.log('Service Worker 已注册')
     },
     onRegisterError(error) {
-      console.error('✗ Service Worker 注册失败:', error)
+      console.error('Service Worker 注册失败:', error)
     }
   })
-  console.log('✓ PWA 模式：Service Worker 已启用')
+  console.log('PWA 模式：Service Worker 已启用')
 } else {
-  console.log('ℹ️ 网页模式：Service Worker 未启用')
+  console.debug('网页模式：Service Worker 未启用')
 }
 
 // 监听模式切换（从网页模式安装为 PWA 时提示刷新）

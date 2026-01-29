@@ -64,7 +64,7 @@ export function useUrlParams() {
 
   // 输出解析结果
   if (hasUrlParams.value) {
-    console.log('[URL Params] 解析成功:', urlConfig.value)
+    console.debug('[URL Params] 解析成功:', urlConfig.value)
   }
 
   return {
