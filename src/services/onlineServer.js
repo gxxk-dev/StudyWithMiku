@@ -96,7 +96,7 @@ const connect = (url) => {
     connectionStatus.value = 'connecting'
     lastError.value = null
 
-    console.log(`[OnlineServer] 正在连接: ${targetUrl}`)
+    console.debug(`[OnlineServer] 正在连接: ${targetUrl}`)
 
     try {
       ws = new WebSocket(targetUrl)
@@ -137,11 +137,11 @@ const connect = (url) => {
       }
     }
 
-    ws.onclose = (event) => {
+    ws.onclose = () => {
       clearTimeout(connectionTimeout)
       const wasConnected = connectionStatus.value === 'connected'
       connectionStatus.value = 'disconnected'
-      console.log(`[OnlineServer] 连接关闭: code=${event.code}, reason=${event.reason}`)
+      console.debug('[OnlineServer] 连接关闭')
 
       if (wasConnected && reconnectAttempts < RECONNECT_CONFIG.MAX_ATTEMPTS) {
         scheduleReconnect()
@@ -165,7 +165,7 @@ const scheduleReconnect = () => {
 
   reconnectAttempts++
   const delay = getReconnectDelay()
-  console.log(`[OnlineServer] ${delay}ms 后尝试重连 (第 ${reconnectAttempts} 次)`)
+  console.debug(`[OnlineServer] ${delay}ms 后尝试重连 (第 ${reconnectAttempts} 次)`)
 
   reconnectTimer = setTimeout(() => {
     reconnectTimer = null
@@ -181,7 +181,7 @@ const disconnect = () => {
   cleanup()
   connectionStatus.value = 'disconnected'
   onlineCount.value = 0
-  console.log('[OnlineServer] 已断开连接')
+  console.debug('[OnlineServer] 已断开连接')
 }
 
 /**
@@ -191,7 +191,7 @@ const disconnect = () => {
 const setServer = (url) => {
   serverUrl.value = url
   safeLocalStorageSet(STORAGE_KEYS.COUNT_SERVER, url)
-  console.log(`[OnlineServer] 服务器地址已设置: ${url}`)
+  console.debug(`[OnlineServer] 服务器地址已设置: ${url}`)
 }
 
 /**

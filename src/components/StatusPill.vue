@@ -48,7 +48,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useFocus, FocusMode } from '../composables/useFocus.js'
-import { useOnlineCount } from '../composables/useOnlineCount.js'
+import { onlineServer } from '../services/onlineServer.js'
+import { getConfig } from '../services/runtimeConfig.js'
 
 defineProps({
   showControls: {
@@ -64,7 +65,8 @@ defineProps({
 defineEmits(['open-settings', 'mouseenter', 'mouseleave'])
 
 // 在线人数
-const { onlineCount, isConnected } = useOnlineCount()
+const onlineCount = onlineServer.onlineCount
+const isConnected = computed(() => onlineServer.connectionStatus.value === 'connected')
 
 // 番茄钟状态
 const { mode, remaining, isRunning, isPaused, isIdle, start, pause, resume } = useFocus()
@@ -82,7 +84,10 @@ const updateCurrentTime = () => {
 
 onMounted(() => {
   updateCurrentTime()
-  timeInterval = setInterval(updateCurrentTime, 1000)
+  timeInterval = setInterval(
+    updateCurrentTime,
+    getConfig('UI_CONFIG', 'TIME_DISPLAY_UPDATE_INTERVAL')
+  )
 })
 
 onUnmounted(() => {
