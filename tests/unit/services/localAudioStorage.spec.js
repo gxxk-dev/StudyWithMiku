@@ -400,6 +400,7 @@ describe('localAudioStorage.js', () => {
             }, 0)
           }
         })
+        this.removeEventListener = vi.fn()
       }
 
       const { getAudioDuration } = await getModule()
@@ -419,6 +420,7 @@ describe('localAudioStorage.js', () => {
             setTimeout(() => cb(), 0)
           }
         })
+        this.removeEventListener = vi.fn()
       }
 
       const { getAudioDuration } = await getModule()

@@ -6,6 +6,7 @@
  */
 
 import { PLAYLIST_CONFIG } from '../config/constants.js'
+import { getConfig } from './runtimeConfig.js'
 import { ErrorTypes } from '../types/playlist.js'
 
 // ============ OPFS 操作 ============
@@ -370,16 +371,50 @@ export const getAudioDuration = (file) => {
   return new Promise((resolve) => {
     const audio = new Audio()
     const url = URL.createObjectURL(file)
+    let resolved = false
+    let timeoutId = null
 
-    audio.addEventListener('loadedmetadata', () => {
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+      audio.removeEventListener('loadedmetadata', onLoadedMetadata)
+      audio.removeEventListener('error', onError)
       URL.revokeObjectURL(url)
-      resolve(Math.round(audio.duration))
-    })
+      audio.src = ''
+    }
 
-    audio.addEventListener('error', () => {
-      URL.revokeObjectURL(url)
-      resolve(null)
-    })
+    const safeResolve = (value) => {
+      if (resolved) return
+      resolved = true
+      cleanup()
+      resolve(value)
+    }
+
+    const onLoadedMetadata = () => {
+      const duration = audio.duration
+      if (!isFinite(duration) || duration <= 0) {
+        safeResolve(null)
+        return
+      }
+      safeResolve(Math.round(duration))
+    }
+
+    const onError = () => {
+      safeResolve(null)
+    }
+
+    audio.addEventListener('loadedmetadata', onLoadedMetadata)
+    audio.addEventListener('error', onError)
+
+    timeoutId = setTimeout(
+      () => {
+        console.warn('[getAudioDuration] 获取音频时长超时')
+        safeResolve(null)
+      },
+      getConfig('UI_CONFIG', 'AUDIO_DURATION_TIMEOUT')
+    )
 
     audio.src = url
   })
