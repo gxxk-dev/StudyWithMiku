@@ -50,3 +50,41 @@
   transform: translateY(20px);
   opacity: 0;
 }
+
+// ===== Modal 淡入淡出 + 缩放 =====
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .settings-modal,
+.modal-fade-leave-active .settings-modal {
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.modal-fade-enter-from .settings-modal,
+.modal-fade-leave-to .settings-modal {
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+// ===== Pill 上滑消失 =====
+.pill-slide-enter-active,
+.pill-slide-leave-active {
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.pill-slide-enter-from,
+.pill-slide-leave-to {
+  transform: translateX(-50%) translateY(-20px);
+  opacity: 0;
+}
