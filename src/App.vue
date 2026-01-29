@@ -19,8 +19,9 @@
     <!-- 顶部状态胶囊 -->
     <StatusPill
       :show-controls="showControls"
-      :modal-open="settingsModalOpen"
+      :modal-open="settingsModalOpen || focusSummaryModalOpen"
       @open-settings="openSettingsModal"
+      @open-focus-summary="openFocusSummaryModal"
       @mouseenter="onUIMouseEnter"
       @mouseleave="onUIMouseLeave"
     />
@@ -85,6 +86,9 @@
     <!-- 设置面板 -->
     <SettingsModal :is-open="settingsModalOpen" @close="closeSettingsModal" />
 
+    <!-- 专注概览面板 -->
+    <FocusSummaryModal :is-open="focusSummaryModalOpen" @close="closeFocusSummaryModal" />
+
     <!-- 重构公告横幅 -->
     <transition name="slide-up">
       <div v-if="showAnnouncement" class="announcement-banner">
@@ -139,6 +143,7 @@ import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
 import StatusPill from './components/StatusPill.vue'
 import SettingsModal from './components/SettingsModal.vue'
+import FocusSummaryModal from './components/FocusSummaryModal.vue'
 import { Icon } from '@iconify/vue'
 
 // 加载开发者控制台 (swm_dev)
@@ -153,6 +158,7 @@ const inactivityTimer = ref(null)
 const erudaInitialized = ref(false)
 const showAnnouncement = ref(localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY) !== 'v1')
 const settingsModalOpen = ref(false)
+const focusSummaryModalOpen = ref(false)
 
 const openSettingsModal = () => {
   settingsModalOpen.value = true
@@ -160,6 +166,14 @@ const openSettingsModal = () => {
 
 const closeSettingsModal = () => {
   settingsModalOpen.value = false
+}
+
+const openFocusSummaryModal = () => {
+  focusSummaryModalOpen.value = true
+}
+
+const closeFocusSummaryModal = () => {
+  focusSummaryModalOpen.value = false
 }
 
 const dismissAnnouncement = () => {
@@ -173,13 +187,15 @@ const { toastState, showToast, hideToast } = useToast()
 // === URL 参数处理（必须在组件初始化之前执行）===
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
 
+const isAnyModalOpen = () => settingsModalOpen.value || focusSummaryModalOpen.value
+
 const startHideTimer = () => {
   if (inactivityTimer.value) {
     clearTimeout(inactivityTimer.value)
   }
   inactivityTimer.value = setTimeout(
     () => {
-      if (!isHoveringUI.value) {
+      if (!isHoveringUI.value && !isAnyModalOpen()) {
         showControls.value = false
         document.body.style.cursor = 'none'
       }
@@ -195,7 +211,7 @@ const onMouseMove = () => {
 }
 
 const onMouseLeave = () => {
-  if (!isHoveringUI.value) {
+  if (!isHoveringUI.value && !isAnyModalOpen()) {
     showControls.value = false
     document.body.style.cursor = 'none'
   }

@@ -3,7 +3,7 @@
     <div
       v-show="showControls && !modalOpen"
       class="status-display"
-      @click="$emit('open-settings')"
+      @click="$emit('open-focus-summary')"
       @mouseenter="$emit('mouseenter')"
       @mouseleave="$emit('mouseleave')"
     >
@@ -37,7 +37,7 @@
       <span class="status-divider"></span>
 
       <!-- 设置图标 -->
-      <div class="settings-icon">
+      <div class="settings-icon" @click.stop="$emit('open-settings')">
         <Icon icon="lucide:settings" width="18" height="18" />
       </div>
     </div>
@@ -62,7 +62,7 @@ defineProps({
   }
 })
 
-defineEmits(['open-settings', 'mouseenter', 'mouseleave'])
+defineEmits(['open-settings', 'open-focus-summary', 'mouseenter', 'mouseleave'])
 
 // 在线人数
 const onlineCount = onlineServer.onlineCount
