@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { CACHE_NAMES } from './src/config/constants.js'
 import Icons from 'unplugin-icons/vite'
+import jsdocHelpExtractor from './vite-plugins/jsdoc-help-extractor.js'
 
 const buildMeta = (() => {
   const pad = (value) => value.toString().padStart(2, '0')
@@ -30,6 +31,7 @@ export default defineConfig({
       compiler: 'vue3',
       autoInstall: true
     }),
+    jsdocHelpExtractor(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico'],
