@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { STORAGE_KEYS, PLAYLIST_CONFIG } from '@/config/constants.js'
 import { ErrorTypes } from '@/types/playlist.js'
-import { createSong, localManagedSongs, onlineSongs } from '../../setup/fixtures/songs.js'
+import { createSong } from '../../setup/fixtures/songs.js'
 import { createPlaylistRef, createCollection } from '../../setup/fixtures/playlists.js'
 
 describe('usePlaylistManager.js', () => {

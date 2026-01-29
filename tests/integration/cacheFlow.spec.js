@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { ALL_CACHE_NAMES, STORAGE_KEYS } from '@/config/constants.js'
+import { ALL_CACHE_NAMES } from '@/config/constants.js'
 
 describe('缓存流程集成测试', () => {
   beforeEach(() => {

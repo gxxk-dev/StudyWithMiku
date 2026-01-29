@@ -119,7 +119,7 @@ const createMockOPFSDirectory = () => {
       throw new DOMException('Directory not found', 'NotFoundError')
     },
 
-    async removeEntry(name, options = {}) {
+    async removeEntry(name) {
       if (files.has(name)) {
         files.delete(name)
         return

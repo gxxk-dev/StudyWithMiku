@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { API_CONFIG, CACHE_CONFIG, STORAGE_KEYS } from '@/config/constants.js'
-import { metingApiResponse, neteaseSongs, incompleteSongs } from '../../setup/fixtures/songs.js'
+import { metingApiResponse, neteaseSongs } from '../../setup/fixtures/songs.js'
 
 describe('meting.js', () => {
   beforeEach(() => {

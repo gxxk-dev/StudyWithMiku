@@ -6,7 +6,6 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 
 describe('usePWA.js', () => {
   let originalMatchMedia
-  let originalNavigator
 
   beforeEach(() => {
     vi.resetModules()
@@ -14,7 +13,6 @@ describe('usePWA.js', () => {
 
     // 保存原始值
     originalMatchMedia = window.matchMedia
-    originalNavigator = { ...navigator }
 
     // Mock matchMedia
     window.matchMedia = vi.fn().mockImplementation((query) => ({

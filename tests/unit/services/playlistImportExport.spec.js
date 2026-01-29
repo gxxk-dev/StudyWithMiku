@@ -16,7 +16,6 @@ import { ErrorTypes } from '@/types/playlist.js'
 import {
   neteasePlaylist,
   onlineCollection,
-  localCollection,
   createPlaylistRef,
   createCollection,
   createExportData

@@ -2,7 +2,7 @@
  * src/composables/usePlaylistDetection.js 单元测试
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { ref } from 'vue'
 import {
   extractPlaylistId,

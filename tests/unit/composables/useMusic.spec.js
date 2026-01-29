@@ -4,12 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { STORAGE_KEYS, API_CONFIG } from '@/config/constants.js'
-import {
-  neteaseSongs,
-  metingApiResponse,
-  localManagedSongs,
-  onlineSongs
-} from '../../setup/fixtures/songs.js'
+import { neteaseSongs, metingApiResponse, onlineSongs } from '../../setup/fixtures/songs.js'
 import { neteasePlaylist, onlineCollection } from '../../setup/fixtures/playlists.js'
 
 describe('useMusic.js', () => {
@@ -304,7 +299,7 @@ describe('useMusic.js', () => {
   describe('cleanupLocalAudioURLs', () => {
     it('应该清理所有 Object URLs', async () => {
       const music = await getUseMusic()
-      const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL')
+      vi.spyOn(URL, 'revokeObjectURL')
 
       // 手动触发一些 URL 创建（通过 loadFromPlaylist with local songs）
       // 然后调用清理

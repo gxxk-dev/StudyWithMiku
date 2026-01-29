@@ -137,7 +137,7 @@ describe('useCache.js', () => {
         await testCache.put(new Request('https://example.com/test'), new Response('data'))
       }
 
-      const cache = await getUseCache()
+      await getUseCache()
 
       // 直接调用内部清理逻辑，跳过节流
       if ('caches' in window) {
@@ -156,7 +156,7 @@ describe('useCache.js', () => {
       localStorage.setItem('study_with_miku_settings', JSON.stringify({ volume: 0.5 }))
       localStorage.setItem('meting_playlist_cache:test:123', 'should be deleted')
 
-      const cache = await getUseCache()
+      await getUseCache()
 
       // 直接清理 playlist 类别
       const keysToRemove = []
