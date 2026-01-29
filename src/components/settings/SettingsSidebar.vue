@@ -28,17 +28,17 @@ defineProps({
 defineEmits(['update:activeTab'])
 
 const navItems = [
-  { id: 'focus', icon: 'lucide:timer', label: 'Focus' },
-  { id: 'music', icon: 'lucide:music', label: 'Music' },
-  { id: 'stats', icon: 'lucide:bar-chart-3', label: 'Statistics' },
-  { id: 'about', icon: 'lucide:info', label: 'About' }
+  { id: 'focus', icon: 'lucide:timer', label: '专注' },
+  { id: 'music', icon: 'lucide:music', label: '音乐' },
+  { id: 'stats', icon: 'lucide:bar-chart-3', label: '统计' },
+  { id: 'about', icon: 'lucide:info', label: '关于' }
 ]
 </script>
 
 <style scoped>
 .settings-sidebar {
-  width: 200px;
-  min-width: 200px;
+  width: 150px;
+  min-width: 150px;
   background: rgba(20, 25, 30, 0.5);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
@@ -55,8 +55,8 @@ const navItems = [
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
+  gap: 10px;
+  padding: 10px 16px;
   background: transparent;
   border: none;
   border-left: 3px solid transparent;
@@ -67,7 +67,7 @@ const navItems = [
     color 0.2s ease,
     border-color 0.2s ease;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .nav-item:hover {
@@ -92,13 +92,13 @@ const navItems = [
 /* 响应式 - 窄屏幕只显示图标 */
 @media (max-width: 800px) {
   .settings-sidebar {
-    width: 70px;
-    min-width: 70px;
+    width: 60px;
+    min-width: 60px;
   }
 
   .nav-item {
     justify-content: center;
-    padding: 12px;
+    padding: 10px;
   }
 
   .nav-label {

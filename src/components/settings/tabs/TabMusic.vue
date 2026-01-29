@@ -1,20 +1,28 @@
+<script setup>
+import DevOverlay from '../DevOverlay.vue'
+</script>
+
 <template>
   <div class="tab-content">
     <div class="settings-section">
-      <h3 class="section-title">Playlist Management</h3>
-      <p class="placeholder-text">Add and manage music playlists from various platforms</p>
+      <h3 class="section-title">歌单管理</h3>
+      <p class="placeholder-text">添加和管理来自各平台的音乐歌单</p>
     </div>
 
     <div class="settings-section">
-      <h3 class="section-title">Audio Settings</h3>
-      <p class="placeholder-text">Volume, crossfade, and playback preferences</p>
+      <h3 class="section-title">音频设置</h3>
+      <p class="placeholder-text">音量、淡入淡出和播放偏好</p>
     </div>
+
+    <DevOverlay />
   </div>
 </template>
 
 <style scoped>
 .tab-content {
   padding: 24px;
+  position: relative;
+  min-height: 100%;
 }
 
 .settings-section {

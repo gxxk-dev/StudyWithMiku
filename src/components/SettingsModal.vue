@@ -4,7 +4,7 @@
       <div class="settings-modal">
         <!-- 头部 -->
         <div class="modal-header">
-          <h2 class="modal-title">Settings</h2>
+          <h2 class="modal-title">设置</h2>
           <button class="close-btn" @click="$emit('close')">
             <Icon icon="mdi:close" width="24" height="24" />
           </button>
@@ -43,7 +43,7 @@ defineProps({
 
 const emit = defineEmits(['close'])
 
-const activeTab = ref('focus')
+const activeTab = ref('about')
 
 const tabComponents = {
   focus: TabFocus,
@@ -181,6 +181,14 @@ onUnmounted(() => {
 
   .settings-overlay {
     padding: 0;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-title {
+    font-size: 1.1rem;
   }
 }
 </style>

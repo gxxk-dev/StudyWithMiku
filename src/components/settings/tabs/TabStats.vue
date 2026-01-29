@@ -1,25 +1,33 @@
+<script setup>
+import DevOverlay from '../DevOverlay.vue'
+</script>
+
 <template>
   <div class="tab-content">
     <div class="settings-section">
-      <h3 class="section-title">Today</h3>
-      <p class="placeholder-text">Focus sessions and time spent today</p>
+      <h3 class="section-title">今日</h3>
+      <p class="placeholder-text">今日专注时段和时长</p>
     </div>
 
     <div class="settings-section">
-      <h3 class="section-title">This Week</h3>
-      <p class="placeholder-text">Weekly progress and trends</p>
+      <h3 class="section-title">本周</h3>
+      <p class="placeholder-text">每周进度和趋势</p>
     </div>
 
     <div class="settings-section">
-      <h3 class="section-title">All Time</h3>
-      <p class="placeholder-text">Total statistics and heatmap</p>
+      <h3 class="section-title">全部</h3>
+      <p class="placeholder-text">总计统计和热力图</p>
     </div>
+
+    <DevOverlay />
   </div>
 </template>
 
 <style scoped>
 .tab-content {
   padding: 24px;
+  position: relative;
+  min-height: 100%;
 }
 
 .settings-section {

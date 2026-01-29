@@ -1,25 +1,33 @@
+<script setup>
+import DevOverlay from '../DevOverlay.vue'
+</script>
+
 <template>
   <div class="tab-content">
     <div class="settings-section">
-      <h3 class="section-title">Timer Duration</h3>
-      <p class="placeholder-text">Configure focus and break durations</p>
+      <h3 class="section-title">计时器时长</h3>
+      <p class="placeholder-text">配置专注和休息时长</p>
     </div>
 
     <div class="settings-section">
-      <h3 class="section-title">Automation</h3>
-      <p class="placeholder-text">Auto-start breaks and focus sessions</p>
+      <h3 class="section-title">自动化</h3>
+      <p class="placeholder-text">自动开始休息和专注时段</p>
     </div>
 
     <div class="settings-section">
-      <h3 class="section-title">Notifications</h3>
-      <p class="placeholder-text">Sound and browser notification settings</p>
+      <h3 class="section-title">通知</h3>
+      <p class="placeholder-text">声音和浏览器通知设置</p>
     </div>
+
+    <DevOverlay />
   </div>
 </template>
 
 <style scoped>
 .tab-content {
   padding: 24px;
+  position: relative;
+  min-height: 100%;
 }
 
 .settings-section {
