@@ -131,6 +131,8 @@ import {
 import { initializeMediaSession, cleanupMediaSession } from './utils/mediaSession.js'
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
+import { onlineServer } from './services/onlineServer.js'
+import { getConfig } from './services/runtimeConfig.js'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
@@ -175,12 +177,15 @@ const startHideTimer = () => {
   if (inactivityTimer.value) {
     clearTimeout(inactivityTimer.value)
   }
-  inactivityTimer.value = setTimeout(() => {
-    if (!isHoveringUI.value) {
-      showControls.value = false
-      document.body.style.cursor = 'none'
-    }
-  }, 3000)
+  inactivityTimer.value = setTimeout(
+    () => {
+      if (!isHoveringUI.value) {
+        showControls.value = false
+        document.body.style.cursor = 'none'
+      }
+    },
+    getConfig('UI_CONFIG', 'INACTIVITY_HIDE_DELAY')
+  )
 }
 
 const onMouseMove = () => {
@@ -251,9 +256,6 @@ const onTitleClick = () => {
 
 const aplayer = ref(null)
 const aplayerInitialized = ref(false)
-const AUTOPLAY_UNLOCK_EVENTS = ['pointerdown', 'keydown', 'touchstart']
-// 事件监听器数组（不需要响应式）
-let autoplayUnlockListeners = []
 const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, playlistId, applyUrlPlaylist } =
   useMusic()
 const { setHasUpdate } = usePWA()
@@ -264,47 +266,7 @@ const playerElementRef = ref(null)
 let playerEventHandlers = []
 
 const onVideoLoaded = () => {
-  console.log('视频加载完成')
-}
-
-const removeAutoplayUnlockListeners = () => {
-  autoplayUnlockListeners.forEach(({ event, handler }) => {
-    document.removeEventListener(event, handler)
-  })
-  autoplayUnlockListeners = []
-}
-
-const setupAutoplayUnlockListeners = () => {
-  removeAutoplayUnlockListeners()
-  const unlock = () => {
-    removeAutoplayUnlockListeners()
-    if (!aplayer.value) return
-    const retryPromise = aplayer.value.play()
-    if (retryPromise && typeof retryPromise.catch === 'function') {
-      retryPromise.catch((error) => {
-        console.warn('APlayer play retry failed:', error)
-      })
-    }
-  }
-  AUTOPLAY_UNLOCK_EVENTS.forEach((event) => {
-    const handler = () => unlock()
-    autoplayUnlockListeners.push({ event, handler })
-    document.addEventListener(event, handler, { once: true })
-  })
-}
-
-const attemptAPlayerAutoplay = () => {
-  if (!aplayer.value) return
-  const playPromise = aplayer.value.play()
-  if (playPromise && typeof playPromise.catch === 'function') {
-    playPromise.catch((error) => {
-      if (error?.name === 'NotAllowedError' || /play\(\) failed/i.test(error?.message || '')) {
-        setupAutoplayUnlockListeners()
-      } else {
-        console.warn('APlayer play failed:', error)
-      }
-    })
-  }
+  console.debug('视频加载完成')
 }
 
 const stopShowControlsWatch = watch(showControls, (newValue) => {
@@ -338,6 +300,9 @@ watch(
 const loadTimer = ref(null)
 
 onMounted(() => {
+  // 连接在线计数服务器
+  onlineServer.connect()
+
   // 连接 PWA Service Worker 更新回调
   setSwUpdateCallback(() => {
     console.log('检测到新版本可用')
@@ -365,29 +330,52 @@ onMounted(() => {
 
     // 2. 显示配置提示（有效配置）
     if (hasValidConfig) {
-      showToast('info', '已应用自定义配置', summary, 3000)
+      showToast(
+        'info',
+        '已应用自定义配置',
+        summary,
+        getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+      )
     }
 
     // 3. 显示验证警告（自动排队）
     if (hasWarnings) {
       const warningMessage = validationWarnings.value.join('；')
-      showToast('error', '部分参数无效', warningMessage, 5000)
+      showToast(
+        'error',
+        '部分参数无效',
+        warningMessage,
+        getConfig('UI_CONFIG', 'TOAST_ERROR_DURATION')
+      )
     }
 
     // 4. 应用歌单配置（延迟 1 秒，异步执行）
     if (config.playlist) {
-      setTimeout(async () => {
-        try {
-          const playlistConfig = `${config.playlist.platform}:${config.playlist.id}`
-          const success = await applyUrlPlaylist(playlistConfig)
-          if (!success) {
-            showToast('error', '歌单加载失败', '将使用默认歌单', 3000)
+      setTimeout(
+        async () => {
+          try {
+            const playlistConfig = `${config.playlist.platform}:${config.playlist.id}`
+            const success = await applyUrlPlaylist(playlistConfig)
+            if (!success) {
+              showToast(
+                'error',
+                '歌单加载失败',
+                '将使用默认歌单',
+                getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+              )
+            }
+          } catch (error) {
+            console.error('[App] 应用歌单失败:', error)
+            showToast(
+              'error',
+              '歌单加载失败',
+              '将使用默认歌单',
+              getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+            )
           }
-        } catch (error) {
-          console.error('[App] 应用歌单失败:', error)
-          showToast('error', '歌单加载失败', '将使用默认歌单', 3000)
-        }
-      }, 1000)
+        },
+        getConfig('UI_CONFIG', 'PLAYLIST_APPLY_DELAY')
+      )
     }
   }
   // === URL 参数处理结束 ===
@@ -401,7 +389,7 @@ onMounted(() => {
   const preloadAllVideos = async () => {
     try {
       await preloadVideos(videos)
-      console.log('所有视频预加载完成')
+      console.debug('所有视频预加载完成')
     } catch (error) {
       console.error('视频预加载失败:', error)
     }
@@ -428,7 +416,7 @@ onMounted(() => {
       loop: 'all',
       order: 'list',
       preload: 'auto',
-      volume: 0.7,
+      volume: getConfig('AUDIO_CONFIG', 'DEFAULT_VOLUME'),
       mutex: true,
       listFolded: false,
       listMaxHeight: '200px',
@@ -474,20 +462,23 @@ onMounted(() => {
       platform: platform.value,
       playlistId: playlistId.value
     })
-
-    // 禁用自动播放，等待用户交互
-    // attemptAPlayerAutoplay()
   }
   preloadAllVideos().catch((err) => {
     console.error('视频预加载失败:', err)
   })
 
-  loadTimer.value = setTimeout(() => {
-    loadAPlayer()
-  }, 500)
+  loadTimer.value = setTimeout(
+    () => {
+      loadAPlayer()
+    },
+    getConfig('UI_CONFIG', 'APLAYER_LOAD_DELAY')
+  )
 })
 
 onUnmounted(() => {
+  // 断开在线计数服务器连接
+  onlineServer.disconnect()
+
   if (loadTimer.value) {
     clearTimeout(loadTimer.value)
     loadTimer.value = null
@@ -509,7 +500,6 @@ onUnmounted(() => {
     cleanupMediaSession()
     aplayer.value.destroy()
   }
-  removeAutoplayUnlockListeners()
 })
 </script>
 
