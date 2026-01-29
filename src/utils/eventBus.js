@@ -1,10 +1,7 @@
 import { ref } from 'vue'
+import { getConfig } from '../services/runtimeConfig.js'
 
-const VOLUME_FADE_STEPS = 20
-const VOLUME_DUCK_RATIO = 0.2
-const VOLUME_DUCK_FADE_DURATION = 300
-
-const originalVolume = ref(0.7)
+const originalVolume = ref(getConfig('AUDIO_CONFIG', 'DEFAULT_VOLUME'))
 
 const isHoveringUI = ref(false)
 
@@ -17,7 +14,10 @@ export const setAPlayerInstance = (instance) => {
 
 export const getAPlayerInstance = () => aplayerInstance
 
-const fadeVolume = (targetVolume, duration = 500) => {
+const fadeVolume = (targetVolume, duration) => {
+  const fadeDuration = duration ?? getConfig('AUDIO_CONFIG', 'DEFAULT_FADE_DURATION')
+  const fadeSteps = getConfig('AUDIO_CONFIG', 'VOLUME_FADE_STEPS')
+
   return new Promise((resolve, reject) => {
     if (!aplayerInstance) {
       resolve()
@@ -26,13 +26,13 @@ const fadeVolume = (targetVolume, duration = 500) => {
 
     const startVolume = aplayerInstance.audio.volume
     const volumeDiff = targetVolume - startVolume
-    const stepDuration = duration / VOLUME_FADE_STEPS
+    const stepDuration = fadeDuration / fadeSteps
     let currentStep = 0
     let interval = null
 
     interval = setInterval(() => {
       currentStep++
-      const progress = currentStep / VOLUME_FADE_STEPS
+      const progress = currentStep / fadeSteps
       const easeProgress = 1 - Math.pow(1 - progress, 3)
       const newVolume = startVolume + volumeDiff * easeProgress
 
@@ -45,7 +45,7 @@ const fadeVolume = (targetVolume, duration = 500) => {
 
       aplayerInstance.audio.volume = Math.max(0, Math.min(1, newVolume))
 
-      if (currentStep >= VOLUME_FADE_STEPS) {
+      if (currentStep >= fadeSteps) {
         clearInterval(interval)
         aplayerInstance.audio.volume = targetVolume
         resolve()
@@ -54,7 +54,9 @@ const fadeVolume = (targetVolume, duration = 500) => {
   })
 }
 
-export const duckMusicForNotification = async (notificationDuration = 3000) => {
+export const duckMusicForNotification = async (notificationDuration) => {
+  const duration = notificationDuration ?? getConfig('AUDIO_CONFIG', 'NOTIFICATION_DURATION')
+
   if (!aplayerInstance) return
 
   if (volumeRestoreTimer) {
@@ -63,20 +65,21 @@ export const duckMusicForNotification = async (notificationDuration = 3000) => {
   }
 
   originalVolume.value = aplayerInstance.audio.volume
-  const duckedVolume = originalVolume.value * VOLUME_DUCK_RATIO
+  const duckedVolume = originalVolume.value * getConfig('AUDIO_CONFIG', 'VOLUME_DUCK_RATIO')
+  const fadeDuration = getConfig('AUDIO_CONFIG', 'VOLUME_FADE_DURATION')
 
-  await fadeVolume(duckedVolume, VOLUME_DUCK_FADE_DURATION)
+  await fadeVolume(duckedVolume, fadeDuration)
 
   volumeRestoreTimer = setTimeout(() => {
     if (!aplayerInstance) {
       volumeRestoreTimer = null
       return
     }
-    fadeVolume(originalVolume.value, VOLUME_DUCK_FADE_DURATION).catch((err) => {
+    fadeVolume(originalVolume.value, fadeDuration).catch((err) => {
       console.error('恢复通知后音量失败:', err)
     })
     volumeRestoreTimer = null
-  }, notificationDuration)
+  }, duration)
 }
 
 export const setHoveringUI = (value) => {

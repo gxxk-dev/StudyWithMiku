@@ -3,6 +3,8 @@
  * 为 APlayer 播放器提供系统媒体控制支持
  */
 
+import { getConfig } from '../services/runtimeConfig.js'
+
 // ===== 内部状态变量 =====
 let currentPlayerType = null // 'aplayer' | 'spotify' | null
 let aplayerInstance = null // APlayer 实例引用
@@ -13,7 +15,6 @@ const isMediaSessionSupported = 'mediaSession' in navigator
 
 // 播放进度更新节流
 let lastPositionUpdateTime = 0
-const POSITION_UPDATE_INTERVAL = 1000 // 每秒最多更新一次
 
 // ===== 辅助函数 =====
 
@@ -50,7 +51,8 @@ function updatePositionState(aplayer) {
   if (!isMediaSessionSupported || !aplayer?.audio) return
 
   const now = Date.now()
-  if (now - lastPositionUpdateTime < POSITION_UPDATE_INTERVAL) return
+  if (now - lastPositionUpdateTime < getConfig('UI_CONFIG', 'MEDIA_POSITION_UPDATE_INTERVAL'))
+    return
   lastPositionUpdateTime = now
 
   try {
@@ -117,36 +119,36 @@ function setupAPlayerListeners(aplayer, songs) {
 function setupMediaActionHandlers(aplayer) {
   const actionHandlers = {
     play: () => {
-      console.log('[MediaSession] 系统播放')
+      console.debug('[MediaSession] 系统播放')
       aplayer.play()
     },
     pause: () => {
-      console.log('[MediaSession] 系统暂停')
+      console.debug('[MediaSession] 系统暂停')
       aplayer.pause()
     },
     previoustrack: () => {
-      console.log('[MediaSession] 系统上一首')
+      console.debug('[MediaSession] 系统上一首')
       aplayer.skipBack()
     },
     nexttrack: () => {
-      console.log('[MediaSession] 系统下一首')
+      console.debug('[MediaSession] 系统下一首')
       aplayer.skipForward()
     },
     seekforward: (details) => {
       const skipTime = details?.seekOffset || 10
       const newTime = aplayer.audio.currentTime + skipTime
-      console.log('[MediaSession] 系统快进', skipTime, '秒')
+      console.debug('[MediaSession] 系统快进', skipTime, '秒')
       aplayer.seek(Math.min(newTime, aplayer.audio.duration))
     },
     seekbackward: (details) => {
       const skipTime = details?.seekOffset || 10
       const newTime = aplayer.audio.currentTime - skipTime
-      console.log('[MediaSession] 系统快退', skipTime, '秒')
+      console.debug('[MediaSession] 系统快退', skipTime, '秒')
       aplayer.seek(Math.max(newTime, 0))
     },
     seekto: (details) => {
       if (details?.seekTime != null) {
-        console.log('[MediaSession] 系统跳转到', details.seekTime, '秒')
+        console.debug('[MediaSession] 系统跳转到', details.seekTime, '秒')
         aplayer.seek(details.seekTime)
       }
     }
@@ -193,7 +195,7 @@ export function initializeMediaSession(type, playerInstance, metadata) {
 
   // Spotify 直接返回，让嵌入播放器自己管理
   if (type === 'spotify') {
-    console.log('[MediaSession] Spotify 播放器跳过初始化')
+    console.debug('[MediaSession] Spotify 播放器跳过初始化')
     return
   }
 
@@ -218,7 +220,7 @@ export function initializeMediaSession(type, playerInstance, metadata) {
   // 清理旧的状态
   cleanupMediaSession()
 
-  console.log('[MediaSession] 初始化 APlayer，歌曲数:', songs.length)
+  console.debug('[MediaSession] 初始化 APlayer，歌曲数:', songs.length)
 
   // 保存状态
   currentPlayerType = type
@@ -253,7 +255,7 @@ export function cleanupMediaSession() {
     return
   }
 
-  console.log('[MediaSession] 清理')
+  console.debug('[MediaSession] 清理')
 
   // 1. 移除 APlayer 事件监听器
   if (aplayerInstance && eventListeners.size > 0) {
