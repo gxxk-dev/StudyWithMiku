@@ -7,6 +7,7 @@ import {
 import { prefetchPlaylistAudios, clearPrefetchTimestamps } from '../utils/audioPrefetch.js'
 import { isPWAMode } from '../utils/pwaDetector.js'
 import { ALL_CACHE_NAMES } from '../config/constants.js'
+import { getConfig } from '../services/runtimeConfig.js'
 
 const CACHE_NAMES = ALL_CACHE_NAMES
 
@@ -18,11 +19,13 @@ const LOCALSTORAGE_PATTERNS = {
 }
 
 // 节流函数：限制函数在指定时间内只执行一次
-const createThrottledFunction = (func, delay) => {
+// 支持动态获取 delay 值
+const createThrottledFunction = (func, getDelay) => {
   let lastCall = 0
   let timeout = null
 
   const throttled = function (...args) {
+    const delay = typeof getDelay === 'function' ? getDelay() : getDelay
     const now = Date.now()
     const timeSinceLastCall = now - lastCall
 
@@ -235,8 +238,10 @@ export const useCache = () => {
     }
   }
 
-  // 节流版本的 refreshCacheStats（1秒内最多执行一次）
-  const refreshCacheStats = createThrottledFunction(_refreshCacheStats, 1000)
+  // 节流版本的 refreshCacheStats
+  const refreshCacheStats = createThrottledFunction(_refreshCacheStats, () =>
+    getConfig('UI_CONFIG', 'CACHE_STATS_THROTTLE')
+  )
 
   // 添加清理逻辑
   onUnmounted(() => {
@@ -333,12 +338,12 @@ export const useCache = () => {
       throw new Error('没有可预加载的歌曲')
     }
 
-    const PREFETCH_TIMEOUT = 60000 // 60秒
     let timeoutId = null
+    const prefetchTimeout = getConfig('CACHE_CONFIG', 'PREFETCH_TIMEOUT')
 
     const prefetchPromise = prefetchPlaylistAudios(songs, { platform, id: playlistId, force: true })
     const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('预加载超时（60秒）')), PREFETCH_TIMEOUT)
+      timeoutId = setTimeout(() => reject(new Error('预加载超时（60秒）')), prefetchTimeout)
     })
 
     try {

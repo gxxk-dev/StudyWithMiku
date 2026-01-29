@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { getConfig } from '../services/runtimeConfig.js'
 
 /**
  * Toast 状态（全局单例）
@@ -57,9 +58,10 @@ export function useToast() {
    * @param {string} message - 消息内容（可选）
    * @param {number} duration - 显示时长（毫秒），0 表示不自动关闭
    */
-  const showToast = (type, title, message = '', duration = 3000) => {
+  const showToast = (type, title, message = '', duration) => {
+    const toastDuration = duration ?? getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
     // 将 Toast 加入队列
-    toastQueue.push({ type, title, message, duration })
+    toastQueue.push({ type, title, message, duration: toastDuration })
 
     // 如果当前没有显示 Toast，立即处理
     if (!isShowingToast) {
@@ -73,10 +75,13 @@ export function useToast() {
   const hideToast = () => {
     toastState.visible = false
 
-    // 等待动画完成（300ms）后处理下一个
-    setTimeout(() => {
-      processQueue()
-    }, 300)
+    // 等待动画完成后处理下一个
+    setTimeout(
+      () => {
+        processQueue()
+      },
+      getConfig('UI_CONFIG', 'TOAST_ANIMATION_DURATION')
+    )
   }
 
   return {
