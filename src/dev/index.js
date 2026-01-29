@@ -36,9 +36,11 @@ const swm_dev = {
 }
 
 // 创建帮助系统并注入
-const { help, injectModuleHelp } = createHelpSystem(swm_dev)
+const { help, injectModuleHelp, setColorMode, getColorMode } = createHelpSystem(swm_dev)
 injectModuleHelp()
 swm_dev.help = help
+swm_dev.setColorMode = setColorMode
+swm_dev.getColorMode = getColorMode
 
 window.swm_dev = swm_dev
 

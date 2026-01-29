@@ -3,7 +3,7 @@
  * 结合构建时提取的 JSDoc 元数据和运行时反射，提供完整的帮助信息
  */
 import { introspect } from './introspection.js'
-import { printOverview, printModuleDetail } from './formatter.js'
+import { printOverview, printModuleDetail, setColorMode, getColorMode } from './formatter.js'
 
 let helpMetadata = null
 let metadataLoading = null
@@ -60,13 +60,21 @@ export const createHelpSystem = (modules) => {
   /**
    * 帮助函数（同步）
    * @param {string} [moduleName] - 模块名称，不传则显示概览
+   * @param {object} [options] - 选项
+   * @param {boolean} [options.color] - 是否使用颜色模式
    */
-  const help = (moduleName) => {
+  const help = (moduleName, options = {}) => {
     // 如果元数据还没加载完，使用空对象
     const metadata = helpMetadata || {}
 
     if (!moduleName) {
-      printOverview(modules, metadata)
+      printOverview(modules, metadata, options)
+      return
+    }
+
+    // 如果第一个参数是对象，当作 options 处理
+    if (typeof moduleName === 'object') {
+      printOverview(modules, metadata, moduleName)
       return
     }
 
@@ -83,7 +91,7 @@ export const createHelpSystem = (modules) => {
 
     const introspected = getIntrospection(moduleName)
     const meta = metadata[moduleName] || {}
-    printModuleDetail(moduleName, modules[moduleName], introspected, meta)
+    printModuleDetail(moduleName, modules[moduleName], introspected, meta, options)
   }
 
   /**
@@ -97,7 +105,7 @@ export const createHelpSystem = (modules) => {
       // 尝试注入 help 方法，如果对象不可扩展则跳过
       try {
         Object.defineProperty(module, 'help', {
-          value: () => help(name),
+          value: (options) => help(name, options),
           writable: false,
           enumerable: false,
           configurable: false
@@ -108,5 +116,5 @@ export const createHelpSystem = (modules) => {
     }
   }
 
-  return { help, injectModuleHelp }
+  return { help, injectModuleHelp, setColorMode, getColorMode }
 }

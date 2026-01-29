@@ -15,12 +15,30 @@ const STYLES = {
   reset: 'color: inherit'
 }
 
+// 全局颜色模式设置
+let colorMode = false
+
+/**
+ * 设置颜色模式
+ * @param {boolean} enabled - 是否启用颜色
+ */
+export const setColorMode = (enabled) => {
+  colorMode = !!enabled
+}
+
+/**
+ * 获取当前颜色模式
+ * @returns {boolean}
+ */
+export const getColorMode = () => colorMode
+
 /**
  * 构建带样式的控制台输出
- * 收集格式字符串和样式参数，最后一次性输出
+ * 根据 colorMode 决定是否使用样式
  */
 class ConsoleBuilder {
-  constructor() {
+  constructor(useColor = colorMode) {
+    this.useColor = useColor
     this.parts = []
     this.styles = []
   }
@@ -28,10 +46,10 @@ class ConsoleBuilder {
   /**
    * 添加带样式的文本
    * @param {string} text - 文本内容
-   * @param {string} [style] - CSS 样式
+   * @param {string} [style] - CSS 样式（仅在 colorMode 时生效）
    */
   add(text, style = '') {
-    if (style) {
+    if (this.useColor && style) {
       this.parts.push(`%c${text}`)
       this.styles.push(style)
     } else {
@@ -52,7 +70,11 @@ class ConsoleBuilder {
    * 输出到控制台
    */
   print() {
-    console.log(this.parts.join(''), ...this.styles)
+    if (this.useColor) {
+      console.log(this.parts.join(''), ...this.styles)
+    } else {
+      console.log(this.parts.join(''))
+    }
   }
 
   /**
@@ -61,14 +83,11 @@ class ConsoleBuilder {
    * @param {string} [style] - 标题样式
    */
   printGroup(title, style) {
-    // 先输出内容，再用 groupCollapsed 包裹标题
-    // 避免 %c 格式化问题
     console.groupCollapsed(title)
-    if (style) {
-      // 在 group 内部用样式输出标题
+    if (this.useColor && style) {
       console.log(`%c${title}`, style)
     }
-    console.log(this.parts.join(''), ...this.styles)
+    this.print()
     console.groupEnd()
   }
 }
@@ -77,9 +96,12 @@ class ConsoleBuilder {
  * 打印模块概览
  * @param {object} modules - 所有模块对象
  * @param {object} metadata - 帮助元数据
+ * @param {object} [options] - 选项
+ * @param {boolean} [options.color] - 是否使用颜色
  */
-export const printOverview = (modules, metadata) => {
-  const builder = new ConsoleBuilder()
+export const printOverview = (modules, metadata, options = {}) => {
+  const useColor = options.color ?? colorMode
+  const builder = new ConsoleBuilder(useColor)
 
   builder.add(' swm_dev - 开发者控制台 ', STYLES.title)
   builder.newline().newline()
@@ -110,6 +132,9 @@ export const printOverview = (modules, metadata) => {
   builder.add('  swm_dev.help("playlist") - 查看模块详情', STYLES.reset)
   builder.newline()
   builder.add('  swm_dev.playlist.help()  - 模块内置帮助', STYLES.reset)
+  builder.newline()
+  builder.newline()
+  builder.add(`颜色模式: ${useColor ? '开启' : '关闭'} (swm_dev.setColorMode(true/false) 切换)`)
 
   builder.print()
 }
@@ -120,9 +145,12 @@ export const printOverview = (modules, metadata) => {
  * @param {object} module - 模块对象
  * @param {object} introspected - 反射分析结果
  * @param {object} meta - 模块元数据
+ * @param {object} [options] - 选项
+ * @param {boolean} [options.color] - 是否使用颜色
  */
-export const printModuleDetail = (name, module, introspected, meta) => {
-  const builder = new ConsoleBuilder()
+export const printModuleDetail = (name, module, introspected, meta, options = {}) => {
+  const useColor = options.color ?? colorMode
+  const builder = new ConsoleBuilder(useColor)
 
   if (meta?.description) {
     builder.add(meta.description, STYLES.description).newline()
