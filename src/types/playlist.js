@@ -88,8 +88,6 @@
  * @property {string} name - 歌单名称
  * @property {string} [cover] - 封面图片 URL
  * @property {number} order - 排序序号
- * @property {number} [createdAt] - 创建时间戳
- * @property {number} [updatedAt] - 更新时间戳
  */
 
 /**

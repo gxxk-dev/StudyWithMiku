@@ -1,6 +1,7 @@
 import { safeLocalStorageGet, safeLocalStorageSet } from './storage.js'
+import { STORAGE_KEYS } from '../config/constants.js'
 
-const STORAGE_KEY = 'study_with_miku_settings'
+const STORAGE_KEY = STORAGE_KEYS.USER_SETTINGS
 
 const defaultSettings = {
   video: {

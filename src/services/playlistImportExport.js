@@ -213,9 +213,7 @@ export const mergePlaylists = (existing, imported, options = {}) => {
     const processedPlaylists = imported.map((playlist, index) => ({
       ...playlist,
       id: generateId(),
-      order: index,
-      createdAt: playlist.createdAt || Date.now(),
-      updatedAt: Date.now()
+      order: index
     }))
 
     stats.replaced = existing.length
@@ -250,9 +248,7 @@ export const mergePlaylists = (existing, imported, options = {}) => {
     result.push({
       ...importedPlaylist,
       id: generateId(),
-      order: nextOrder++,
-      createdAt: importedPlaylist.createdAt || Date.now(),
-      updatedAt: Date.now()
+      order: nextOrder++
     })
     stats.added++
   }

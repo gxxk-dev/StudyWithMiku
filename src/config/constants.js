@@ -26,18 +26,18 @@ export const ALL_CACHE_NAMES = Object.values(CACHE_NAMES)
  */
 export const STORAGE_KEYS = {
   // 用户设置
-  USER_SETTINGS: 'study_with_miku_settings',
+  USER_SETTINGS: 'swm_settings',
   // 服务器配置
-  COUNT_SERVER: 'countServer',
+  COUNT_SERVER: 'swm_count_server',
   // 音乐平台
-  MUSIC_PLATFORM: 'music_platform',
-  MUSIC_ID: 'music_id',
-  PLAYLIST_ID: 'playlist_id',
+  MUSIC_PLATFORM: 'swm_music_platform',
+  MUSIC_ID: 'swm_music_id',
+  PLAYLIST_ID: 'swm_playlist_id',
   // Spotify
-  SPOTIFY_PLAYLIST_ID: 'spotify_playlist_id',
+  SPOTIFY_PLAYLIST_ID: 'swm_spotify_playlist_id',
   // 缓存前缀
-  PLAYLIST_CACHE_PREFIX: 'meting_playlist_cache',
-  PREFETCH_TIMESTAMP_PREFIX: 'meting_playlist_prefetch',
+  PLAYLIST_CACHE_PREFIX: 'swm_playlist_cache',
+  PREFETCH_TIMESTAMP_PREFIX: 'swm_playlist_prefetch',
   // 歌单管理
   PLAYLISTS: 'swm_playlists',
   CURRENT_PLAYLIST: 'swm_current_playlist',

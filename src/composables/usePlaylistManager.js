@@ -134,7 +134,6 @@ export const usePlaylistManager = () => {
       return { success: false, error: ErrorTypes.MAX_PLAYLISTS_REACHED }
     }
 
-    const now = Date.now()
     const maxOrder = playlists.value.reduce((max, p) => Math.max(max, p.order), -1)
 
     /** @type {import('../types/playlist.js').Playlist} */
@@ -146,8 +145,6 @@ export const usePlaylistManager = () => {
         name: data.name,
         cover: data.cover,
         order: maxOrder + 1,
-        createdAt: now,
-        updatedAt: now,
         mode: 'playlist',
         source: data.source,
         sourceId: data.sourceId
@@ -158,8 +155,6 @@ export const usePlaylistManager = () => {
         name: data.name,
         cover: data.cover,
         order: maxOrder + 1,
-        createdAt: now,
-        updatedAt: now,
         mode: 'collection',
         songs: data.songs || []
       }
@@ -192,8 +187,7 @@ export const usePlaylistManager = () => {
 
     playlists.value[index] = {
       ...playlists.value[index],
-      ...safeUpdates,
-      updatedAt: Date.now()
+      ...safeUpdates
     }
 
     persist()
@@ -280,7 +274,6 @@ export const usePlaylistManager = () => {
     }
 
     playlist.songs.push(songWithId)
-    playlist.updatedAt = Date.now()
     persist()
 
     return { success: true }
@@ -310,7 +303,6 @@ export const usePlaylistManager = () => {
     }))
 
     playlist.songs.push(...toAdd)
-    playlist.updatedAt = Date.now()
     persist()
 
     return { success: true, added: toAdd.length }
@@ -349,7 +341,6 @@ export const usePlaylistManager = () => {
     }
 
     playlist.songs.splice(songIndex, 1)
-    playlist.updatedAt = Date.now()
     persist()
 
     return { success: true }
@@ -384,7 +375,6 @@ export const usePlaylistManager = () => {
 
     const [song] = playlist.songs.splice(fromIndex, 1)
     playlist.songs.splice(toIndex, 0, song)
-    playlist.updatedAt = Date.now()
     persist()
 
     return { success: true }

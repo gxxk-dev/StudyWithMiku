@@ -6,16 +6,16 @@ import {
 } from '../utils/cache.js'
 import { prefetchPlaylistAudios, clearPrefetchTimestamps } from '../utils/audioPrefetch.js'
 import { isPWAMode } from '../utils/pwaDetector.js'
-import { ALL_CACHE_NAMES } from '../config/constants.js'
+import { ALL_CACHE_NAMES, STORAGE_KEYS } from '../config/constants.js'
 import { getConfig } from '../services/runtimeConfig.js'
 
 const CACHE_NAMES = ALL_CACHE_NAMES
 
 const LOCALSTORAGE_PATTERNS = {
-  playlist: /^meting_playlist_cache:/,
-  prefetch: /^meting_playlist_prefetch:/,
-  settings: /^study_with_miku_settings$/,
-  musicConfig: /^music_(platform|id|source)$/
+  playlist: new RegExp(`^${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:`),
+  prefetch: new RegExp(`^${STORAGE_KEYS.PREFETCH_TIMESTAMP_PREFIX}:`),
+  settings: new RegExp(`^${STORAGE_KEYS.USER_SETTINGS}$`),
+  musicConfig: new RegExp(`^${STORAGE_KEYS.MUSIC_PLATFORM}$|^${STORAGE_KEYS.MUSIC_ID}$`)
 }
 
 // 节流函数：限制函数在指定时间内只执行一次
@@ -365,7 +365,7 @@ export const useCache = () => {
 
   // 重置预加载时间戳
   const clearPrefetchTimestamp = (platform, playlistId) => {
-    const key = `meting_playlist_prefetch:${platform}:${playlistId}`
+    const key = `${STORAGE_KEYS.PREFETCH_TIMESTAMP_PREFIX}:${platform}:${playlistId}`
     try {
       localStorage.removeItem(key)
     } catch (err) {

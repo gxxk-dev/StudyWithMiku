@@ -191,6 +191,7 @@ import { Icon } from '@iconify/vue'
 import { usePWA } from '../composables/usePWA.js'
 import { useCache } from '../composables/useCache.js'
 import { useMusic } from '../composables/useMusic.js'
+import { STORAGE_KEYS } from '../config/constants.js'
 
 defineProps({
   visible: {
@@ -258,7 +259,7 @@ const memoryTypeLabels = {
 
 // 计算上次预加载时间
 const lastPrefetchTime = computed(() => {
-  const key = `meting_playlist_prefetch:${platform.value}:${playlistId.value}`
+  const key = `${STORAGE_KEYS.PREFETCH_TIMESTAMP_PREFIX}:${platform.value}:${playlistId.value}`
   try {
     const timestamp = localStorage.getItem(key)
     if (!timestamp) return '从未'

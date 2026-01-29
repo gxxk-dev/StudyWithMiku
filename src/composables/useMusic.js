@@ -17,6 +17,7 @@ import {
 import { safeLocalStorageGet, safeLocalStorageSet } from '../utils/storage.js'
 import { getLocalAudioURL } from '../services/localAudioStorage.js'
 import { usePlaylistManager } from './usePlaylistManager.js'
+import { STORAGE_KEYS } from '../config/constants.js'
 
 /**
  * 模块级状态 - 单例模式 (Singleton Pattern)
@@ -33,8 +34,8 @@ import { usePlaylistManager } from './usePlaylistManager.js'
 const songs = ref([])
 const loading = ref(false)
 const metingConfig = ref(getStoredConfig())
-const playlistId = ref(safeLocalStorageGet('playlist_id', DEFAULT_PLAYLIST_ID))
-const platform = ref(safeLocalStorageGet('music_platform', 'netease'))
+const playlistId = ref(safeLocalStorageGet(STORAGE_KEYS.PLAYLIST_ID, DEFAULT_PLAYLIST_ID))
+const platform = ref(safeLocalStorageGet(STORAGE_KEYS.MUSIC_PLATFORM, 'netease'))
 const spotifyPlaylistId = ref(getSpotifyPlaylistId())
 const abortController = ref(null)
 
@@ -173,17 +174,17 @@ export const useMusic = () => {
 
   const setPlaylistId = (id) => {
     playlistId.value = id
-    safeLocalStorageSet('playlist_id', id)
+    safeLocalStorageSet(STORAGE_KEYS.PLAYLIST_ID, id)
   }
 
   const resetPlaylistId = () => {
     playlistId.value = DEFAULT_PLAYLIST_ID
-    safeLocalStorageSet('playlist_id', DEFAULT_PLAYLIST_ID)
+    safeLocalStorageSet(STORAGE_KEYS.PLAYLIST_ID, DEFAULT_PLAYLIST_ID)
   }
 
   const setPlatform = (p) => {
     platform.value = p
-    safeLocalStorageSet('music_platform', p)
+    safeLocalStorageSet(STORAGE_KEYS.MUSIC_PLATFORM, p)
   }
 
   const applyCustomPlaylist = async (p, id) => {
