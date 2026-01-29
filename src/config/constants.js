@@ -102,3 +102,47 @@ export const PLAYLIST_CONFIG = {
   MAX_PLAYLISTS: 50,
   MAX_SONGS_PER_COLLECTION: 500
 }
+
+/**
+ * UI 配置常量
+ */
+export const UI_CONFIG = {
+  // Toast 相关
+  TOAST_DEFAULT_DURATION: 3000,
+  TOAST_ERROR_DURATION: 5000,
+  TOAST_ANIMATION_DURATION: 300,
+  // 控件隐藏延迟
+  INACTIVITY_HIDE_DELAY: 3000,
+  // APlayer 加载延迟
+  APLAYER_LOAD_DELAY: 500,
+  // 歌单应用延迟
+  PLAYLIST_APPLY_DELAY: 1000,
+  // 时间显示更新间隔
+  TIME_DISPLAY_UPDATE_INTERVAL: 1000,
+  // Media Session
+  MEDIA_SEEK_OFFSET: 10,
+  // 音频时长获取超时
+  AUDIO_DURATION_TIMEOUT: 10000,
+  // 缓存统计刷新节流间隔
+  CACHE_STATS_THROTTLE: 1000,
+  // Media Session 播放进度更新间隔
+  MEDIA_POSITION_UPDATE_INTERVAL: 1000
+}
+
+/**
+ * 音频配置常量
+ */
+export const AUDIO_CONFIG = {
+  // 默认音量
+  DEFAULT_VOLUME: 0.7,
+  // 音量渐变步数
+  VOLUME_FADE_STEPS: 20,
+  // 通知时音量降低比例
+  VOLUME_DUCK_RATIO: 0.2,
+  // 音量渐变时长（毫秒）
+  VOLUME_FADE_DURATION: 300,
+  // 默认渐变时长（毫秒）
+  DEFAULT_FADE_DURATION: 500,
+  // 通知默认时长（毫秒）
+  NOTIFICATION_DURATION: 3000
+}
