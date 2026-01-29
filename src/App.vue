@@ -144,13 +144,13 @@ import { Icon } from '@iconify/vue'
 // 加载开发者控制台 (swm_dev)
 import './dev/index.js'
 
-const VCONSOLE_SWITCH_STYLE_ID = 'vconsole-hide-switch-style'
+const ERUDA_SWITCH_STYLE_ID = 'eruda-hide-switch-style'
 const ANNOUNCEMENT_DISMISSED_KEY = 'swm_announcement_dismissed'
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 const showControls = ref(true)
 const inactivityTimer = ref(null)
-const vConsoleInstance = ref(null)
+const erudaInitialized = ref(false)
 const showAnnouncement = ref(localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY) !== 'v1')
 const settingsModalOpen = ref(false)
 
@@ -239,18 +239,18 @@ const switchVideo = () => {
   saveVideoIndex(currentVideoIndex.value)
 }
 
-const hideVConsoleSwitch = () => {
+const hideErudaSwitch = () => {
   if (typeof document === 'undefined') return
-  if (document.getElementById(VCONSOLE_SWITCH_STYLE_ID)) return
+  if (document.getElementById(ERUDA_SWITCH_STYLE_ID)) return
   const style = document.createElement('style')
-  style.id = VCONSOLE_SWITCH_STYLE_ID
-  style.textContent = '.vc-switch{display:none !important;}'
+  style.id = ERUDA_SWITCH_STYLE_ID
+  style.textContent = '.eruda-entry-btn{display:none !important;}'
   document.head.appendChild(style)
 }
 
 const onTitleClick = () => {
-  if (vConsoleInstance.value && typeof vConsoleInstance.value.show === 'function') {
-    vConsoleInstance.value.show()
+  if (window.eruda && erudaInitialized.value) {
+    window.eruda.show()
   }
 }
 
@@ -380,10 +380,11 @@ onMounted(() => {
   }
   // === URL 参数处理结束 ===
 
-  // 初始化 vConsole
-  if (window.VConsole && !vConsoleInstance.value) {
-    vConsoleInstance.value = new window.VConsole()
-    hideVConsoleSwitch()
+  // 初始化 Eruda
+  if (window.eruda && !erudaInitialized.value) {
+    window.eruda.init()
+    erudaInitialized.value = true
+    hideErudaSwitch()
   }
 
   const preloadAllVideos = async () => {

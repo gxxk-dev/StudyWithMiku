@@ -7,7 +7,7 @@
 > - 源码：[github.com/shshouse/StudyWithMiku](https://github.com/shshouse/StudyWithMiku/)
 > - 在线体验：[study.mikugame.icu](https://study.mikugame.icu/)
 >
-> 重构期间，已完成开发的模块可通过浏览器 DevTools 或 vConsole 中调用 `swm_dev` 对象进行预览和测试。
+> 重构期间，已完成开发的模块可通过浏览器 DevTools 或 Eruda 中调用 `swm_dev` 对象进行预览和测试。
 
 # Study with Miku
 
