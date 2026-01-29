@@ -15,6 +15,16 @@
       ></video>
     </transition>
     <div class="overlay"></div>
+
+    <!-- 顶部状态胶囊 -->
+    <StatusPill
+      :show-controls="showControls"
+      :modal-open="settingsModalOpen"
+      @open-settings="openSettingsModal"
+      @mouseenter="onUIMouseEnter"
+      @mouseleave="onUIMouseLeave"
+    />
+
     <div class="content" :class="{ hidden: !showControls }">
       <h1 class="title" @click="onTitleClick">Study with Miku</h1>
       <p class="subtitle">Love by SHSHOUSE / Fork by gxxk-dev</p>
@@ -72,6 +82,9 @@
     <!-- 横屏提示 -->
     <OrientationPrompt />
 
+    <!-- 设置面板 -->
+    <SettingsModal :is-open="settingsModalOpen" @close="closeSettingsModal" />
+
     <!-- 重构公告横幅 -->
     <transition name="slide-up">
       <div v-if="showAnnouncement" class="announcement-banner">
@@ -122,6 +135,8 @@ import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
+import StatusPill from './components/StatusPill.vue'
+import SettingsModal from './components/SettingsModal.vue'
 import { Icon } from '@iconify/vue'
 
 // 加载开发者控制台 (swm_dev)
@@ -135,6 +150,15 @@ const showControls = ref(true)
 const inactivityTimer = ref(null)
 const vConsoleInstance = ref(null)
 const showAnnouncement = ref(localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY) !== 'v1')
+const settingsModalOpen = ref(false)
+
+const openSettingsModal = () => {
+  settingsModalOpen.value = true
+}
+
+const closeSettingsModal = () => {
+  settingsModalOpen.value = false
+}
 
 const dismissAnnouncement = () => {
   showAnnouncement.value = false

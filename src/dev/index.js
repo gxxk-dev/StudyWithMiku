@@ -16,6 +16,7 @@ import { useFocus } from '../composables/useFocus.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
 import * as exportUtils from '../utils/exportUtils.js'
+import { onlineServer } from '../services/onlineServer.js'
 
 // 初始化 playlistManager
 const playlistManager = usePlaylistManager()
@@ -40,6 +41,9 @@ window.swm_dev = {
 
   // 数据导出工具
   exportUtils,
+
+  // 在线服务器连接
+  server: onlineServer,
 
   // 帮助函数 - 自动发现并列出所有模块
   help() {
