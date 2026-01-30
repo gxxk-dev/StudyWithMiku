@@ -16,9 +16,7 @@ export const neteasePlaylist = {
   order: 0,
   mode: 'playlist',
   source: 'netease',
-  sourceId: '17543418420',
-  createdAt: 1704067200000,
-  updatedAt: 1704067200000
+  sourceId: '17543418420'
 }
 
 /**
@@ -31,9 +29,7 @@ export const tencentPlaylist = {
   order: 1,
   mode: 'playlist',
   source: 'tencent',
-  sourceId: '8888888888',
-  createdAt: 1704153600000,
-  updatedAt: 1704153600000
+  sourceId: '8888888888'
 }
 
 /**
@@ -46,9 +42,7 @@ export const spotifyPlaylist = {
   order: 2,
   mode: 'playlist',
   source: 'spotify',
-  sourceId: '37i9dQZF1DXcBWIGoYBM5M',
-  createdAt: 1704240000000,
-  updatedAt: 1704240000000
+  sourceId: '37i9dQZF1DXcBWIGoYBM5M'
 }
 
 // ============ 混合集合模式 ============
@@ -62,9 +56,7 @@ export const onlineCollection = {
   cover: 'https://example.com/collection-cover.jpg',
   order: 3,
   mode: 'collection',
-  songs: onlineSongs,
-  createdAt: 1704326400000,
-  updatedAt: 1704326400000
+  songs: onlineSongs
 }
 
 /**
@@ -76,9 +68,7 @@ export const localCollection = {
   cover: null,
   order: 4,
   mode: 'collection',
-  songs: localManagedSongs,
-  createdAt: 1704412800000,
-  updatedAt: 1704412800000
+  songs: localManagedSongs
 }
 
 /**
@@ -90,9 +80,7 @@ export const mixedCollection = {
   cover: 'https://example.com/mixed-cover.jpg',
   order: 5,
   mode: 'collection',
-  songs: [...onlineSongs.slice(0, 1), ...localManagedSongs.slice(0, 1)],
-  createdAt: 1704499200000,
-  updatedAt: 1704499200000
+  songs: [...onlineSongs.slice(0, 1), ...localManagedSongs.slice(0, 1)]
 }
 
 /**
@@ -104,9 +92,7 @@ export const emptyCollection = {
   cover: null,
   order: 6,
   mode: 'collection',
-  songs: [],
-  createdAt: 1704585600000,
-  updatedAt: 1704585600000
+  songs: []
 }
 
 // ============ 测试数据集 ============
@@ -153,8 +139,6 @@ export const createPlaylistRef = (overrides = {}) => ({
   mode: 'playlist',
   source: 'netease',
   sourceId: '12345678',
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
   ...overrides
 })
 
@@ -168,8 +152,6 @@ export const createCollection = (songs = [], overrides = {}) => ({
   order: 0,
   mode: 'collection',
   songs,
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
   ...overrides
 })
 

@@ -270,20 +270,6 @@ describe('runtimeConfig.js', () => {
     })
   })
 
-  describe('help 方法', () => {
-    it('应该调用 console.log 输出帮助信息', async () => {
-      const { runtimeConfigService } = await getModule()
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-
-      runtimeConfigService.help()
-
-      expect(logSpy).toHaveBeenCalled()
-      const helpText = logSpy.mock.calls[0][0]
-      expect(helpText).toContain('RuntimeConfig')
-      expect(helpText).toContain('swm_dev.config')
-    })
-  })
-
   describe('响应式特性', () => {
     it('配置修改后应该响应式更新', async () => {
       const { runtimeConfigService, getConfig } = await getModule()

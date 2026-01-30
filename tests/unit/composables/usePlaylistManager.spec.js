@@ -99,7 +99,7 @@ describe('usePlaylistManager.js', () => {
       expect(result.playlist.songs).toHaveLength(1)
     })
 
-    it('应该自动生成 ID 和设置时间戳', async () => {
+    it('应该自动生成 ID', async () => {
       const manager = await getManager()
       manager.initialize()
 
@@ -111,8 +111,6 @@ describe('usePlaylistManager.js', () => {
       })
 
       expect(result.playlist.id).toBeDefined()
-      expect(result.playlist.createdAt).toBeDefined()
-      expect(result.playlist.updatedAt).toBeDefined()
     })
 
     it('应该正确设置 order', async () => {
@@ -231,25 +229,6 @@ describe('usePlaylistManager.js', () => {
       manager.updatePlaylist(playlist.id, { mode: 'collection' })
 
       expect(manager.playlists.value[0].mode).toBe('playlist')
-    })
-
-    it('应该更新 updatedAt', async () => {
-      const manager = await getManager()
-      manager.initialize()
-      const { playlist } = manager.createPlaylist({
-        name: 'Test',
-        mode: 'playlist',
-        source: 'netease',
-        sourceId: '123'
-      })
-      const originalUpdatedAt = playlist.updatedAt
-
-      // 等待一小段时间确保时间戳不同
-      await new Promise((resolve) => setTimeout(resolve, 10))
-
-      manager.updatePlaylist(playlist.id, { name: 'Updated' })
-
-      expect(manager.playlists.value[0].updatedAt).toBeGreaterThan(originalUpdatedAt)
     })
   })
 

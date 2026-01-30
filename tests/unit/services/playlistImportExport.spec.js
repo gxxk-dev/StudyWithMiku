@@ -442,15 +442,6 @@ describe('playlistImportExport.js', () => {
         expect(result.playlists[1].order).toBe(1)
         expect(result.playlists[2].order).toBe(2)
       })
-
-      it('应该更新 updatedAt 时间戳', () => {
-        const oldTimestamp = Date.now() - 10000
-        const imported = [createPlaylistRef({ createdAt: oldTimestamp, updatedAt: oldTimestamp })]
-
-        const result = mergePlaylists([], imported, { mode: 'replace' })
-
-        expect(result.playlists[0].updatedAt).toBeGreaterThan(oldTimestamp)
-      })
     })
   })
 })

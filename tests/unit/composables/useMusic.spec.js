@@ -49,13 +49,13 @@ describe('useMusic.js', () => {
     })
 
     it('应该从 localStorage 恢复 platform', async () => {
-      localStorage.setItem('music_platform', 'tencent')
+      localStorage.setItem(STORAGE_KEYS.MUSIC_PLATFORM, 'tencent')
       const music = await getUseMusic()
       expect(music.platform.value).toBe('tencent')
     })
 
     it('应该从 localStorage 恢复 playlistId', async () => {
-      localStorage.setItem('playlist_id', '123456')
+      localStorage.setItem(STORAGE_KEYS.PLAYLIST_ID, '123456')
       const music = await getUseMusic()
       expect(music.playlistId.value).toBe('123456')
     })
@@ -68,7 +68,7 @@ describe('useMusic.js', () => {
       music.setPlatform('tencent')
 
       expect(music.platform.value).toBe('tencent')
-      expect(localStorage.getItem('music_platform')).toBe('tencent')
+      expect(localStorage.getItem(STORAGE_KEYS.MUSIC_PLATFORM)).toBe('tencent')
     })
 
     it('设置 spotify 后 isSpotify 应该为 true', async () => {
@@ -87,7 +87,7 @@ describe('useMusic.js', () => {
       music.setPlaylistId('newPlaylistId')
 
       expect(music.playlistId.value).toBe('newPlaylistId')
-      expect(localStorage.getItem('playlist_id')).toBe('newPlaylistId')
+      expect(localStorage.getItem(STORAGE_KEYS.PLAYLIST_ID)).toBe('newPlaylistId')
     })
   })
 
@@ -124,7 +124,7 @@ describe('useMusic.js', () => {
 
     it('应该使用缓存数据', async () => {
       // 预设缓存
-      const cacheKey = `meting_playlist_cache:netease:${API_CONFIG.DEFAULT_PLAYLIST_ID}`
+      const cacheKey = `${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:netease:${API_CONFIG.DEFAULT_PLAYLIST_ID}`
       localStorage.setItem(
         cacheKey,
         JSON.stringify({

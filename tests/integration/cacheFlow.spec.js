@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { ALL_CACHE_NAMES } from '@/config/constants.js'
+import { ALL_CACHE_NAMES, STORAGE_KEYS } from '@/config/constants.js'
 
 describe('缓存流程集成测试', () => {
   beforeEach(() => {
@@ -55,9 +55,15 @@ describe('缓存流程集成测试', () => {
   describe('localStorage 缓存管理流程', () => {
     it('应该统计各分类的 localStorage 数据', async () => {
       // 添加测试数据
-      localStorage.setItem('meting_playlist_cache:netease:123', JSON.stringify({ songs: [] }))
-      localStorage.setItem('meting_playlist_cache:tencent:456', JSON.stringify({ songs: [] }))
-      localStorage.setItem('study_with_miku_settings', JSON.stringify({ volume: 0.8 }))
+      localStorage.setItem(
+        `${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:netease:123`,
+        JSON.stringify({ songs: [] })
+      )
+      localStorage.setItem(
+        `${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:tencent:456`,
+        JSON.stringify({ songs: [] })
+      )
+      localStorage.setItem(STORAGE_KEYS.USER_SETTINGS, JSON.stringify({ volume: 0.8 }))
 
       const { useCache } = await import('@/composables/useCache.js')
       const cache = useCache()
@@ -70,10 +76,10 @@ describe('缓存流程集成测试', () => {
 
     it('应该清除指定分类的 localStorage 而不影响其他分类', async () => {
       // 添加多种类型的数据
-      localStorage.setItem('meting_playlist_cache:netease:123', 'playlist data')
-      localStorage.setItem('meting_playlist_cache:tencent:456', 'playlist data 2')
-      localStorage.setItem('study_with_miku_settings', 'settings data')
-      localStorage.setItem('meting_playlist_prefetch:netease:123', 'prefetch data')
+      localStorage.setItem(`${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:netease:123`, 'playlist data')
+      localStorage.setItem(`${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:tencent:456`, 'playlist data 2')
+      localStorage.setItem(STORAGE_KEYS.USER_SETTINGS, 'settings data')
+      localStorage.setItem(`${STORAGE_KEYS.PREFETCH_TIMESTAMP_PREFIX}:netease:123`, 'prefetch data')
 
       const { useCache } = await import('@/composables/useCache.js')
       const cache = useCache()
@@ -81,18 +87,20 @@ describe('缓存流程集成测试', () => {
       await cache.clearLocalStorageCategory('playlist')
 
       // 歌单缓存应该被清除
-      expect(localStorage.getItem('meting_playlist_cache:netease:123')).toBeNull()
-      expect(localStorage.getItem('meting_playlist_cache:tencent:456')).toBeNull()
+      expect(localStorage.getItem(`${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:netease:123`)).toBeNull()
+      expect(localStorage.getItem(`${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:tencent:456`)).toBeNull()
 
       // 其他数据应该保留
-      expect(localStorage.getItem('study_with_miku_settings')).toBe('settings data')
-      expect(localStorage.getItem('meting_playlist_prefetch:netease:123')).toBe('prefetch data')
+      expect(localStorage.getItem(STORAGE_KEYS.USER_SETTINGS)).toBe('settings data')
+      expect(localStorage.getItem(`${STORAGE_KEYS.PREFETCH_TIMESTAMP_PREFIX}:netease:123`)).toBe(
+        'prefetch data'
+      )
     })
   })
 
   describe('预加载时间戳管理流程', () => {
     it('应该正确设置和清除预加载时间戳', async () => {
-      const key = 'meting_playlist_prefetch:netease:12345'
+      const key = `${STORAGE_KEYS.PREFETCH_TIMESTAMP_PREFIX}:netease:12345`
       localStorage.setItem(key, Date.now().toString())
 
       const { useCache } = await import('@/composables/useCache.js')
@@ -125,7 +133,7 @@ describe('缓存流程集成测试', () => {
 
     it('应该在清理后正确更新统计信息', async () => {
       // 添加测试数据
-      localStorage.setItem('meting_playlist_cache:netease:123', 'data')
+      localStorage.setItem(`${STORAGE_KEYS.PLAYLIST_CACHE_PREFIX}:netease:123`, 'data')
 
       const { useCache } = await import('@/composables/useCache.js')
       const cache = useCache()
