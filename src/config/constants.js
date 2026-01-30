@@ -147,3 +147,25 @@ export const AUDIO_CONFIG = {
   // 通知默认时长（毫秒）
   NOTIFICATION_DURATION: 3000
 }
+
+/**
+ * 播放器配置常量
+ */
+export const PLAYER_CONFIG = {
+  // 支持的适配器类型
+  ADAPTER_TYPES: ['aplayer', 'spotify'],
+  // APlayer 默认配置
+  APLAYER_DEFAULTS: {
+    fixed: true,
+    autoplay: false,
+    lrcType: 0,
+    theme: '#2980b9',
+    loop: 'all',
+    order: 'list',
+    preload: 'auto',
+    mutex: true,
+    listFolded: false,
+    listMaxHeight: '200px',
+    width: '300px'
+  }
+}
