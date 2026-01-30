@@ -1,33 +1,291 @@
 <script setup>
-import DevOverlay from '../DevOverlay.vue'
+import { computed } from 'vue'
+import { Icon } from '@iconify/vue'
+import { useFocus } from '../../../composables/useFocus.js'
+
+const { settings, updateSettings, requestNotificationPermission } = useFocus()
+
+// 分钟 <-> 秒转换的 computed
+const focusMinutes = computed(() => Math.round(settings.value.focusDuration / 60))
+const shortBreakMinutes = computed(() => Math.round(settings.value.shortBreakDuration / 60))
+const longBreakMinutes = computed(() => Math.round(settings.value.longBreakDuration / 60))
+
+// 通知权限状态
+const notificationSupported = computed(() => 'Notification' in window)
+const notificationPermission = computed(() => {
+  if (!notificationSupported.value) return 'unsupported'
+  return Notification.permission
+})
+
+// Slider 填充百分比计算
+const focusFillPercent = computed(() => ((focusMinutes.value - 1) / (120 - 1)) * 100)
+const shortBreakFillPercent = computed(() => ((shortBreakMinutes.value - 1) / (30 - 1)) * 100)
+const longBreakFillPercent = computed(() => ((longBreakMinutes.value - 1) / (60 - 1)) * 100)
+
+// 通用 clamp
+const clamp = (val, min, max) => Math.min(max, Math.max(min, val))
+
+// Slider 事件（无极拖动，直接取整）
+const handleSlider = (key, e) => {
+  updateSettings({ [key]: Math.round(Number(e.target.value)) * 60 })
+}
+
+// 数字输入事件（blur / Enter 时提交，clamp 到合法范围）
+const handleNumberInput = (key, min, max, e) => {
+  const raw = parseInt(e.target.value, 10)
+  const val = Number.isNaN(raw) ? min : clamp(raw, min, max)
+  e.target.value = val // 回写 clamp 后的值
+  updateSettings({ [key]: val * 60 })
+}
+
+const handleLongBreakInterval = (delta) => {
+  const newValue = settings.value.longBreakInterval + delta
+  if (newValue >= 2 && newValue <= 10) {
+    updateSettings({ longBreakInterval: newValue })
+  }
+}
+
+const handleAutoStartBreaks = (e) => {
+  updateSettings({ autoStartBreaks: e.target.checked })
+}
+
+const handleAutoStartFocus = (e) => {
+  updateSettings({ autoStartFocus: e.target.checked })
+}
+
+const handleNotificationEnabled = async (e) => {
+  const enabled = e.target.checked
+  if (enabled && notificationPermission.value === 'default') {
+    const result = await requestNotificationPermission()
+    if (!result.success) {
+      e.target.checked = false
+      return
+    }
+  }
+  updateSettings({ notificationEnabled: enabled })
+}
+
+const handleNotificationSound = (e) => {
+  updateSettings({ notificationSound: e.target.checked })
+}
 </script>
 
 <template>
   <div class="tab-content">
+    <!-- Section 1: 计时器时长 -->
     <div class="settings-section">
-      <h3 class="section-title">计时器时长</h3>
-      <p class="placeholder-text">配置专注和休息时长</p>
+      <h3 class="section-title">
+        <Icon icon="lucide:timer" width="18" height="18" />
+        <span>计时器时长</span>
+      </h3>
+
+      <!-- 专注时长 -->
+      <div class="setting-item">
+        <div class="setting-header">
+          <span class="setting-label">专注时长</span>
+          <span class="setting-value">
+            <input
+              type="number"
+              class="number-input"
+              min="1"
+              max="120"
+              :value="focusMinutes"
+              @change="handleNumberInput('focusDuration', 1, 120, $event)"
+            />
+            <span>分钟</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          class="slider"
+          min="1"
+          max="120"
+          step="1"
+          :value="focusMinutes"
+          :style="{ '--fill': focusFillPercent + '%' }"
+          @input="handleSlider('focusDuration', $event)"
+        />
+      </div>
+
+      <!-- 短休息 -->
+      <div class="setting-item">
+        <div class="setting-header">
+          <span class="setting-label">短休息</span>
+          <span class="setting-value">
+            <input
+              type="number"
+              class="number-input"
+              min="1"
+              max="30"
+              :value="shortBreakMinutes"
+              @change="handleNumberInput('shortBreakDuration', 1, 30, $event)"
+            />
+            <span>分钟</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          class="slider"
+          min="1"
+          max="30"
+          step="1"
+          :value="shortBreakMinutes"
+          :style="{ '--fill': shortBreakFillPercent + '%' }"
+          @input="handleSlider('shortBreakDuration', $event)"
+        />
+      </div>
+
+      <!-- 长休息 -->
+      <div class="setting-item">
+        <div class="setting-header">
+          <span class="setting-label">长休息</span>
+          <span class="setting-value">
+            <input
+              type="number"
+              class="number-input"
+              min="1"
+              max="60"
+              :value="longBreakMinutes"
+              @change="handleNumberInput('longBreakDuration', 1, 60, $event)"
+            />
+            <span>分钟</span>
+          </span>
+        </div>
+        <input
+          type="range"
+          class="slider"
+          min="1"
+          max="60"
+          step="1"
+          :value="longBreakMinutes"
+          :style="{ '--fill': longBreakFillPercent + '%' }"
+          @input="handleSlider('longBreakDuration', $event)"
+        />
+      </div>
+
+      <!-- 长休息间隔 -->
+      <div class="setting-item">
+        <div class="setting-header">
+          <span class="setting-label">长休息间隔</span>
+          <span class="setting-hint">每完成几个专注后进入长休息</span>
+        </div>
+        <div class="stepper">
+          <button
+            class="stepper-btn"
+            :disabled="settings.longBreakInterval <= 2"
+            @click="handleLongBreakInterval(-1)"
+          >
+            <Icon icon="mdi:minus" width="16" height="16" />
+          </button>
+          <span class="stepper-value">{{ settings.longBreakInterval }}</span>
+          <button
+            class="stepper-btn"
+            :disabled="settings.longBreakInterval >= 10"
+            @click="handleLongBreakInterval(1)"
+          >
+            <Icon icon="mdi:plus" width="16" height="16" />
+          </button>
+        </div>
+      </div>
     </div>
 
+    <!-- Section 2: 自动化 -->
     <div class="settings-section">
-      <h3 class="section-title">自动化</h3>
-      <p class="placeholder-text">自动开始休息和专注时段</p>
+      <h3 class="section-title">
+        <Icon icon="lucide:zap" width="18" height="18" />
+        <span>自动化</span>
+      </h3>
+
+      <!-- 自动开始休息 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">自动开始休息</span>
+          <span class="setting-hint">专注结束后自动进入休息</span>
+        </div>
+        <label class="toggle">
+          <input
+            type="checkbox"
+            :checked="settings.autoStartBreaks"
+            @change="handleAutoStartBreaks"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- 自动开始专注 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">自动开始专注</span>
+          <span class="setting-hint">休息结束后自动进入专注</span>
+        </div>
+        <label class="toggle">
+          <input
+            type="checkbox"
+            :checked="settings.autoStartFocus"
+            @change="handleAutoStartFocus"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
 
+    <!-- Section 3: 通知 -->
     <div class="settings-section">
-      <h3 class="section-title">通知</h3>
-      <p class="placeholder-text">声音和浏览器通知设置</p>
-    </div>
+      <h3 class="section-title">
+        <Icon icon="lucide:bell" width="18" height="18" />
+        <span>通知</span>
+      </h3>
 
-    <DevOverlay />
+      <!-- 权限警告横幅 -->
+      <div v-if="notificationPermission === 'denied'" class="permission-banner warning">
+        <Icon icon="lucide:alert-triangle" width="16" height="16" />
+        <span>通知权限已被拒绝，请在浏览器设置中允许通知</span>
+      </div>
+      <div v-else-if="!notificationSupported" class="permission-banner info">
+        <Icon icon="lucide:info" width="16" height="16" />
+        <span>当前浏览器不支持桌面通知</span>
+      </div>
+
+      <!-- 桌面通知 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">桌面通知</span>
+          <span class="setting-hint">计时结束时发送系统通知</span>
+        </div>
+        <label class="toggle">
+          <input
+            type="checkbox"
+            :checked="settings.notificationEnabled"
+            :disabled="notificationPermission === 'denied' || !notificationSupported"
+            @change="handleNotificationEnabled"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- 通知提示音 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">通知提示音</span>
+          <span class="setting-hint">通知时播放提示音</span>
+        </div>
+        <label class="toggle">
+          <input
+            type="checkbox"
+            :checked="settings.notificationSound"
+            :disabled="!settings.notificationEnabled"
+            @change="handleNotificationSound"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .tab-content {
   padding: 24px;
-  position: relative;
-  min-height: 100%;
 }
 
 .settings-section {
@@ -39,15 +297,258 @@ import DevOverlay from '../DevOverlay.vue'
 }
 
 .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 1rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
-  margin: 0 0 8px 0;
+  margin: 0 0 16px 0;
 }
 
-.placeholder-text {
+.setting-item {
+  margin-bottom: 16px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-item.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.setting-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: #39c5bb;
+  font-weight: 500;
+}
+
+/* Number Input 样式 */
+.number-input {
+  width: 42px;
+  padding: 2px 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #39c5bb;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.number-input::-webkit-inner-spin-button,
+.number-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
   margin: 0;
+}
+
+.number-input:focus {
+  border-color: rgba(57, 197, 187, 0.5);
+  background: rgba(57, 197, 187, 0.1);
+}
+
+.setting-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Slider 样式 */
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    #39c5bb 0%,
+    #39c5bb var(--fill, 0%),
+    rgba(255, 255, 255, 0.15) var(--fill, 0%),
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #39c5bb;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(57, 197, 187, 0.4);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(57, 197, 187, 0.6);
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: #39c5bb;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(57, 197, 187, 0.4);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(57, 197, 187, 0.6);
+}
+
+/* Stepper 样式 */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.stepper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  background: rgba(57, 197, 187, 0.2);
+  border-color: rgba(57, 197, 187, 0.4);
+  color: #39c5bb;
+}
+
+.stepper-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stepper-value {
+  min-width: 32px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #39c5bb;
+}
+
+/* Toggle Switch 样式 */
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  transition: background 0.2s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.toggle input:checked + .toggle-slider {
+  background: #39c5bb;
+}
+
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: #fff;
+}
+
+.toggle input:disabled + .toggle-slider {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 权限横幅 */
+.permission-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.permission-banner.warning {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.permission-banner.info {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  color: #818cf8;
 }
 </style>

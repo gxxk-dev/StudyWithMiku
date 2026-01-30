@@ -38,7 +38,7 @@ function hasFunctionTags(block) {
  * @param {string} moduleName - 模块名称
  * @returns {{ description: string, moduleBlockIndex: number }} 模块描述和对应块索引
  */
-function extractModuleDescription(parsed, moduleName) {
+function extractModuleDescription(parsed, _moduleName) {
   // 策略1: 查找 @module 或 @file 标签
   const moduleBlockIndex = parsed.findIndex((block) =>
     block.tags.some((t) => t.tag === 'module' || t.tag === 'file')
