@@ -11,6 +11,7 @@
 
 import { usePlaylistManager } from '../composables/usePlaylistManager.js'
 import { useMusic } from '../composables/useMusic.js'
+import { usePlayer } from '../composables/usePlayer.js'
 import { useFocus } from '../composables/useFocus.js'
 import { useToast } from '../composables/useToast.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
@@ -35,6 +36,7 @@ const swm_dev = {
   audio: localAudioStorage,
   io: playlistImportExport,
   music: useMusic(),
+  player: usePlayer(),
   focus: useFocus(),
   toast: toastApi,
   exportUtils,

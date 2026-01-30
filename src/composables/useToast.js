@@ -1,3 +1,9 @@
+/**
+ * Toast 通知系统
+ * 提供 KDE 风格的右上角堆叠通知
+ * @module composables/useToast
+ */
+
 import { ref } from 'vue'
 import { getConfig } from '../services/runtimeConfig.js'
 

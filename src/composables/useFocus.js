@@ -1,5 +1,5 @@
 /**
- * useFocus - 番茄钟系统统一入口 (Facade)
+ * 番茄钟系统统一入口 (Facade)
  *
  * 整合 useSession、useRecords、useStats 提供统一 API
  */
@@ -25,7 +25,7 @@ export {
 } from './focus/constants.js'
 
 /**
- * useFocus - 番茄钟系统主入口
+ * 番茄钟系统主入口
  *
  * @example
  * ```js

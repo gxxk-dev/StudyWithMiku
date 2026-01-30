@@ -14,7 +14,9 @@ const TARGET_FILES = {
   audio: 'src/services/localAudioStorage.js',
   io: 'src/services/playlistImportExport.js',
   music: 'src/composables/useMusic.js',
+  player: 'src/composables/usePlayer.js',
   focus: 'src/composables/useFocus.js',
+  toast: 'src/composables/useToast.js',
   exportUtils: 'src/utils/exportUtils.js',
   server: 'src/services/onlineServer.js',
   config: 'src/services/runtimeConfig.js'
