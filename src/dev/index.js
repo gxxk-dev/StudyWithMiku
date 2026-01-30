@@ -12,6 +12,7 @@
 import { usePlaylistManager } from '../composables/usePlaylistManager.js'
 import { useMusic } from '../composables/useMusic.js'
 import { useFocus } from '../composables/useFocus.js'
+import { useToast } from '../composables/useToast.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
 import * as exportUtils from '../utils/exportUtils.js'
@@ -23,6 +24,10 @@ import { createHelpSystem } from './help/index.js'
 const playlistManager = usePlaylistManager()
 playlistManager.initialize()
 
+// 初始化 toast（添加 show 别名便于调用）
+const toastApi = useToast()
+toastApi.show = toastApi.showToast
+
 // 创建 swm_dev 对象
 const swm_dev = {
   playlist: playlistManager,
@@ -30,6 +35,7 @@ const swm_dev = {
   io: playlistImportExport,
   music: useMusic(),
   focus: useFocus(),
+  toast: toastApi,
   exportUtils,
   server: onlineServer,
   config: runtimeConfigService

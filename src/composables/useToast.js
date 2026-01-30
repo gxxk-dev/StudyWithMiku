@@ -1,92 +1,94 @@
-import { reactive } from 'vue'
+import { ref } from 'vue'
 import { getConfig } from '../services/runtimeConfig.js'
 
 /**
- * Toast 状态（全局单例）
+ * 通知列表（响应式数组，全局单例）
  */
-const toastState = reactive({
-  visible: false,
-  type: 'info',
-  title: '',
-  message: '',
-  duration: 3000
-})
-
-// Toast 队列
-let toastQueue = []
-let isShowingToast = false
+const notifications = ref([])
+let notificationId = 0
 
 /**
  * Toast 状态管理
  *
- * 提供全局 Toast 通知功能（支持队列）
+ * 提供 KDE 风格的右上角堆叠通知功能
+ * - 支持多条通知同时显示
+ * - 新通知从右侧滑入，出现在顶部
+ * - 每条通知独立计时消失
+ * - 进度条指示剩余时间
  *
- * @returns {Object} { toastState, showToast, hideToast }
+ * @returns {Object} { notifications, showToast, removeNotification, clearAll, hideToast }
  */
 export function useToast() {
   /**
-   * 处理队列中的下一个 Toast
-   */
-  const processQueue = () => {
-    if (toastQueue.length === 0) {
-      isShowingToast = false
-      return
-    }
-
-    isShowingToast = true
-    const next = toastQueue.shift()
-
-    // 更新状态并显示
-    toastState.type = next.type
-    toastState.title = next.title
-    toastState.message = next.message
-    toastState.duration = next.duration
-    toastState.visible = true
-
-    // 设置自动隐藏
-    if (next.duration > 0) {
-      setTimeout(() => {
-        hideToast()
-      }, next.duration)
-    }
-  }
-
-  /**
-   * 显示 Toast 通知
+   * 显示通知
    * @param {string} type - 类型：'info' | 'success' | 'error'
    * @param {string} title - 标题
    * @param {string} message - 消息内容（可选）
    * @param {number} duration - 显示时长（毫秒），0 表示不自动关闭
+   * @returns {number} 通知 ID（用于手动关闭）
    */
   const showToast = (type, title, message = '', duration) => {
+    const id = ++notificationId
     const toastDuration = duration ?? getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
-    // 将 Toast 加入队列
-    toastQueue.push({ type, title, message, duration: toastDuration })
+    const maxCount = getConfig('UI_CONFIG', 'TOAST_MAX_COUNT')
 
-    // 如果当前没有显示 Toast，立即处理
-    if (!isShowingToast) {
-      processQueue()
+    // 超出最大数量时移除最旧的
+    if (notifications.value.length >= maxCount) {
+      notifications.value.pop()
+    }
+
+    // 新通知插入到数组开头（显示在顶部）
+    notifications.value.unshift({
+      id,
+      type,
+      title,
+      message,
+      duration: toastDuration,
+      createdAt: Date.now()
+    })
+
+    // 设置自动移除
+    if (toastDuration > 0) {
+      setTimeout(() => {
+        removeNotification(id)
+      }, toastDuration)
+    }
+
+    return id
+  }
+
+  /**
+   * 移除指定通知
+   * @param {number} id - 通知 ID
+   */
+  const removeNotification = (id) => {
+    const index = notifications.value.findIndex((n) => n.id === id)
+    if (index > -1) {
+      notifications.value.splice(index, 1)
     }
   }
 
   /**
-   * 隐藏 Toast 通知
+   * 清空所有通知
+   */
+  const clearAll = () => {
+    notifications.value = []
+  }
+
+  /**
+   * 隐藏最新通知（兼容旧 API）
    */
   const hideToast = () => {
-    toastState.visible = false
-
-    // 等待动画完成后处理下一个
-    setTimeout(
-      () => {
-        processQueue()
-      },
-      getConfig('UI_CONFIG', 'TOAST_ANIMATION_DURATION')
-    )
+    if (notifications.value.length > 0) {
+      removeNotification(notifications.value[0].id)
+    }
   }
 
   return {
-    toastState,
+    notifications,
     showToast,
+    removeNotification,
+    clearAll,
     hideToast
   }
 }
