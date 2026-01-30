@@ -128,7 +128,6 @@ import {
 } from './utils/userSettings.js'
 import { APlayerAdapter } from './player/adapters/APlayerAdapter.js'
 import { setupMediaSession, cleanupMediaSession } from './player/mediaSessionBridge.js'
-import { toAPlayerFormat } from './types/music.js'
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
 import { useFocus } from './composables/useFocus.js'
@@ -274,8 +273,7 @@ const onTitleClick = () => {
 
 const playerAdapter = ref(null)
 const aplayerInitialized = ref(false)
-const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, playlistId, applyUrlPlaylist } =
-  useMusic()
+const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, applyUrlPlaylist } = useMusic()
 const player = usePlayer()
 const { setHasUpdate } = usePWA()
 
@@ -529,7 +527,7 @@ onMounted(() => {
 
     // 初始化适配器
     await playerAdapter.value.initialize(container, {
-      audio: songs.value.map(toAPlayerFormat)
+      audio: songs.value
     })
 
     // 设置适配器到 usePlayer

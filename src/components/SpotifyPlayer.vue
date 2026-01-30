@@ -23,7 +23,9 @@
 <script setup>
 import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { getSpotifyEmbedUrl } from '../services/spotify.js'
-import { initializeMediaSession, cleanupMediaSession } from '../utils/mediaSession.js'
+import { usePlayer } from '../composables/usePlayer.js'
+import { SpotifyAdapter } from '../player/adapters/SpotifyAdapter.js'
+import { setupMediaSession, cleanupMediaSession } from '../player/mediaSessionBridge.js'
 
 const props = defineProps({
   playlistId: {
@@ -42,34 +44,43 @@ const props = defineProps({
 
 defineEmits(['mouseenter', 'mouseleave', 'touchstart', 'touchend'])
 
+const player = usePlayer()
+let spotifyAdapter = null
+
 const embedUrl = computed(() => {
   return getSpotifyEmbedUrl(props.playlistId, { theme: props.theme })
 })
 
-// 监听 playlistId 变化，更新 Media Session 静态元数据
+// 监听 playlistId 变化，更新 SpotifyAdapter
 watch(
   () => props.playlistId,
   (newId) => {
-    if (newId) {
-      initializeMediaSession('spotify', null, {
-        playlistId: newId,
-        platform: 'spotify'
-      })
+    if (newId && spotifyAdapter) {
+      spotifyAdapter.setPlaylistId(newId)
     }
   }
 )
 
-onMounted(() => {
+onMounted(async () => {
   if (props.playlistId) {
-    initializeMediaSession('spotify', null, {
-      playlistId: props.playlistId,
-      platform: 'spotify'
-    })
+    // 创建并初始化 SpotifyAdapter
+    spotifyAdapter = new SpotifyAdapter()
+    await spotifyAdapter.initialize(null, { playlistId: props.playlistId })
+
+    // 设置到 usePlayer
+    await player.setAdapter(spotifyAdapter)
+
+    // 设置 Media Session（Spotify iframe 模式下提供基本的元数据）
+    setupMediaSession(player)
   }
 })
 
 onUnmounted(() => {
   cleanupMediaSession()
+  if (spotifyAdapter) {
+    spotifyAdapter.destroy()
+    spotifyAdapter = null
+  }
 })
 </script>
 
