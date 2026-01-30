@@ -132,4 +132,197 @@ describe('useUrlParams.js', () => {
       })
     })
   })
+
+  describe('解析专注配置参数', () => {
+    it('应该正确解析 focus 参数（分钟转秒）', async () => {
+      window.location.search = '?focus=25'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, hasUrlParams } = useUrlParams()
+
+      expect(hasUrlParams.value).toBe(true)
+      expect(urlConfig.value.focus).toEqual({
+        focusDuration: 1500 // 25 * 60
+      })
+    })
+
+    it('应该正确解析 short 参数', async () => {
+      window.location.search = '?short=5'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.focus).toEqual({
+        shortBreakDuration: 300 // 5 * 60
+      })
+    })
+
+    it('应该正确解析 long 参数', async () => {
+      window.location.search = '?long=15'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.focus).toEqual({
+        longBreakDuration: 900 // 15 * 60
+      })
+    })
+
+    it('应该正确解析 interval 参数', async () => {
+      window.location.search = '?interval=4'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.focus).toEqual({
+        longBreakInterval: 4
+      })
+    })
+
+    it('应该正确解析完整的专注配置', async () => {
+      window.location.search = '?focus=50&short=10&long=20&interval=3'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.focus).toEqual({
+        focusDuration: 3000,
+        shortBreakDuration: 600,
+        longBreakDuration: 1200,
+        longBreakInterval: 3
+      })
+    })
+  })
+
+  describe('解析标志参数', () => {
+    it('应该正确解析 autostart=1', async () => {
+      window.location.search = '?autostart=1'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, hasUrlParams } = useUrlParams()
+
+      expect(hasUrlParams.value).toBe(true)
+      expect(urlConfig.value.autostart).toBe(true)
+    })
+
+    it('应该正确解析 save=1', async () => {
+      window.location.search = '?save=1'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.save).toBe(true)
+    })
+
+    it('autostart=0 不应该设置 autostart', async () => {
+      window.location.search = '?autostart=0'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.autostart).toBeUndefined()
+    })
+
+    it('save=0 不应该设置 save', async () => {
+      window.location.search = '?save=0'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.save).toBeUndefined()
+    })
+  })
+
+  describe('专注参数验证', () => {
+    it('focus 超出最大值应该被拒绝', async () => {
+      window.location.search = '?focus=200'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, validationWarnings } = useUrlParams()
+
+      expect(urlConfig.value.focus).toBeUndefined()
+      expect(validationWarnings.value.length).toBeGreaterThan(0)
+      expect(validationWarnings.value[0]).toContain('focus')
+    })
+
+    it('focus 小于最小值应该被拒绝', async () => {
+      window.location.search = '?focus=0'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, validationWarnings } = useUrlParams()
+
+      expect(urlConfig.value.focus).toBeUndefined()
+      expect(validationWarnings.value.length).toBeGreaterThan(0)
+    })
+
+    it('short 超出最大值应该被拒绝', async () => {
+      window.location.search = '?short=100'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, validationWarnings } = useUrlParams()
+
+      expect(urlConfig.value.focus).toBeUndefined()
+      expect(validationWarnings.value.length).toBeGreaterThan(0)
+      expect(validationWarnings.value[0]).toContain('short')
+    })
+
+    it('interval 超出最大值应该被拒绝', async () => {
+      window.location.search = '?interval=20'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, validationWarnings } = useUrlParams()
+
+      expect(urlConfig.value.focus).toBeUndefined()
+      expect(validationWarnings.value.length).toBeGreaterThan(0)
+      expect(validationWarnings.value[0]).toContain('interval')
+    })
+
+    it('非数字参数应该被拒绝', async () => {
+      window.location.search = '?focus=abc'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, validationWarnings } = useUrlParams()
+
+      expect(urlConfig.value.focus).toBeUndefined()
+      expect(validationWarnings.value.length).toBeGreaterThan(0)
+    })
+
+    it('部分参数无效时有效参数仍应被解析', async () => {
+      window.location.search = '?focus=25&short=100&long=15'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, validationWarnings } = useUrlParams()
+
+      // short=100 超出范围，被拒绝
+      expect(validationWarnings.value.length).toBeGreaterThan(0)
+      // focus 和 long 有效
+      expect(urlConfig.value.focus).toEqual({
+        focusDuration: 1500,
+        longBreakDuration: 900
+      })
+    })
+  })
+
+  describe('组合参数', () => {
+    it('应该正确解析歌单和专注配置的组合', async () => {
+      window.location.search = '?playlist=netease:12345&focus=30&autostart=1'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig } = useUrlParams()
+
+      expect(urlConfig.value.playlist).toEqual({
+        platform: 'netease',
+        id: '12345'
+      })
+      expect(urlConfig.value.focus).toEqual({
+        focusDuration: 1800
+      })
+      expect(urlConfig.value.autostart).toBe(true)
+    })
+
+    it('应该正确解析完整的组合参数', async () => {
+      window.location.search =
+        '?playlist=spotify:abc123&focus=25&short=5&long=15&interval=4&save=1&autostart=1'
+      const { useUrlParams } = await import('@/composables/useUrlParams.js')
+      const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
+
+      expect(hasUrlParams.value).toBe(true)
+      expect(validationWarnings.value).toHaveLength(0)
+      expect(urlConfig.value).toEqual({
+        playlist: { platform: 'spotify', id: 'abc123' },
+        focus: {
+          focusDuration: 1500,
+          shortBreakDuration: 300,
+          longBreakDuration: 900,
+          longBreakInterval: 4
+        },
+        save: true,
+        autostart: true
+      })
+    })
+  })
 })

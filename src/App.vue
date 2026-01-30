@@ -114,10 +114,10 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
-import APlayer from 'aplayer'
 import { preloadVideos } from './utils/cache.js'
-import { setAPlayerInstance, isHoveringUI } from './utils/eventBus.js'
+import { isHoveringUI } from './utils/uiState.js'
 import { useMusic } from './composables/useMusic.js'
+import { usePlayer } from './composables/usePlayer.js'
 import { usePWA } from './composables/usePWA.js'
 import { setSwUpdateCallback } from './utils/swCallback.js'
 import {
@@ -126,9 +126,14 @@ import {
   getMusicIndex,
   saveMusicIndex
 } from './utils/userSettings.js'
-import { initializeMediaSession, cleanupMediaSession } from './utils/mediaSession.js'
+import { APlayerAdapter } from './player/adapters/APlayerAdapter.js'
+import { setupMediaSession, cleanupMediaSession } from './player/mediaSessionBridge.js'
+import { toAPlayerFormat } from './types/music.js'
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
+import { useFocus } from './composables/useFocus.js'
+import { FOCUS_STORAGE_KEYS } from './composables/focus/constants.js'
+import { safeLocalStorageGetJSON } from './utils/storage.js'
 import { onlineServer } from './services/onlineServer.js'
 import { getConfig } from './services/runtimeConfig.js'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
@@ -176,7 +181,10 @@ const dismissAnnouncement = () => {
 }
 
 // Toast 状态
-const { notifications, showToast, removeNotification, handleAction } = useToast()
+const { notifications, showToast, showConfirm, removeNotification, handleAction } = useToast()
+
+// Focus 状态
+const { updateSettings: updateFocusSettings, start: startFocus } = useFocus()
 
 // === URL 参数处理（必须在组件初始化之前执行）===
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
@@ -264,10 +272,11 @@ const onTitleClick = () => {
   }
 }
 
-const aplayer = ref(null)
+const playerAdapter = ref(null)
 const aplayerInitialized = ref(false)
 const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, playlistId, applyUrlPlaylist } =
   useMusic()
+const player = usePlayer()
 const { setHasUpdate } = usePWA()
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
@@ -281,7 +290,7 @@ const onVideoLoaded = () => {
 
 const stopShowControlsWatch = watch(showControls, (newValue) => {
   // 只在非 Spotify 模式下控制 APlayer 显示
-  if (aplayer.value && aplayerInitialized.value && !isSpotify.value) {
+  if (playerAdapter.value && aplayerInitialized.value && !isSpotify.value) {
     const playerElement = document.getElementById('aplayer')
     if (!playerElement) return
 
@@ -332,6 +341,30 @@ onMounted(() => {
         spotify: 'Spotify'
       }
       parts.push(`歌单：${platformLabels[config.playlist.platform]} ${config.playlist.id}`)
+    }
+    if (config.focus) {
+      const focusParts = []
+      if (config.focus.focusDuration) {
+        focusParts.push(`专注 ${config.focus.focusDuration / 60} 分钟`)
+      }
+      if (config.focus.shortBreakDuration) {
+        focusParts.push(`短休息 ${config.focus.shortBreakDuration / 60} 分钟`)
+      }
+      if (config.focus.longBreakDuration) {
+        focusParts.push(`长休息 ${config.focus.longBreakDuration / 60} 分钟`)
+      }
+      if (config.focus.longBreakInterval) {
+        focusParts.push(`间隔 ${config.focus.longBreakInterval} 次`)
+      }
+      if (focusParts.length > 0) {
+        parts.push(focusParts.join('、'))
+      }
+    }
+    if (config.autostart) {
+      parts.push('自动启动')
+    }
+    if (config.save) {
+      parts.push('保存配置')
     }
 
     const summary = parts.join('，')
@@ -387,6 +420,78 @@ onMounted(() => {
         getConfig('UI_CONFIG', 'PLAYLIST_APPLY_DELAY')
       )
     }
+
+    // 5. 应用专注配置
+    if (config.focus || config.autostart) {
+      setTimeout(
+        () => {
+          // 检查用户是否有非默认配置
+          const savedSettings = safeLocalStorageGetJSON(FOCUS_STORAGE_KEYS.SETTINGS, null)
+          const hasCustomSettings = savedSettings !== null
+
+          /**
+           * 应用专注配置并可选启动
+           * @param {boolean} saveToLocal - 是否保存到本地
+           */
+          const applyFocusConfig = (saveToLocal) => {
+            // 构建新设置（合并 URL 参数配置）
+            if (config.focus) {
+              const newSettings = { ...config.focus }
+              if (saveToLocal) {
+                // 保存到本地：合并到现有设置
+                updateFocusSettings(newSettings)
+                console.debug('[App] 专注配置已保存:', newSettings)
+              } else {
+                // 临时应用：只更新当前会话（不持久化）
+                // 通过 updateSettings 临时更新，但不调用 save
+                updateFocusSettings(newSettings)
+                console.debug('[App] 专注配置已临时应用:', newSettings)
+              }
+            }
+
+            // 自动启动专注
+            if (config.autostart) {
+              startFocus()
+              showToast(
+                'success',
+                '专注已启动',
+                '',
+                getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+              )
+              console.debug('[App] 专注已自动启动')
+            }
+          }
+
+          // 决定是否需要确认
+          if (config.save && hasCustomSettings) {
+            // 用户有自定义配置且请求保存，需要确认
+            showConfirm('覆盖现有配置？', '检测到您有自定义的专注设置，是否用 URL 参数覆盖？', {
+              confirmText: '覆盖',
+              cancelText: '仅本次',
+              onConfirm: () => {
+                applyFocusConfig(true)
+                showToast(
+                  'success',
+                  '配置已保存',
+                  '',
+                  getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+                )
+              },
+              onCancel: () => {
+                applyFocusConfig(false)
+              }
+            })
+          } else if (config.save) {
+            // 用户没有自定义配置，直接保存
+            applyFocusConfig(true)
+          } else {
+            // 不保存，仅临时应用
+            applyFocusConfig(false)
+          }
+        },
+        getConfig('UI_CONFIG', 'PLAYLIST_APPLY_DELAY')
+      )
+    }
   }
   // === URL 参数处理结束 ===
 
@@ -417,28 +522,26 @@ onMounted(() => {
     await loadSongs()
 
     const savedMusicIndex = getMusicIndex()
-    aplayer.value = new APlayer({
-      container: document.getElementById('aplayer'),
-      fixed: true,
-      autoplay: false,
-      audio: songs.value,
-      lrcType: 0,
-      theme: '#2980b9',
-      loop: 'all',
-      order: 'list',
-      preload: 'auto',
-      volume: getConfig('AUDIO_CONFIG', 'DEFAULT_VOLUME'),
-      mutex: true,
-      listFolded: false,
-      listMaxHeight: '200px',
-      width: '300px'
+
+    // 创建 APlayerAdapter
+    playerAdapter.value = new APlayerAdapter()
+    const container = document.getElementById('aplayer')
+
+    // 初始化适配器
+    await playerAdapter.value.initialize(container, {
+      audio: songs.value.map(toAPlayerFormat)
     })
 
+    // 设置适配器到 usePlayer
+    await player.setAdapter(playerAdapter.value)
+
+    // 切换到保存的曲目
     if (savedMusicIndex > 0 && savedMusicIndex < songs.value.length) {
-      aplayer.value.list.switch(savedMusicIndex)
+      await player.switchTrack(savedMusicIndex)
     }
 
-    aplayer.value.on('listswitch', (e) => {
+    // 监听曲目切换保存索引
+    playerAdapter.value.on('trackchange', (e) => {
       saveMusicIndex(e.index)
     })
 
@@ -465,14 +568,9 @@ onMounted(() => {
       playerEventHandlers = handlers
     }
     aplayerInitialized.value = true
-    setAPlayerInstance(aplayer.value)
 
-    // 初始化 Media Session
-    initializeMediaSession('aplayer', aplayer.value, {
-      songs: songs.value,
-      platform: platform.value,
-      playlistId: playlistId.value
-    })
+    // 初始化 Media Session（使用新的桥接）
+    setupMediaSession(player)
   }
   preloadAllVideos().catch((err) => {
     console.error('视频预加载失败:', err)
@@ -507,9 +605,10 @@ onUnmounted(() => {
     playerElementRef.value = null
   }
 
-  if (aplayer.value) {
+  if (playerAdapter.value) {
     cleanupMediaSession()
-    aplayer.value.destroy()
+    player.destroy()
+    playerAdapter.value = null
   }
 })
 </script>
