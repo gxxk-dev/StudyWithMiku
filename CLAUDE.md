@@ -153,6 +153,42 @@ import { Icon } from '@iconify/vue'
 - ✅ 跨平台一致性（避免 emoji 在不同系统显示差异）
 - ✅ 易于维护（更换图标只需改字符串）
 
+## 常量管理规范
+
+**所有常量必须写到统一的位置**，禁止在组件或工具函数中硬编码魔法值。
+
+### 存放位置
+
+| 常量类型 | 存放位置 | 示例 |
+|---------|---------|------|
+| 全局常量 | `src/config/constants.js` | 缓存名称、API 配置、localStorage 键名、重连策略 |
+| 模块专用常量 | 模块内 `constants.js` | `src/composables/focus/constants.js` (番茄钟状态枚举、默认配置) |
+
+### 规范要求
+
+- **禁止硬编码**：不要在代码中直接写字符串或数字，应从常量文件导入
+- **统一前缀**：localStorage 键名使用 `swm_` 前缀，在 `src/config/constants.js` 的 `STORAGE_KEYS` 中定义
+- **语义命名**：常量名应清晰表达用途，使用大写蛇形命名 (UPPER_SNAKE_CASE)
+
+### 示例
+
+```javascript
+// ❌ 错误：硬编码
+localStorage.getItem('pomodoro_duration')
+
+// ✅ 正确：使用常量
+import { STORAGE_KEYS } from 'src/config/constants'
+localStorage.getItem(STORAGE_KEYS.POMODORO_DURATION)
+```
+
+## UI 适配策略
+
+**本项目仅支持横屏桌面端**，不需要也不会考虑手机端竖屏 UI。
+
+- 所有布局和样式均基于横屏设计
+- 不需要编写响应式断点适配竖屏
+- 移动端用户应使用横屏模式访问
+
 ## 工作流程
 
 - GitHub Flow

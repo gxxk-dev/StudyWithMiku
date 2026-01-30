@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useFocus, FocusMode } from '../composables/useFocus.js'
-import DevOverlay from './settings/DevOverlay.vue'
 
 defineProps({
   isOpen: {
@@ -23,6 +22,111 @@ const onKeydown = (e) => {
     close()
   }
 }
+
+// 获取专注系统状态和方法
+const {
+  mode,
+  remaining,
+  progress,
+  isRunning,
+  isPaused,
+  isIdle,
+  sessionCount,
+  settings,
+  start,
+  pause,
+  resume,
+  cancel,
+  skip,
+  todayStats
+} = useFocus()
+
+// 圆环进度偏移 (周长 = 2 * PI * 102)
+const circumference = 2 * Math.PI * 102
+const strokeDashoffset = computed(() => circumference * (1 - progress.value))
+
+// 番茄槽位数组
+const tomatoSlots = computed(() => {
+  const total = settings.value.longBreakInterval
+  const completed = sessionCount.value % total
+  return Array.from({ length: total }, (_, i) => i < completed)
+})
+
+// 格式化剩余时间 MM:SS
+const formattedTime = computed(() => {
+  const mins = Math.floor(remaining.value / 60)
+    .toString()
+    .padStart(2, '0')
+  const secs = (remaining.value % 60).toString().padStart(2, '0')
+  return `${mins}:${secs}`
+})
+
+// 模式标签
+const modeLabel = computed(() => {
+  switch (mode.value) {
+    case FocusMode.FOCUS:
+      return '专注'
+    case FocusMode.SHORT_BREAK:
+      return '短休息'
+    case FocusMode.LONG_BREAK:
+      return '长休息'
+    default:
+      return '准备开始'
+  }
+})
+
+// 状态文字（用于暂停状态）
+const statusText = computed(() => {
+  if (isPaused.value) return '已暂停'
+  return modeLabel.value
+})
+
+// 模式样式类
+const modeClass = computed(() => {
+  if (isPaused.value) return 'paused'
+  switch (mode.value) {
+    case FocusMode.FOCUS:
+      return 'focus'
+    case FocusMode.SHORT_BREAK:
+      return 'break'
+    case FocusMode.LONG_BREAK:
+      return 'long-break'
+    default:
+      return 'focus'
+  }
+})
+
+// 格式化今日专注时长
+const formattedTodayTime = computed(() => {
+  const seconds = todayStats.value.totalFocusTime
+  const hours = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  if (hours > 0) {
+    return `${hours}小时${mins}分钟`
+  }
+  return `${mins}分钟`
+})
+
+// 暂停/继续切换
+const togglePauseResume = () => {
+  if (isRunning.value) {
+    pause()
+  } else if (isPaused.value) {
+    resume()
+  } else if (isIdle.value) {
+    start()
+  }
+}
+
+// 取消会话
+const handleCancel = () => {
+  cancel()
+}
+
+// 跳过当前阶段
+const handleSkip = () => {
+  skip()
+}
 </script>
 
 <template>
@@ -36,10 +140,97 @@ const onKeydown = (e) => {
           </button>
 
           <!-- 内容区域 -->
-          <div class="modal-content"></div>
+          <div class="modal-content">
+            <!-- 模式标签 -->
+            <div class="mode-label" :class="modeClass">
+              {{ statusText }}
+            </div>
 
-          <!-- 开发中占位符 -->
-          <DevOverlay title="功能开发中" subtitle="更多控制和状态信息即将推出" />
+            <!-- 圆环计时器 -->
+            <div class="timer-ring-container">
+              <svg class="timer-ring" width="220" height="220" viewBox="0 0 220 220">
+                <!-- 背景轨道 -->
+                <circle class="ring-track" cx="110" cy="110" r="102" fill="none" stroke-width="6" />
+                <!-- 进度圆环 -->
+                <circle
+                  class="ring-progress"
+                  :class="modeClass"
+                  cx="110"
+                  cy="110"
+                  r="102"
+                  fill="none"
+                  stroke-width="6"
+                  :stroke-dasharray="circumference"
+                  :stroke-dashoffset="strokeDashoffset"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <!-- 时间显示 -->
+              <div class="ring-content">
+                <div class="time-display">
+                  {{ formattedTime }}
+                </div>
+                <!-- 番茄槽位 -->
+                <div class="tomato-slots">
+                  <Icon
+                    v-for="(filled, index) in tomatoSlots"
+                    :key="index"
+                    :icon="filled ? 'mdi:circle' : 'mdi:circle-outline'"
+                    width="8"
+                    height="8"
+                    :class="['tomato-slot', { filled }]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- 控制按钮区域 -->
+            <div class="controls-section">
+              <!-- 暂停/继续/开始按钮 -->
+              <button
+                class="control-btn primary"
+                :title="isIdle ? '开始' : isRunning ? '暂停' : '继续'"
+                @click="togglePauseResume"
+              >
+                <Icon :icon="isRunning ? 'mdi:pause' : 'mdi:play'" width="24" height="24" />
+              </button>
+
+              <!-- 跳过按钮 -->
+              <button
+                class="control-btn"
+                :class="{ secondary: !isIdle }"
+                :disabled="isIdle"
+                title="跳过"
+                @click="handleSkip"
+              >
+                <Icon icon="mdi:skip-next" width="24" height="24" />
+              </button>
+
+              <!-- 取消按钮 -->
+              <button
+                class="control-btn danger"
+                :disabled="isIdle"
+                title="取消"
+                @click="handleCancel"
+              >
+                <Icon icon="mdi:stop" width="24" height="24" />
+              </button>
+            </div>
+
+            <!-- 今日统计区域 -->
+            <div class="stats-section">
+              <div class="stat-item">
+                <Icon icon="mdi:check-circle-outline" width="18" height="18" />
+                <span class="stat-value">{{ todayStats.completedSessions }}</span>
+                <span class="stat-label">今日完成</span>
+              </div>
+              <div class="stat-item">
+                <Icon icon="mdi:timer-outline" width="18" height="18" />
+                <span class="stat-value">{{ formattedTodayTime }}</span>
+                <span class="stat-label">专注时长</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Transition>
@@ -66,27 +257,24 @@ $color-paused: #ffc107;
 .modal-container {
   position: relative;
   width: 90vw;
-  max-width: 800px;
-  height: 70vh;
-  max-height: 500px;
+  max-width: 400px;
   background: rgba(30, 35, 45, 0.95);
   backdrop-filter: blur(30px);
-  border-radius: 16px;
+  border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
 }
 
 .close-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   z-index: 20;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   border-radius: 8px;
-  padding: 8px;
-  color: rgba(255, 255, 255, 0.7);
+  padding: 6px;
+  color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -100,104 +288,191 @@ $color-paused: #ffc107;
 }
 
 .modal-content {
-  padding: 48px 32px 32px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 20px;
 }
 
-.status-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-.time-display {
-  font-size: 4rem;
-  font-weight: 700;
-  font-family: 'Courier New', monospace;
-  color: white;
-  letter-spacing: 4px;
-}
-
-.status-badge {
-  padding: 8px 24px;
-  border-radius: 20px;
-  font-size: 1rem;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.1);
+// 模式标签
+.mode-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 2px;
 
   &.focus {
     color: $color-focus;
-    border: 1px solid rgba($color-focus, 0.3);
   }
 
   &.break {
     color: $color-break;
-    border: 1px solid rgba($color-break, 0.3);
   }
 
   &.long-break {
     color: $color-long-break;
-    border: 1px solid rgba($color-long-break, 0.3);
   }
 
   &.paused {
     color: $color-paused;
-    border: 1px solid rgba($color-paused, 0.3);
   }
 }
 
+// 圆环计时器
+.timer-ring-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-ring {
+  transform: rotate(-90deg);
+}
+
+.ring-track {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.ring-progress {
+  transition: stroke-dashoffset 0.3s ease;
+
+  &.focus {
+    stroke: $color-focus;
+  }
+
+  &.break {
+    stroke: $color-break;
+  }
+
+  &.long-break {
+    stroke: $color-long-break;
+  }
+
+  &.paused {
+    stroke: $color-paused;
+  }
+}
+
+.ring-content {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-display {
+  font-size: 3rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 2px;
+}
+
+// 番茄槽位
+.tomato-slots {
+  display: flex;
+  gap: 5px;
+}
+
+.tomato-slot {
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+
+  &.filled {
+    color: $color-focus;
+  }
+}
+
+// 控制按钮
 .controls-section {
   display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 12px;
   justify-content: center;
 }
 
 .control-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
-  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
   transition: all 0.2s ease;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(0);
   }
 
   &.primary {
-    background: rgba($color-focus, 0.2);
-    border-color: rgba($color-focus, 0.4);
-    color: $color-focus;
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
 
-    &:hover {
-      background: rgba($color-focus, 0.3);
+    &:hover:not(:disabled) {
+      background: rgba(76, 175, 80, 1);
+    }
+  }
+
+  &.secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.25);
     }
   }
 
   &.danger {
-    background: rgba(#e74c3c, 0.2);
-    border-color: rgba(#e74c3c, 0.4);
-    color: #e74c3c;
+    background: rgba(183, 28, 28, 0.8);
+    color: white;
 
-    &:hover {
-      background: rgba(#e74c3c, 0.3);
+    &:hover:not(:disabled) {
+      background: rgba(183, 28, 28, 1);
     }
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+// 今日统计区域
+.stats-section {
+  display: flex;
+  gap: 40px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  justify-content: center;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: rgba(255, 255, 255, 0.6);
+
+  .stat-value {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    opacity: 0.7;
   }
 }
 
@@ -216,26 +491,149 @@ $color-paused: #ffc107;
   }
 }
 
-// 响应式
+// 响应式 - 使用紧凑布局确保内容完全适配视口
 @media (max-width: 480px) {
   .modal-container {
-    width: 95vw;
-    height: 80vh;
-    max-height: none;
+    width: 92vw;
+    border-radius: 16px;
   }
 
   .modal-content {
-    padding: 40px 20px 24px;
-    gap: 24px;
+    padding: 24px 20px;
+    gap: 16px;
+  }
+
+  .mode-label {
+    font-size: 1rem;
+  }
+
+  .timer-ring {
+    width: 150px;
+    height: 150px;
   }
 
   .time-display {
-    font-size: 3rem;
+    font-size: 1.9rem;
   }
 
   .control-btn {
-    padding: 10px 18px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .stats-section {
+    gap: 32px;
+    padding-top: 14px;
+  }
+
+  .stat-item {
+    .stat-value {
+      font-size: 1.1rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+    }
+  }
+}
+
+// 小屏 + 视口高度不足时进一步压缩
+@media (max-width: 480px) and (max-height: 700px) {
+  .modal-content {
+    padding: 20px 16px;
+    gap: 12px;
+  }
+
+  .timer-ring {
+    width: 130px;
+    height: 130px;
+  }
+
+  .time-display {
+    font-size: 1.6rem;
+  }
+
+  .control-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stats-section {
+    padding-top: 10px;
+    gap: 24px;
+  }
+
+  .stat-item .stat-value {
+    font-size: 1rem;
+  }
+}
+
+// 超小屏幕 (iPhone SE 等)
+@media (max-width: 375px) {
+  .modal-content {
+    padding: 18px 14px;
+    gap: 10px;
+  }
+
+  .mode-label {
     font-size: 0.9rem;
+  }
+
+  .timer-ring {
+    width: 120px;
+    height: 120px;
+  }
+
+  .time-display {
+    font-size: 1.5rem;
+  }
+
+  .control-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .stats-section {
+    gap: 20px;
+  }
+
+  .stat-item .stat-value {
+    font-size: 0.95rem;
+  }
+}
+
+// 横屏模式
+@media (orientation: landscape) and (max-height: 500px) {
+  .modal-content {
+    padding: 16px;
+    gap: 8px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .mode-label {
+    width: 100%;
+    text-align: center;
+  }
+
+  .timer-ring {
+    width: 100px;
+    height: 100px;
+  }
+
+  .time-display {
+    font-size: 1.25rem;
+  }
+
+  .controls-section {
+    align-self: center;
+  }
+
+  .stats-section {
+    width: 100%;
+    padding-top: 8px;
   }
 }
 </style>

@@ -29,6 +29,31 @@ Use ES modules with single quotes and two-space indentation. Components stay Pas
 
 When adding new UI elements with icons, choose appropriate Iconify icons that match the existing design language.
 
+### Constants Management
+**All constants must be centralized** — never hardcode magic strings or numbers in components or utilities.
+
+| Constant Type | Location | Examples |
+|---------------|----------|----------|
+| Global constants | `src/config/constants.js` | Cache names, API config, localStorage keys, reconnect strategies |
+| Module-specific | Module's `constants.js` | `src/composables/focus/constants.js` (state enums, defaults) |
+
+**Rules:**
+- **No hardcoding**: Import constants from the appropriate constants file
+- **Unified prefix**: localStorage keys use `swm_` prefix, defined in `STORAGE_KEYS`
+- **Naming**: Use UPPER_SNAKE_CASE for all constants
+
+```javascript
+// ❌ Wrong: hardcoded
+localStorage.getItem('pomodoro_duration')
+
+// ✅ Correct: use constants
+import { STORAGE_KEYS } from 'src/config/constants'
+localStorage.getItem(STORAGE_KEYS.POMODORO_DURATION)
+```
+
+### UI Target
+**Desktop landscape only** — no mobile portrait UI support needed. All layouts assume horizontal orientation; no responsive breakpoints for portrait mode.
+
 ## Testing Guidelines
 The project uses **Vitest** for unit/integration tests and **Playwright** for E2E tests.
 
