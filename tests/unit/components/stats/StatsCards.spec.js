@@ -2,6 +2,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import StatsCards from '../../../../src/components/settings/tabs/stats/StatsCards.vue'
 
+// Mock @iconify/vue 防止模块内部异步操作引发未处理异常
+vi.mock('@iconify/vue', () => ({
+  Icon: { template: '<span />' }
+}))
+
 // Mock useFocus
 vi.mock('../../../../src/composables/useFocus.js', () => ({
   useFocus: () => ({
@@ -10,7 +15,8 @@ vi.mock('../../../../src/composables/useFocus.js', () => ({
         completedSessions: 5,
         totalFocusTime: 7500, // 2h 5m
         completionRate: 83.3,
-        averageFocusTime: 1500 // 25m
+        averageFocusTime: 1500, // 25m
+        totalBreakTime: 900
       }
     },
     weekStats: {
@@ -106,11 +112,13 @@ describe('StatsCards.vue', () => {
 
     it('总计卡片应该显示最长连击', () => {
       const wrapper = createWrapper()
-      const streakMetric = wrapper.find('.metric.streak')
+      const cards = wrapper.findAll('.stat-card')
+      const totalCard = cards[3] // 总计是第四个卡片
+      const extraMetric = totalCard.find('.metric.extra')
 
-      expect(streakMetric.exists()).toBe(true)
-      expect(streakMetric.text()).toContain('15')
-      expect(streakMetric.text()).toContain('最长连击')
+      expect(extraMetric.exists()).toBe(true)
+      expect(extraMetric.text()).toContain('15')
+      expect(extraMetric.text()).toContain('最长连击')
     })
   })
 
