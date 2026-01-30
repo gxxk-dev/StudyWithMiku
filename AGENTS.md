@@ -29,6 +29,9 @@ Use ES modules with single quotes and two-space indentation. Components stay Pas
 
 When adding new UI elements with icons, choose appropriate Iconify icons that match the existing design language.
 
+### JSDoc Documentation
+**All modules and exports must have JSDoc comments.** Use `@module` for files, `@param`/`@returns` for functions, `@typedef` for complex types.
+
 ### Constants Management
 **All constants must be centralized** — never hardcode magic strings or numbers in components or utilities.
 
