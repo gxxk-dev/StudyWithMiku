@@ -76,6 +76,54 @@ export function useToast() {
   }
 
   /**
+   * 显示确认通知（带 Yes/No 按钮）
+   * @param {string} title - 标题
+   * @param {string} message - 消息内容（可选）
+   * @param {Object} options - 选项
+   * @param {Function} options.onConfirm - 点击确认的回调
+   * @param {Function} options.onCancel - 点击取消的回调
+   * @param {string} options.confirmText - 确认按钮文本（默认 '是'）
+   * @param {string} options.cancelText - 取消按钮文本（默认 '否'）
+   * @returns {number} 通知 ID
+   */
+  const showConfirm = (title, message = '', options = {}) => {
+    const { onConfirm, onCancel, confirmText = '是', cancelText = '否' } = options
+    const id = ++notificationId
+    const maxCount = getConfig('UI_CONFIG', 'TOAST_MAX_COUNT')
+
+    if (notifications.value.length >= maxCount) {
+      notifications.value.pop()
+    }
+
+    notifications.value.unshift({
+      id,
+      type: 'confirm',
+      title,
+      message,
+      duration: 0,
+      createdAt: Date.now(),
+      actions: [
+        { label: confirmText, style: 'primary', callback: onConfirm },
+        { label: cancelText, style: 'secondary', callback: onCancel }
+      ]
+    })
+
+    return id
+  }
+
+  /**
+   * 处理通知按钮点击
+   * @param {number} id - 通知 ID
+   * @param {Function} callback - 按钮回调
+   */
+  const handleAction = (id, callback) => {
+    removeNotification(id)
+    if (typeof callback === 'function') {
+      callback()
+    }
+  }
+
+  /**
    * 隐藏最新通知（兼容旧 API）
    */
   const hideToast = () => {
@@ -87,7 +135,9 @@ export function useToast() {
   return {
     notifications,
     showToast,
+    showConfirm,
     removeNotification,
+    handleAction,
     clearAll,
     hideToast
   }

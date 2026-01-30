@@ -6,13 +6,25 @@
         :key="notification.id"
         class="notification"
         :class="[notification.type]"
-        @click="remove(notification.id)"
+        @click="!notification.actions && remove(notification.id)"
       >
         <Icon :icon="getIcon(notification.type)" class="notification-icon" />
         <div class="notification-content">
           <div class="notification-title">{{ notification.title }}</div>
           <div v-if="notification.message" class="notification-message">
             {{ notification.message }}
+          </div>
+          <!-- 操作按钮 -->
+          <div v-if="notification.actions" class="notification-actions">
+            <button
+              v-for="(action, index) in notification.actions"
+              :key="index"
+              class="notification-action-btn"
+              :class="action.style"
+              @click.stop="$emit('action', notification.id, action.callback)"
+            >
+              {{ action.label }}
+            </button>
           </div>
         </div>
         <button class="notification-close" @click.stop="remove(notification.id)">
@@ -37,7 +49,7 @@ defineProps({
   notifications: { type: Array, required: true }
 })
 
-const emit = defineEmits(['remove'])
+const emit = defineEmits(['remove', 'action'])
 
 const remove = (id) => {
   emit('remove', id)
@@ -47,7 +59,8 @@ const getIcon = (type) => {
   const icons = {
     info: 'mdi:information-outline',
     success: 'mdi:check-circle-outline',
-    error: 'mdi:alert-circle-outline'
+    error: 'mdi:alert-circle-outline',
+    confirm: 'mdi:help-circle-outline'
   }
   return icons[type] || icons.info
 }
@@ -117,6 +130,14 @@ const getProgressStyle = (notification) => {
       color: #e74c3c;
     }
   }
+
+  &.confirm {
+    border-left: 3px solid #f39c12;
+    cursor: default;
+    .notification-icon {
+      color: #f39c12;
+    }
+  }
 }
 
 .notification-icon {
@@ -141,6 +162,40 @@ const getProgressStyle = (notification) => {
   opacity: 0.8;
   margin-top: 4px;
   line-height: 1.4;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.notification-action-btn {
+  padding: 5px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.primary {
+    background: #f39c12;
+    color: #fff;
+
+    &:hover {
+      background: #e67e22;
+    }
+  }
+
+  &.secondary {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
 }
 
 // 进度条 - 显示剩余时间

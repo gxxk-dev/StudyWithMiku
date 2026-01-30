@@ -24,9 +24,10 @@ import { createHelpSystem } from './help/index.js'
 const playlistManager = usePlaylistManager()
 playlistManager.initialize()
 
-// 初始化 toast（添加 show 别名便于调用）
+// 初始化 toast（添加 show/confirm 别名便于调用）
 const toastApi = useToast()
 toastApi.show = toastApi.showToast
+toastApi.confirm = toastApi.showConfirm
 
 // 创建 swm_dev 对象
 const swm_dev = {

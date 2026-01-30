@@ -72,7 +72,7 @@
     <PWAPanel :visible="showControls" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" />
 
     <!-- Toast 通知 -->
-    <Toast :notifications="notifications" @remove="removeNotification" />
+    <Toast :notifications="notifications" @remove="removeNotification" @action="handleAction" />
 
     <!-- 横屏提示 -->
     <OrientationPrompt />
@@ -176,7 +176,7 @@ const dismissAnnouncement = () => {
 }
 
 // Toast 状态
-const { notifications, showToast, removeNotification } = useToast()
+const { notifications, showToast, removeNotification, handleAction } = useToast()
 
 // === URL 参数处理（必须在组件初始化之前执行）===
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
