@@ -112,17 +112,34 @@ export const useStats = () => {
     const completionRate =
       focusRecords.length > 0 ? (completed.length / focusRecords.length) * 100 : 0
 
-    // 计算最长连续完成
+    // 计算最长连续活跃天数（GitHub 风格）
     let longestStreak = 0
-    let currentStreak = 0
-    const sortedFocus = [...focusRecords].sort((a, b) => a.startTime - b.startTime)
+    if (completed.length > 0) {
+      // 提取完成记录的日期（去重）
+      const activeDates = new Set()
+      for (const record of completed) {
+        const date = formatDate(new Date(record.startTime))
+        activeDates.add(date)
+      }
 
-    for (const record of sortedFocus) {
-      if (record.completionType === CompletionType.COMPLETED) {
-        currentStreak++
-        longestStreak = Math.max(longestStreak, currentStreak)
-      } else {
-        currentStreak = 0
+      // 转换为数组并排序
+      const sortedDates = [...activeDates].sort()
+
+      // 计算最长连续天数
+      let currentStreak = 1
+      longestStreak = 1
+
+      for (let i = 1; i < sortedDates.length; i++) {
+        const prevDate = new Date(sortedDates[i - 1])
+        const currDate = new Date(sortedDates[i])
+        const diffDays = Math.round((currDate - prevDate) / (1000 * 60 * 60 * 24))
+
+        if (diffDays === 1) {
+          currentStreak++
+          longestStreak = Math.max(longestStreak, currentStreak)
+        } else {
+          currentStreak = 1
+        }
       }
     }
 

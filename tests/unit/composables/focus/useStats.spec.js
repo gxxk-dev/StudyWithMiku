@@ -107,20 +107,29 @@ describe('useStats', () => {
       expect(result.averageFocusTime).toBe(25 * 60)
     })
 
-    it('应该正确计算最长连续完成', () => {
+    it('应该正确计算最长连续活跃天数', () => {
       const { calculateStats } = useStats()
 
-      const now = Date.now()
+      const today = new Date()
+      const day1 = new Date(today)
+      day1.setDate(day1.getDate() - 4)
+      const day2 = new Date(today)
+      day2.setDate(day2.getDate() - 3)
+      const day3 = new Date(today)
+      day3.setDate(day3.getDate() - 2)
+      // day4 跳过（断连）
+      const day5 = new Date(today)
+
       const records = [
-        createFocusRecord({ startTime: now - 5000, completionType: CompletionType.COMPLETED }),
-        createFocusRecord({ startTime: now - 4000, completionType: CompletionType.COMPLETED }),
-        createFocusRecord({ startTime: now - 3000, completionType: CompletionType.COMPLETED }),
-        createFocusRecord({ startTime: now - 2000, completionType: CompletionType.CANCELLED }),
-        createFocusRecord({ startTime: now - 1000, completionType: CompletionType.COMPLETED })
+        createFocusRecord({ startTime: day1.getTime(), completionType: CompletionType.COMPLETED }),
+        createFocusRecord({ startTime: day2.getTime(), completionType: CompletionType.COMPLETED }),
+        createFocusRecord({ startTime: day3.getTime(), completionType: CompletionType.COMPLETED }),
+        createFocusRecord({ startTime: day5.getTime(), completionType: CompletionType.COMPLETED })
       ]
 
       const result = calculateStats(records)
 
+      // 最长连续3天（day1, day2, day3）
       expect(result.longestStreak).toBe(3)
     })
   })
