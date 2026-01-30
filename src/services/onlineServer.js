@@ -174,7 +174,7 @@ const scheduleReconnect = () => {
 }
 
 /**
- * 断开连接
+ * 断开连接并停止自动重连
  */
 const disconnect = () => {
   reconnectAttempts = RECONNECT_CONFIG.MAX_ATTEMPTS // 阻止自动重连
@@ -196,6 +196,7 @@ const setServer = (url) => {
 
 /**
  * 获取当前状态
+ * @returns {{serverUrl: string, onlineCount: number, connectionStatus: string, lastError: string|null, reconnectAttempts: number}}
  */
 const getStatus = () => ({
   serverUrl: serverUrl.value,

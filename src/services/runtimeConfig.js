@@ -1,12 +1,6 @@
 /**
  * 运行时配置服务
  * 允许高级用户在运行时修改配置常量
- *
- * 使用方式：
- *   swm_dev.config.get('UI_CONFIG')           - 获取配置组
- *   swm_dev.config.set('UI_CONFIG', 'TOAST_DEFAULT_DURATION', 5000)  - 修改配置
- *   swm_dev.config.reset()                    - 重置所有配置
- *   swm_dev.config.reset('UI_CONFIG')         - 重置指定配置组
  */
 
 import { reactive, readonly } from 'vue'
@@ -105,7 +99,7 @@ const reset = (group) => {
 }
 
 /**
- * 列出所有配置
+ * 在控制台打印当前配置，修改过的值高亮显示
  */
 const list = () => {
   console.log('%c[RuntimeConfig] 当前配置:', 'color: #39c5bb; font-weight: bold')
@@ -143,34 +137,7 @@ export const runtimeConfigService = {
   get,
   set,
   reset,
-  list,
-
-  // 帮助信息
-  help() {
-    console.log(
-      `%c[RuntimeConfig] 配置管理 API:
-
-  swm_dev.config.list()                    - 列出所有配置
-  swm_dev.config.get('UI_CONFIG')          - 获取配置组
-  swm_dev.config.set(group, key, value)    - 修改配置
-  swm_dev.config.reset()                   - 重置所有配置
-  swm_dev.config.reset('UI_CONFIG')        - 重置指定配置组
-
-配置组:
-  UI_CONFIG       - UI 相关配置（Toast、延迟等）
-  AUDIO_CONFIG    - 音频相关配置（音量、渐变等）
-  CACHE_CONFIG    - 缓存相关配置
-  WS_CONFIG       - WebSocket 配置
-  RECONNECT_CONFIG - 重连配置
-  API_CONFIG      - API 配置
-
-示例:
-  swm_dev.config.set('UI_CONFIG', 'TOAST_DEFAULT_DURATION', 5000)
-  swm_dev.config.set('AUDIO_CONFIG', 'DEFAULT_VOLUME', 0.5)
-`,
-      'color: #39c5bb'
-    )
-  }
+  list
 }
 
 // 导出便捷访问器（用于其他模块）

@@ -12,7 +12,9 @@ const STYLES = {
   description: 'color: #b0bec5',
   ref: 'color: #ba68c8',
   example: 'color: #a5d6a7',
-  reset: 'color: inherit'
+  reset: 'color: inherit',
+  deprecated: 'color: #ef5350; font-style: italic',
+  default: 'color: #ffa726'
 }
 
 // 全局颜色模式设置
@@ -169,7 +171,17 @@ export const printModuleDetail = (name, module, introspected, meta, options = {}
       builder
         .add(`  ${asyncPrefix}${method.name}`, STYLES.method)
         .add(`(${method.signature})`, STYLES.param)
-        .newline()
+
+      // 显示 @deprecated 标记
+      if (methodMeta?.deprecated) {
+        builder.add(' [已弃用]', STYLES.deprecated)
+      }
+      builder.newline()
+
+      // 显示弃用说明
+      if (methodMeta?.deprecated && typeof methodMeta.deprecated === 'string') {
+        builder.add(`    ⚠ ${methodMeta.deprecated}`, STYLES.deprecated).newline()
+      }
 
       if (methodMeta?.description) {
         builder.add(`    ${methodMeta.description}`, STYLES.description).newline()
@@ -178,12 +190,15 @@ export const printModuleDetail = (name, module, introspected, meta, options = {}
       if (methodMeta?.params?.length) {
         for (const p of methodMeta.params) {
           const opt = p.optional ? '?' : ''
+          const defaultVal = p.default ? ` = ${p.default}` : ''
           builder
             .add('    @param ', STYLES.param)
             .add(`${p.name}${opt}`, 'color: #fff')
-            .add(`: ${p.type || 'any'} `, STYLES.type)
-            .add(`- ${p.description || ''}`, STYLES.description)
-            .newline()
+            .add(`: ${p.type || 'any'}`, STYLES.type)
+          if (defaultVal) {
+            builder.add(defaultVal, STYLES.default)
+          }
+          builder.add(` - ${p.description || ''}`, STYLES.description).newline()
         }
       }
 

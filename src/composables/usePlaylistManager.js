@@ -59,19 +59,28 @@ const deleteLocalSongStorage = async (song) => {
 export const usePlaylistManager = () => {
   // ============ Computed ============
 
-  /** 当前选中的歌单 */
+  /**
+   * 当前选中的歌单
+   * @returns {Playlist|null}
+   */
   const currentPlaylist = computed(() => {
     if (!currentPlaylistId.value) return null
     return playlists.value.find((p) => p.id === currentPlaylistId.value) || null
   })
 
-  /** 默认歌单 */
+  /**
+   * 默认歌单
+   * @returns {Playlist|null}
+   */
   const defaultPlaylist = computed(() => {
     if (!defaultPlaylistId.value) return null
     return playlists.value.find((p) => p.id === defaultPlaylistId.value) || null
   })
 
-  /** 按 order 排序的歌单列表 */
+  /**
+   * 按 order 排序的歌单列表
+   * @returns {Playlist[]}
+   */
   const sortedPlaylists = computed(() => {
     return [...playlists.value].sort((a, b) => a.order - b.order)
   })

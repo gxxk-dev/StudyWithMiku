@@ -1,3 +1,7 @@
+/**
+ * 音乐播放 Composable
+ * 管理歌单加载、播放控制和音乐源切换
+ */
 import { ref, computed, onUnmounted, getCurrentInstance } from 'vue'
 import {
   fetchPlaylist,
@@ -158,6 +162,10 @@ export const useMusic = () => {
     }
   }
 
+  /**
+   * 加载当前平台的歌曲列表
+   * @returns {Promise<void>}
+   */
   const loadSongs = async () => {
     // 如果是 Spotify 平台，不需要从 Meting API 加载歌曲
     // Spotify 使用嵌入式播放器，歌曲由 Spotify 自己管理
@@ -168,31 +176,58 @@ export const useMusic = () => {
     await loadMetingSongs(metingConfig.value.platform, playlistId.value)
   }
 
+  /**
+   * 强制刷新 Meting 歌单（跳过缓存）
+   * @param {string} platform - 音乐平台 (netease/tencent/kugou 等)
+   * @param {string} id - 歌单 ID
+   * @returns {Promise<void>}
+   */
   const updateMetingPlaylist = async (platform, id) => {
     await loadMetingSongs(platform, id, { forceRefresh: true })
   }
 
+  /**
+   * 设置歌单 ID
+   * @param {string} id - 歌单 ID
+   */
   const setPlaylistId = (id) => {
     playlistId.value = id
     safeLocalStorageSet(STORAGE_KEYS.PLAYLIST_ID, id)
   }
 
+  /**
+   * 重置为默认歌单 ID
+   */
   const resetPlaylistId = () => {
     playlistId.value = DEFAULT_PLAYLIST_ID
     safeLocalStorageSet(STORAGE_KEYS.PLAYLIST_ID, DEFAULT_PLAYLIST_ID)
   }
 
+  /**
+   * 设置音乐平台
+   * @param {string} p - 平台名称 (netease/tencent/kugou/spotify 等)
+   */
   const setPlatform = (p) => {
     platform.value = p
     safeLocalStorageSet(STORAGE_KEYS.MUSIC_PLATFORM, p)
   }
 
+  /**
+   * 应用自定义歌单配置
+   * @param {string} p - 平台名称
+   * @param {string} id - 歌单 ID
+   * @returns {Promise<void>}
+   */
   const applyCustomPlaylist = async (p, id) => {
     setPlatform(p)
     setPlaylistId(id)
     await loadMetingSongs(p, id, { forceRefresh: true })
   }
 
+  /**
+   * 重置为默认配置（网易云默认歌单）
+   * @returns {Promise<void>}
+   */
   const resetToDefault = async () => {
     setPlatform('netease')
     resetPlaylistId()
@@ -200,16 +235,28 @@ export const useMusic = () => {
   }
 
   // Spotify 相关方法
+
+  /**
+   * 设置 Spotify 歌单 ID
+   * @param {string} id - Spotify 歌单 ID
+   */
   const setSpotifyPlaylistId = (id) => {
     spotifyPlaylistId.value = id
     saveSpotifyPlaylistId(id)
   }
 
+  /**
+   * 切换到 Spotify 歌单
+   * @param {string} id - Spotify 歌单 ID
+   */
   const applySpotifyPlaylist = (id) => {
     setPlatform('spotify')
     setSpotifyPlaylistId(id)
   }
 
+  /**
+   * 重置 Spotify 为默认歌单
+   */
   const resetSpotifyToDefault = () => {
     const defaultId = resetSpotifyPlaylistId()
     spotifyPlaylistId.value = defaultId

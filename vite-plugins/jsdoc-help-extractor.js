@@ -20,15 +20,60 @@ const TARGET_FILES = {
   config: 'src/services/runtimeConfig.js'
 }
 
-const DEFAULT_DESCRIPTIONS = {
-  playlist: '歌单管理 - CRUD 操作、持久化和状态管理',
-  audio: '本地音频存储 - OPFS 和 FileHandle 管理',
-  io: '导入导出 - 歌单数据的导入导出',
-  music: '音乐播放 - 歌单加载和播放控制',
-  focus: '番茄钟系统 - 计时、记录、统计',
-  exportUtils: '数据导出工具 - JSON/CSV/Markdown 格式转换',
-  server: '在线服务器连接 - WebSocket 管理',
-  config: '运行时配置 - 动态修改应用配置'
+// 函数级标签，用于区分模块描述和方法描述
+const FUNCTION_TAGS = ['param', 'returns', 'return', 'async', 'throws', 'example']
+
+/**
+ * 判断 JSDoc 块是否包含函数级标签
+ * @param {object} block - comment-parser 解析的块
+ * @returns {boolean}
+ */
+function hasFunctionTags(block) {
+  return block.tags.some((t) => FUNCTION_TAGS.includes(t.tag))
+}
+
+/**
+ * 提取模块描述（三级回退策略）
+ * @param {object[]} parsed - comment-parser 解析结果
+ * @param {string} moduleName - 模块名称
+ * @returns {{ description: string, moduleBlockIndex: number }} 模块描述和对应块索引
+ */
+function extractModuleDescription(parsed, moduleName) {
+  // 策略1: 查找 @module 或 @file 标签
+  const moduleBlockIndex = parsed.findIndex((block) =>
+    block.tags.some((t) => t.tag === 'module' || t.tag === 'file')
+  )
+  if (moduleBlockIndex !== -1) {
+    return {
+      description: parsed[moduleBlockIndex].description || '(未提供模块描述)',
+      moduleBlockIndex
+    }
+  }
+
+  // 策略2: 检查第一个注释块是否在文件顶部且不含函数标签
+  if (parsed.length > 0) {
+    const firstBlock = parsed[0]
+    const firstLine = firstBlock.source?.[0]?.number ?? -1
+
+    // 文件顶部（第0-2行）且不含函数级标签，视为模块描述
+    if (
+      firstLine >= 0 &&
+      firstLine <= 2 &&
+      !hasFunctionTags(firstBlock) &&
+      firstBlock.description
+    ) {
+      return {
+        description: firstBlock.description,
+        moduleBlockIndex: 0
+      }
+    }
+  }
+
+  // 策略3: 无法提取
+  return {
+    description: '(未提供模块描述)',
+    moduleBlockIndex: -1
+  }
 }
 
 /**
@@ -41,17 +86,19 @@ function extractModuleHelp(content, moduleName) {
   const parsed = parse(content)
   const methods = {}
 
-  // 提取文件顶部的模块描述
-  const moduleBlock = parsed.find((block) =>
-    block.tags.some((t) => t.tag === 'module' || t.tag === 'file')
-  )
-  const moduleDesc = moduleBlock?.description || DEFAULT_DESCRIPTIONS[moduleName] || '(无描述)'
+  // 提取模块描述
+  const { description: moduleDesc, moduleBlockIndex } = extractModuleDescription(parsed, moduleName)
 
   // 将 JSDoc 块与其对应的函数名关联
   // 通过分析 JSDoc 块在源码中的位置来匹配函数
   const lines = content.split('\n')
 
-  for (const block of parsed) {
+  for (let blockIndex = 0; blockIndex < parsed.length; blockIndex++) {
+    const block = parsed[blockIndex]
+
+    // 跳过已识别为模块描述的块
+    if (blockIndex === moduleBlockIndex) continue
+
     if (!block.source || block.source.length === 0) continue
 
     // 获取 JSDoc 块结束后的行号
@@ -89,27 +136,48 @@ function extractModuleHelp(content, moduleName) {
       if (funcName) break
     }
 
-    // 跳过没有找到函数名的块，或者是模块级注释
+    // 跳过没有找到函数名的块
     if (!funcName) continue
-    if (block.tags.some((t) => t.tag === 'module' || t.tag === 'file')) continue
+
+    // 提取 @deprecated 标签
+    const deprecatedTag = block.tags.find((t) => t.tag === 'deprecated')
+    const deprecated = deprecatedTag ? deprecatedTag.description || true : null
+
+    // 提取 @default 标签并关联到参数
+    const defaultTags = block.tags.filter((t) => t.tag === 'default')
+    const defaultMap = {}
+    for (const dt of defaultTags) {
+      // @default 标签的 name 字段是参数名，description 是默认值
+      if (dt.name) {
+        defaultMap[dt.name] = dt.description || dt.name
+      }
+    }
 
     // 提取方法信息
     methods[funcName] = {
       description: block.description || '',
       params: block.tags
         .filter((t) => t.tag === 'param')
-        .map((t) => ({
-          name: t.name,
-          type: t.type,
-          description: t.description,
-          optional: t.optional
-        })),
+        .map((t) => {
+          const param = {
+            name: t.name,
+            type: t.type,
+            description: t.description,
+            optional: t.optional
+          }
+          // 关联 @default 值
+          if (defaultMap[t.name]) {
+            param.default = defaultMap[t.name]
+          }
+          return param
+        }),
       returns: (() => {
         const ret = block.tags.find((t) => t.tag === 'returns' || t.tag === 'return')
         return ret ? { type: ret.type, description: ret.description } : null
       })(),
       example: block.tags.find((t) => t.tag === 'example')?.description || null,
-      async: block.tags.some((t) => t.tag === 'async')
+      async: block.tags.some((t) => t.tag === 'async'),
+      deprecated
     }
   }
 
@@ -133,7 +201,7 @@ function generateMetadata(rootDir) {
     if (!fs.existsSync(fullPath)) {
       console.warn(`[jsdoc-help-extractor] 文件不存在: ${filePath}`)
       metadata[moduleName] = {
-        description: DEFAULT_DESCRIPTIONS[moduleName] || '(无描述)',
+        description: '(未提供模块描述)',
         methods: {}
       }
       continue
