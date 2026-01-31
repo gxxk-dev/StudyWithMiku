@@ -23,8 +23,7 @@ const showDateModal = computed({
   }
 })
 
-// 分享卡片弹窗（功能开发中，暂时禁用）
-// eslint-disable-next-line no-unused-vars
+// 分享卡片弹窗
 const showShareCard = ref(false)
 
 // 导出菜单
@@ -44,11 +43,10 @@ const closeDateModal = () => {
   selectedDate.value = null
 }
 
-// eslint-disable-next-line no-unused-vars
 const openShareCard = () => {
   showShareCard.value = true
 }
-// eslint-disable-next-line no-unused-vars
+
 const closeShareCard = () => {
   showShareCard.value = false
 }
@@ -105,10 +103,9 @@ const handleClickOutside = (e) => {
       <StatsHeatmap :days="heatmapRange" @select-date="handleSelectDate" />
 
       <div class="heatmap-actions">
-        <button class="action-btn disabled" disabled title="开发中">
+        <button class="action-btn" @click="openShareCard">
           <Icon icon="lucide:share-2" width="16" height="16" />
           <span>生成分享卡片</span>
-          <Icon icon="mdi:hammer-wrench" width="14" height="14" class="dev-icon" />
         </button>
 
         <div class="export-dropdown">

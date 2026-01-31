@@ -45,7 +45,9 @@ export const STORAGE_KEYS = {
   // Focus 番茄钟
   FOCUS_RECORDS: 'swm_focus_records',
   FOCUS_SETTINGS: 'swm_focus_settings',
-  FOCUS_CURRENT: 'swm_focus_current'
+  FOCUS_CURRENT: 'swm_focus_current',
+  // 分享卡片
+  SHARE_CARD_CONFIG: 'swm_share_card_config'
 }
 
 /**
