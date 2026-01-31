@@ -68,9 +68,6 @@
       @touchend="onUITouchEnd"
     />
 
-    <!-- PWA 功能面板 -->
-    <PWAPanel :visible="showControls" @mouseenter="onUIMouseEnter" @mouseleave="onUIMouseLeave" />
-
     <!-- Toast 通知 -->
     <Toast :notifications="notifications" @remove="removeNotification" @action="handleAction" />
 
@@ -131,7 +128,6 @@ import { safeLocalStorageGetJSON } from './utils/storage.js'
 import { onlineServer } from './services/onlineServer.js'
 import { getConfig } from './services/runtimeConfig.js'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
-import PWAPanel from './components/PWAPanel.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
 import StatusPill from './components/StatusPill.vue'
@@ -259,7 +255,7 @@ const playerAdapter = ref(null)
 const aplayerInitialized = ref(false)
 const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, applyUrlPlaylist } = useMusic()
 const player = usePlayer()
-const { setHasUpdate } = usePWA()
+const { setHasUpdate, refreshApp } = usePWA()
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
 const playerElementRef = ref(null)
@@ -322,6 +318,11 @@ onMounted(() => {
   setSwUpdateCallback(() => {
     console.log('检测到新版本可用')
     setHasUpdate(true)
+    showConfirm('发现新版本', '应用有更新可用', {
+      confirmText: '立即更新',
+      cancelText: '稍后',
+      onConfirm: () => refreshApp(true)
+    })
   })
 
   // === URL 参数处理（Toast 显示和歌单处理）===

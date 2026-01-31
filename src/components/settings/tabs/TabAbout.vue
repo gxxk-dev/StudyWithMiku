@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { usePWA } from '../../../composables/usePWA.js'
 
-const { isPWA, isOnline, appVersion, appBuildTime } = usePWA()
+const { isPWA, isOnline, appVersion, appBuildTime, canInstall, installPWA } = usePWA()
 
 const browserInfo = ref('')
 
@@ -33,10 +33,33 @@ const techStack = [
   { name: 'Vue 3', icon: 'mdi:vuejs' },
   { name: 'Vite', icon: 'mdi:lightning-bolt' },
   { name: 'Bun', icon: 'simple-icons:bun' },
-  { name: 'PWA', icon: 'mdi:application' },
+  { name: 'PWA', icon: 'mdi:application', action: 'install' },
   { name: 'Cloudflare', icon: 'mdi:cloud' },
   { name: 'APlayer', icon: 'mdi:music-box' }
 ]
+
+// 处理 PWA 安装
+const handlePWAInstall = async () => {
+  if (isPWA.value) {
+    alert('当前已经在 PWA 模式下运行')
+    return
+  }
+  if (canInstall.value) {
+    const accepted = await installPWA()
+    if (accepted) {
+      alert('感谢安装！')
+    }
+  } else {
+    alert('请使用浏览器菜单中的"安装"或"添加到主屏幕"选项')
+  }
+}
+
+// 处理技术栈点击
+const handleTechClick = (tech) => {
+  if (tech.action === 'install') {
+    handlePWAInstall()
+  }
+}
 
 onMounted(() => {
   browserInfo.value = getBrowserInfo()
@@ -78,10 +101,39 @@ onMounted(() => {
 
       <h4 class="subsection-title">Tech Stack</h4>
       <div class="tech-stack">
-        <div v-for="tech in techStack" :key="tech.name" class="tech-badge">
+        <button
+          v-for="tech in techStack"
+          :key="tech.name"
+          class="tech-badge"
+          :class="{ clickable: tech.action, installed: tech.action === 'install' && isPWA }"
+          :title="
+            tech.action === 'install'
+              ? isPWA
+                ? '已安装'
+                : canInstall
+                  ? '点击安装'
+                  : '使用浏览器菜单安装'
+              : ''
+          "
+          @click="handleTechClick(tech)"
+        >
           <Icon :icon="tech.icon" width="16" height="16" />
           <span>{{ tech.name }}</span>
-        </div>
+          <Icon
+            v-if="tech.action === 'install' && !isPWA && canInstall"
+            icon="mdi:download"
+            width="14"
+            height="14"
+            class="install-hint"
+          />
+          <Icon
+            v-if="tech.action === 'install' && isPWA"
+            icon="mdi:check"
+            width="14"
+            height="14"
+            class="installed-hint"
+          />
+        </button>
       </div>
     </div>
 
@@ -223,11 +275,54 @@ onMounted(() => {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.8);
   transition: all 0.2s ease;
+  cursor: default;
 }
 
 .tech-badge:hover {
   background: rgba(255, 255, 255, 0.12);
   border-color: rgba(255, 255, 255, 0.25);
+}
+
+.tech-badge.clickable {
+  cursor: pointer;
+  background: rgba(57, 197, 187, 0.15);
+  border-color: rgba(57, 197, 187, 0.4);
+  color: #39c5bb;
+}
+
+.tech-badge.clickable:hover {
+  background: rgba(57, 197, 187, 0.25);
+  border-color: rgba(57, 197, 187, 0.6);
+  transform: scale(1.02);
+}
+
+.tech-badge.installed {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #4caf50;
+}
+
+.tech-badge.installed:hover {
+  background: rgba(76, 175, 80, 0.2);
+}
+
+.install-hint {
+  color: #39c5bb;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.installed-hint {
+  color: #4caf50;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .credits-text {

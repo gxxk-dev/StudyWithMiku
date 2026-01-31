@@ -13,7 +13,7 @@
         <!-- 主体：双栏布局 -->
         <div class="modal-body">
           <!-- 左侧导航 -->
-          <SettingsSidebar v-model:active-tab="activeTab" />
+          <SettingsSidebar v-model:active-tab="activeTab" :is-p-w-a="isPWA" />
 
           <!-- 右侧内容 -->
           <div class="content-area">
@@ -28,10 +28,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
+import { usePWA } from '../composables/usePWA.js'
 import SettingsSidebar from './settings/SettingsSidebar.vue'
 import TabFocus from './settings/tabs/TabFocus.vue'
 import TabMedia from './settings/tabs/TabMedia.vue'
 import TabStats from './settings/tabs/TabStats.vue'
+import TabCache from './settings/tabs/TabPWA.vue'
 import TabAbout from './settings/tabs/TabAbout.vue'
 
 defineProps({
@@ -43,12 +45,15 @@ defineProps({
 
 const emit = defineEmits(['close'])
 
+const { isPWA } = usePWA()
+
 const activeTab = ref('about')
 
 const tabComponents = {
   focus: TabFocus,
   media: TabMedia,
   stats: TabStats,
+  cache: TabCache,
   about: TabAbout
 }
 

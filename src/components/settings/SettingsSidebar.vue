@@ -2,7 +2,7 @@
   <nav class="settings-sidebar">
     <div class="nav-list">
       <button
-        v-for="item in navItems"
+        v-for="item in visibleNavItems"
         :key="item.id"
         class="nav-item"
         :class="{ active: activeTab === item.id }"
@@ -16,12 +16,17 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
 
-defineProps({
+const props = defineProps({
   activeTab: {
     type: String,
     default: 'focus'
+  },
+  isPWA: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -31,8 +36,13 @@ const navItems = [
   { id: 'focus', icon: 'lucide:timer', label: '专注' },
   { id: 'media', icon: 'lucide:music', label: '媒体' },
   { id: 'stats', icon: 'lucide:bar-chart-3', label: '统计' },
+  { id: 'cache', icon: 'lucide:hard-drive', label: '缓存', pwaOnly: true },
   { id: 'about', icon: 'lucide:info', label: '关于' }
 ]
+
+const visibleNavItems = computed(() => {
+  return navItems.filter((item) => !item.pwaOnly || props.isPWA)
+})
 </script>
 
 <style scoped>
