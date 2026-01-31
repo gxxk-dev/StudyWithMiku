@@ -329,7 +329,10 @@ export const generateHandleKey = () => {
  * @returns {Promise<{success: boolean, url?: string, error?: string}>}
  */
 export const getLocalAudioURL = async (song) => {
+  console.debug('[LocalAudio] getLocalAudioURL 输入:', song)
+
   if (song.type !== 'local') {
+    console.warn('[LocalAudio] 歌曲类型不是 local:', song.type)
     return { success: false, error: ErrorTypes.INVALID_DATA }
   }
 
@@ -337,24 +340,32 @@ export const getLocalAudioURL = async (song) => {
 
   if (song.storage === 'managed') {
     // 托管模式：从 OPFS 读取
+    console.debug('[LocalAudio] 托管模式, 从 OPFS 读取, fileName:', song.fileName)
     fileResult = await readFromOPFS(song.fileName)
+    console.debug('[LocalAudio] OPFS 读取结果:', fileResult)
   } else if (song.storage === 'reference') {
     // 引用模式：从 FileHandle 获取
+    console.debug('[LocalAudio] 引用模式, 从 FileHandle 获取, handleKey:', song.handleKey)
     const handleResult = await getFileHandle(song.handleKey)
+    console.debug('[LocalAudio] getFileHandle 结果:', handleResult)
     if (!handleResult.success) {
       return handleResult
     }
     fileResult = await getFileFromHandle(handleResult.handle)
+    console.debug('[LocalAudio] getFileFromHandle 结果:', fileResult)
   } else {
+    console.warn('[LocalAudio] 未知的存储模式:', song.storage)
     return { success: false, error: ErrorTypes.INVALID_DATA }
   }
 
   if (!fileResult.success) {
+    console.warn('[LocalAudio] 获取文件失败:', fileResult)
     return fileResult
   }
 
   try {
     const url = URL.createObjectURL(fileResult.file)
+    console.debug('[LocalAudio] 创建 Object URL 成功:', url)
     return { success: true, url }
   } catch (err) {
     console.error('[LocalAudio] 创建 Object URL 失败:', err)

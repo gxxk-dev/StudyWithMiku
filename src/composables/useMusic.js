@@ -315,10 +315,12 @@ export const useMusic = () => {
    * @returns {Promise<Object|null>} APlayer 格式的歌曲，失败返回 null
    */
   const convertSongToAPlayerFormat = async (song) => {
+    console.debug('[useMusic] convertSongToAPlayerFormat 输入:', song)
+
     if (song.type === 'online') {
       // 在线歌曲：需要通过 Meting API 获取播放 URL
       // 这里返回基础信息，实际 URL 由 APlayer 的 customAudioType 或预加载处理
-      return {
+      const result = {
         name: song.name,
         artist: song.artist,
         cover: song.cover || '',
@@ -328,22 +330,29 @@ export const useMusic = () => {
         _source: song.source,
         _sourceId: song.sourceId
       }
+      console.debug('[useMusic] 在线歌曲转换结果:', result)
+      return result
     }
 
     if (song.type === 'local') {
       // 本地歌曲：获取 Object URL
       // 先检查缓存
       if (localAudioURLs.has(song.id)) {
-        return {
+        const cachedResult = {
           name: song.name,
           artist: song.artist,
           cover: '',
           url: localAudioURLs.get(song.id)
         }
+        console.debug('[useMusic] 使用缓存的本地音频 URL:', cachedResult)
+        return cachedResult
       }
 
       // 获取新的 URL
+      console.debug('[useMusic] 获取本地音频 URL, song:', song)
       const result = await getLocalAudioURL(song)
+      console.debug('[useMusic] getLocalAudioURL 结果:', result)
+
       if (!result.success) {
         console.warn(`[useMusic] 无法获取本地音频: ${song.name}`, result.error)
         return null
@@ -352,14 +361,17 @@ export const useMusic = () => {
       // 缓存 URL
       localAudioURLs.set(song.id, result.url)
 
-      return {
+      const converted = {
         name: song.name,
         artist: song.artist,
         cover: '',
         url: result.url
       }
+      console.debug('[useMusic] 本地歌曲转换结果:', converted)
+      return converted
     }
 
+    console.warn('[useMusic] 未知的歌曲类型:', song.type)
     return null
   }
 
@@ -369,6 +381,8 @@ export const useMusic = () => {
    * @returns {Promise<boolean>} 是否成功
    */
   const loadFromPlaylist = async (playlist) => {
+    console.debug('[useMusic] loadFromPlaylist 开始, playlist:', playlist)
+
     if (!playlist) {
       console.warn('[useMusic] loadFromPlaylist: 歌单为空')
       return false
@@ -379,8 +393,10 @@ export const useMusic = () => {
     try {
       // 清理之前的本地音频 URLs
       cleanupLocalAudioURLs()
+      console.debug('[useMusic] 已清理本地音频 URLs')
 
       if (playlist.mode === 'playlist') {
+        console.debug('[useMusic] playlist 模式, source:', playlist.source)
         // playlist 模式：使用 Meting API 加载
         if (playlist.source === 'spotify') {
           // Spotify 歌单
@@ -395,17 +411,28 @@ export const useMusic = () => {
       }
 
       if (playlist.mode === 'collection') {
+        console.debug('[useMusic] collection 模式, songs 数量:', playlist.songs?.length)
         // collection 模式：转换歌曲格式
+        // 切换到非 Spotify 模式以使用 APlayer
+        setPlatform('local')
+        console.debug('[useMusic] 已设置 platform 为 local, isSpotify:', isSpotify.value)
+
         const convertedSongs = []
 
         for (const song of playlist.songs) {
+          console.debug('[useMusic] 正在转换歌曲:', song.name)
           const converted = await convertSongToAPlayerFormat(song)
           if (converted) {
             convertedSongs.push(converted)
+            console.debug('[useMusic] 歌曲转换成功:', converted.name)
+          } else {
+            console.warn('[useMusic] 歌曲转换失败:', song.name)
           }
         }
 
+        console.debug('[useMusic] 转换完成, 成功数量:', convertedSongs.length)
         songs.value = convertedSongs
+        console.debug('[useMusic] songs.value 已更新, 长度:', songs.value.length)
         return true
       }
 
@@ -416,6 +443,7 @@ export const useMusic = () => {
       return false
     } finally {
       loading.value = false
+      console.debug('[useMusic] loadFromPlaylist 结束, loading:', loading.value)
     }
   }
 

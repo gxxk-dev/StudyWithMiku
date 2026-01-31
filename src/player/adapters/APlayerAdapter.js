@@ -273,11 +273,14 @@ export class APlayerAdapter extends PlayerAdapter {
       return
     }
 
+    console.debug('[APlayerAdapter] loadPlaylist 输入:', tracks)
+
     // 保存 UnifiedTrack 列表
     this._tracks = [...tracks]
 
     // 转换为 APlayer 格式
     const aplayerSongs = tracks.map(toAPlayerFormat)
+    console.debug('[APlayerAdapter] 转换后的 APlayer 格式:', aplayerSongs)
 
     // 清空现有列表并添加新曲目
     this._aplayer.list.clear()
@@ -285,6 +288,7 @@ export class APlayerAdapter extends PlayerAdapter {
 
     this._currentIndex = 0
     this.emit(PlayerEvent.PLAYLIST_LOADED, { tracks: this._tracks })
+    console.debug('[APlayerAdapter] 播放列表已加载, 曲目数:', aplayerSongs.length)
   }
 
   // ================== 切歌控制 ==================

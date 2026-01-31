@@ -30,7 +30,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import SettingsSidebar from './settings/SettingsSidebar.vue'
 import TabFocus from './settings/tabs/TabFocus.vue'
-import TabMusic from './settings/tabs/TabMusic.vue'
+import TabMedia from './settings/tabs/TabMedia.vue'
 import TabStats from './settings/tabs/TabStats.vue'
 import TabAbout from './settings/tabs/TabAbout.vue'
 
@@ -47,7 +47,7 @@ const activeTab = ref('about')
 
 const tabComponents = {
   focus: TabFocus,
-  music: TabMusic,
+  media: TabMedia,
   stats: TabStats,
   about: TabAbout
 }

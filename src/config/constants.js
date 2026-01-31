@@ -47,7 +47,9 @@ export const STORAGE_KEYS = {
   FOCUS_SETTINGS: 'swm_focus_settings',
   FOCUS_CURRENT: 'swm_focus_current',
   // 分享卡片
-  SHARE_CARD_CONFIG: 'swm_share_card_config'
+  SHARE_CARD_CONFIG: 'swm_share_card_config',
+  // 自定义视频
+  CUSTOM_VIDEOS: 'swm_custom_videos'
 }
 
 /**

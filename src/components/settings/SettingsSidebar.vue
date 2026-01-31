@@ -29,7 +29,7 @@ defineEmits(['update:activeTab'])
 
 const navItems = [
   { id: 'focus', icon: 'lucide:timer', label: '专注' },
-  { id: 'music', icon: 'lucide:music', label: '音乐' },
+  { id: 'media', icon: 'lucide:music', label: '媒体' },
   { id: 'stats', icon: 'lucide:bar-chart-3', label: '统计' },
   { id: 'about', icon: 'lucide:info', label: '关于' }
 ]

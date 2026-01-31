@@ -114,18 +114,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
-import { preloadVideos } from './utils/cache.js'
+import { useVideo } from './composables/useVideo.js'
 import { isHoveringUI } from './utils/uiState.js'
 import { useMusic } from './composables/useMusic.js'
 import { usePlayer } from './composables/usePlayer.js'
 import { usePWA } from './composables/usePWA.js'
 import { setSwUpdateCallback } from './utils/swCallback.js'
-import {
-  getVideoIndex,
-  saveVideoIndex,
-  getMusicIndex,
-  saveMusicIndex
-} from './utils/userSettings.js'
+import { getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import { APlayerAdapter } from './player/adapters/APlayerAdapter.js'
 import { setupMediaSession, cleanupMediaSession } from './player/mediaSessionBridge.js'
 import { useUrlParams } from './composables/useUrlParams.js'
@@ -242,19 +237,8 @@ const onUITouchEnd = () => {
   startHideTimer()
 }
 
-const VIDEO_BASE_URL = 'https://assets.frez79.io/swm/bg-video'
-
-const videos = [`${VIDEO_BASE_URL}/1.mp4`, `${VIDEO_BASE_URL}/2.mp4`, `${VIDEO_BASE_URL}/3.mp4`]
-
-const savedVideoIndex = getVideoIndex()
-const currentVideoIndex = ref(savedVideoIndex < videos.length ? savedVideoIndex : 0)
-const currentVideo = ref(videos[currentVideoIndex.value])
-
-const switchVideo = () => {
-  currentVideoIndex.value = (currentVideoIndex.value + 1) % videos.length
-  currentVideo.value = videos[currentVideoIndex.value]
-  saveVideoIndex(currentVideoIndex.value)
-}
+// 视频管理
+const { currentVideo, switchVideo, preloadAllVideos } = useVideo()
 
 const hideErudaSwitch = () => {
   if (typeof document === 'undefined') return
@@ -312,6 +296,20 @@ watch(
       cleanupMediaSession()
     }
   }
+)
+
+// 监听歌曲列表变化，更新 APlayer
+watch(
+  () => songs.value,
+  async (newSongs) => {
+    console.debug('[App] songs 变化, 数量:', newSongs?.length, 'isSpotify:', isSpotify.value)
+    // 只在非 Spotify 模式且 APlayer 已初始化时更新
+    if (!isSpotify.value && playerAdapter.value && aplayerInitialized.value) {
+      console.debug('[App] 更新 APlayer 播放列表')
+      await playerAdapter.value.loadPlaylist(newSongs)
+    }
+  },
+  { deep: true }
 )
 
 const loadTimer = ref(null)
@@ -500,14 +498,6 @@ onMounted(() => {
     hideErudaSwitch()
   }
 
-  const preloadAllVideos = async () => {
-    try {
-      await preloadVideos(videos)
-      console.debug('所有视频预加载完成')
-    } catch (error) {
-      console.error('视频预加载失败:', error)
-    }
-  }
   const loadAPlayer = async () => {
     try {
       await initAPlayer()
