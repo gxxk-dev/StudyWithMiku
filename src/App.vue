@@ -27,7 +27,7 @@
     />
 
     <div class="content" :class="{ hidden: !showControls }">
-      <h1 class="title" @click="onTitleClick">Study with Miku</h1>
+      <h1 class="title">Study with Miku</h1>
       <p class="subtitle">Love by SHSHOUSE / Fork by gxxk-dev</p>
     </div>
     <button
@@ -209,12 +209,6 @@ const hideErudaSwitch = () => {
   style.id = ERUDA_SWITCH_STYLE_ID
   style.textContent = '.eruda-entry-btn{display:none !important;}'
   document.head.appendChild(style)
-}
-
-const onTitleClick = () => {
-  if (window.eruda && erudaInitialized.value) {
-    window.eruda.show()
-  }
 }
 
 const playerAdapter = ref(null)

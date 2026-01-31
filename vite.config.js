@@ -3,7 +3,9 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { CACHE_NAMES } from './src/config/constants.js'
 import Icons from 'unplugin-icons/vite'
-import jsdocHelpExtractor from './vite-plugins/jsdoc-help-extractor.js'
+import jsdocHelpExtractor from './scripts/jsdoc-help-extractor.js'
+import { execSync } from 'node:child_process'
+import { version } from './package.json'
 
 const buildMeta = (() => {
   const pad = (value) => value.toString().padStart(2, '0')
@@ -14,8 +16,16 @@ const buildMeta = (() => {
   const hours = pad(now.getHours())
   const minutes = pad(now.getMinutes())
   const seconds = pad(now.getSeconds())
+
+  let dirty = false
+  try {
+    execSync('git diff --quiet HEAD', { stdio: 'ignore' })
+  } catch {
+    dirty = true
+  }
+
   return {
-    version: `${year}${month}${day}`,
+    version: dirty ? `${version}-dirty` : version,
     fullTime: `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
   }
 })()
