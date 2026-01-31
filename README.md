@@ -2,11 +2,8 @@
 
 # Study with Miku
 
-*此仓库目前仅为实验性项目，若您需要更加稳定的使用体验，请前往上游仓库进行使用*
-
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/gxxk-dev/StudyWithMiku/pulls)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3(or--later)-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-
 
 一个 **「Study with Miku」** 企划主题的番茄钟应用！让Miku陪你一起学习吧～
 

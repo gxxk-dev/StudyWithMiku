@@ -90,16 +90,30 @@ export function useToast() {
    * @param {Function} options.onCancel - 点击取消的回调
    * @param {string} options.confirmText - 确认按钮文本（默认 '是'）
    * @param {string} options.cancelText - 取消按钮文本（默认 '否'）
+   * @param {Array<{label: string, style: string, callback: Function}>} options.extraActions - 额外的操作按钮
    * @returns {number} 通知 ID
    */
   const showConfirm = (title, message = '', options = {}) => {
-    const { onConfirm, onCancel, confirmText = '是', cancelText = '否' } = options
+    const {
+      onConfirm,
+      onCancel,
+      confirmText = '是',
+      cancelText = '否',
+      extraActions = []
+    } = options
     const id = ++notificationId
     const maxCount = getConfig('UI_CONFIG', 'TOAST_MAX_COUNT')
 
     if (notifications.value.length >= maxCount) {
       notifications.value.pop()
     }
+
+    // 构建操作按钮列表
+    const actions = [
+      { label: confirmText, style: 'primary', callback: onConfirm },
+      { label: cancelText, style: 'secondary', callback: onCancel },
+      ...extraActions
+    ]
 
     notifications.value.unshift({
       id,
@@ -108,10 +122,7 @@ export function useToast() {
       message,
       duration: 0,
       createdAt: Date.now(),
-      actions: [
-        { label: confirmText, style: 'primary', callback: onConfirm },
-        { label: cancelText, style: 'secondary', callback: onCancel }
-      ]
+      actions
     })
 
     return id

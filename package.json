@@ -1,6 +1,6 @@
 {
   "name": "study-with-miku",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Study with Miku - 和Miku一起学习吧~",
   "type": "module",
   "scripts": {
@@ -22,7 +22,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:all": "bun run test:coverage && bun run test:e2e"
+    "test:all": "bun run test:coverage && bun run test:e2e",
+    "release": "release-it"
   },
   "dependencies": {
     "@iconify/vue": "^5.0.0",
@@ -31,6 +32,7 @@
     "chart.js": "^4.5.1",
     "hono": "^4.11.0",
     "html2canvas": "^1.4.1",
+    "marked": "^17.0.1",
     "vue": "^3.3.4"
   },
   "devDependencies": {
@@ -40,10 +42,12 @@
     "@iconify-json/mdi": "^1.2.3",
     "@iconify-json/ph": "^1.2.2",
     "@playwright/test": "^1.58.0",
+    "@release-it/conventional-changelog": "^10.0.4",
     "@vitejs/plugin-vue": "^6.0.3",
     "@vitest/coverage-v8": "^4.0.18",
     "@vue/test-utils": "^2.4.6",
     "comment-parser": "^1.4.5",
+    "conventional-changelog-conventionalcommits": "^9.1.0",
     "copyfiles": "^2.4.1",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
@@ -55,6 +59,7 @@
     "lint-staged": "^16.2.7",
     "msw": "^2.12.7",
     "prettier": "^3.7.4",
+    "release-it": "^19.2.4",
     "sass-embedded": "^1.97.1",
     "sharp": "^0.33.0",
     "unplugin-icons": "^22.5.0",

@@ -5,7 +5,7 @@
         v-for="item in visibleNavItems"
         :key="item.id"
         class="nav-item"
-        :class="{ active: activeTab === item.id }"
+        :class="{ active: activeTab === item.id && !isHiddenTab }"
         @click="$emit('update:activeTab', item.id)"
       >
         <Icon :icon="item.icon" width="20" height="20" class="nav-icon" />
@@ -31,6 +31,12 @@ const props = defineProps({
 })
 
 defineEmits(['update:activeTab'])
+
+// 隐藏的 tab（不在侧边栏显示的）
+const hiddenTabs = ['changelog']
+
+// 当前 tab 是否是隐藏的
+const isHiddenTab = computed(() => hiddenTabs.includes(props.activeTab))
 
 const navItems = [
   { id: 'focus', icon: 'lucide:timer', label: '专注' },

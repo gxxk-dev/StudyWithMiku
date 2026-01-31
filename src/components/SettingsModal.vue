@@ -17,7 +17,7 @@
 
           <!-- 右侧内容 -->
           <div class="content-area">
-            <component :is="currentTabComponent" />
+            <component :is="currentTabComponent" @navigate="setActiveTab" />
           </div>
         </div>
       </div>
@@ -35,6 +35,7 @@ import TabMedia from './settings/tabs/TabMedia.vue'
 import TabStats from './settings/tabs/TabStats.vue'
 import TabCache from './settings/tabs/TabPWA.vue'
 import TabAbout from './settings/tabs/TabAbout.vue'
+import TabChangelog from './settings/tabs/TabChangelog.vue'
 
 defineProps({
   isOpen: {
@@ -54,12 +55,23 @@ const tabComponents = {
   media: TabMedia,
   stats: TabStats,
   cache: TabCache,
-  about: TabAbout
+  about: TabAbout,
+  changelog: TabChangelog
 }
 
 const currentTabComponent = computed(() => {
   return tabComponents[activeTab.value] || TabFocus
 })
+
+/**
+ * 设置当前激活的 tab
+ * @param {string} tab - tab 名称
+ */
+const setActiveTab = (tab) => {
+  activeTab.value = tab
+}
+
+defineExpose({ setActiveTab })
 
 // ESC 键关闭
 const handleKeydown = (e) => {

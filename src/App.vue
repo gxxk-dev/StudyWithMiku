@@ -75,7 +75,11 @@
     <OrientationPrompt />
 
     <!-- 设置面板 -->
-    <SettingsModal :is-open="settingsModalOpen" @close="closeSettingsModal" />
+    <SettingsModal
+      ref="settingsModalRef"
+      :is-open="settingsModalOpen"
+      @close="closeSettingsModal"
+    />
 
     <!-- 专注概览面板 -->
     <FocusSummaryModal :is-open="focusSummaryModalOpen" @close="closeFocusSummaryModal" />
@@ -119,6 +123,7 @@ const inactivityTimer = ref(null)
 const erudaInitialized = ref(false)
 const settingsModalOpen = ref(false)
 const focusSummaryModalOpen = ref(false)
+const settingsModalRef = ref(null)
 
 const openSettingsModal = () => {
   settingsModalOpen.value = true
@@ -281,7 +286,20 @@ onMounted(() => {
     showConfirm('发现新版本', '应用有更新可用', {
       confirmText: '立即更新',
       cancelText: '稍后',
-      onConfirm: () => refreshApp(true)
+      onConfirm: () => refreshApp(true),
+      extraActions: [
+        {
+          label: '查看更新',
+          style: 'secondary',
+          callback: () => {
+            settingsModalOpen.value = true
+            // 等待模态框打开后切换到 changelog tab
+            setTimeout(() => {
+              settingsModalRef.value?.setActiveTab('changelog')
+            }, 50)
+          }
+        }
+      ]
     })
   })
 

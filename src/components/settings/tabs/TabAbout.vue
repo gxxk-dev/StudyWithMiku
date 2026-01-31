@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { usePWA } from '../../../composables/usePWA.js'
 
+const emit = defineEmits(['navigate'])
+
 const { isPWA, isOnline, appVersion, appBuildTime, canInstall, installPWA } = usePWA()
 
 const browserInfo = ref('')
@@ -59,6 +61,11 @@ const handleTechClick = (tech) => {
   if (tech.action === 'install') {
     handlePWAInstall()
   }
+}
+
+// 打开更新日志
+const openChangelog = () => {
+  emit('navigate', 'changelog')
 }
 
 onMounted(() => {
@@ -176,6 +183,10 @@ onMounted(() => {
     <div class="settings-section">
       <h3 class="section-title">Links</h3>
       <div class="link-list">
+        <button class="link-item" @click="openChangelog">
+          <Icon icon="lucide:file-text" width="18" height="18" />
+          <span>更新日志</span>
+        </button>
         <a
           href="https://github.com/gxxk-dev/StudyWithMiku"
           target="_blank"
