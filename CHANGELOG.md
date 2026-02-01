@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/gxxk-dev/StudyWithMiku/compare/v1.0.0...v1.1.0) (2026-02-01)
+
+### ✨ 新功能
+
+* **migration:** 添加 localStorage schema 版本升降级机制 ([9c57d46](https://github.com/gxxk-dev/StudyWithMiku/commit/9c57d466accd2f8b4219f6fb7aba857fd8cbd0a8))
+* **update:** 添加版本锁定和测试版通道功能 ([e91ba78](https://github.com/gxxk-dev/StudyWithMiku/commit/e91ba78dbe11be66d0bbc4b4e093841ce4690be3))
+* **version:** 添加版本切换功能 ([570a1f5](https://github.com/gxxk-dev/StudyWithMiku/commit/570a1f5f7c1e20c7b6113545bc5c1acf336f9b3d))
+
+### 🐛 Bug 修复
+
+* **cache:** 修复 CDN 视频缓存策略并重命名常量 ([b3dd5a7](https://github.com/gxxk-dev/StudyWithMiku/commit/b3dd5a77e60f79e26830cfdbb2abc5a8dbfdbd9a))
+
 ## 1.0.0 (2026-01-31)
 
 大家好！我是gxxk-dev，shshouse/StudyWithMiku 的第一个正式二开上线啦！
