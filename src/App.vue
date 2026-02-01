@@ -94,6 +94,7 @@ import { isHoveringUI } from './utils/uiState.js'
 import { useMusic } from './composables/useMusic.js'
 import { usePlayer } from './composables/usePlayer.js'
 import { usePWA } from './composables/usePWA.js'
+import { useUpdateChannel } from './composables/useUpdateChannel.js'
 import { setSwUpdateCallback } from './utils/swCallback.js'
 import { getMusicIndex, saveMusicIndex } from './utils/userSettings.js'
 import { APlayerAdapter } from './player/adapters/APlayerAdapter.js'
@@ -221,6 +222,18 @@ const aplayerInitialized = ref(false)
 const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, applyUrlPlaylist } = useMusic()
 const player = usePlayer()
 const { setHasUpdate, refreshApp } = usePWA()
+const { hasNewRelease, latestVersion, upgradeToLatestRelease } = useUpdateChannel()
+
+// 监听稳定版新版本发布
+watch(hasNewRelease, (hasNew) => {
+  if (hasNew && latestVersion.value) {
+    showConfirm(`发现新版本 v${latestVersion.value}`, '有新的正式版本发布', {
+      confirmText: '立即更新',
+      cancelText: '稍后',
+      onConfirm: () => upgradeToLatestRelease()
+    })
+  }
+})
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
 const playerElementRef = ref(null)
@@ -280,10 +293,14 @@ onMounted(() => {
   onlineServer.connect()
 
   // 连接 PWA Service Worker 更新回调
-  setSwUpdateCallback(() => {
-    console.log('检测到新版本可用')
+  setSwUpdateCallback(({ isBetaUpdate } = {}) => {
+    console.log('检测到新版本可用', isBetaUpdate ? '(测试版)' : '')
     setHasUpdate(true)
-    showConfirm('发现新版本', '应用有更新可用', {
+
+    const title = isBetaUpdate ? '发现测试版更新' : '发现新版本'
+    const message = isBetaUpdate ? '有新的开发构建可用' : '应用有更新可用'
+
+    showConfirm(title, message, {
       confirmText: '立即更新',
       cancelText: '稍后',
       onConfirm: () => refreshApp(true),

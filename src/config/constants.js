@@ -57,7 +57,9 @@ export const STORAGE_KEYS = {
   // 分享卡片
   SHARE_CARD_CONFIG: 'swm_share_card_config',
   // 自定义视频
-  CUSTOM_VIDEOS: 'swm_custom_videos'
+  CUSTOM_VIDEOS: 'swm_custom_videos',
+  // 更新通道
+  UPDATE_CHANNEL: 'swm_update_channel'
 }
 
 /**
@@ -166,6 +168,18 @@ export const AUDIO_CONFIG = {
 export const VERSION_CONFIG = {
   VERSIONS_FILE: '/versions.json',
   VERSION_PATH_PREFIX: '/v/'
+}
+
+/**
+ * 更新通道配置
+ */
+export const UPDATE_CHANNEL_CONFIG = {
+  STABLE: 'stable',
+  BETA: 'beta',
+  /** 稳定版检查新版本的间隔（毫秒） */
+  VERSION_CHECK_INTERVAL: 1000 * 60 * 30, // 30 分钟
+  /** 获取 versions.json 的超时（毫秒） */
+  FETCH_TIMEOUT: 5000
 }
 
 /**

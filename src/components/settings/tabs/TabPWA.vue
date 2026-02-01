@@ -8,10 +8,30 @@ import { Icon } from '@iconify/vue'
 import { usePWA } from '../../../composables/usePWA.js'
 import { useCache } from '../../../composables/useCache.js'
 import { useMusic } from '../../../composables/useMusic.js'
+import { useUpdateChannel } from '../../../composables/useUpdateChannel.js'
 import { STORAGE_KEYS } from '../../../config/constants.js'
 
 // PWA 状态（用于版本信息）
 const { appVersion, appBuildTime, refreshApp, hasUpdate } = usePWA()
+
+// 更新通道
+const { isBeta, isVersionedPath, pathVersion, switchToBeta, switchToStable } = useUpdateChannel()
+
+const switching = ref(false)
+
+const handleChannelSwitch = async () => {
+  if (switching.value) return
+  switching.value = true
+  try {
+    if (isBeta.value) {
+      await switchToStable()
+    } else {
+      await switchToBeta()
+    }
+  } finally {
+    switching.value = false
+  }
+}
 
 // 缓存管理
 const {
@@ -168,6 +188,49 @@ onMounted(() => {
         <button class="action-btn refresh-btn" @click="handleRefresh">
           <Icon icon="lucide:refresh-cw" width="16" height="16" />
           刷新应用
+        </button>
+      </div>
+    </div>
+
+    <!-- 更新通道 -->
+    <div class="settings-section">
+      <h3 class="section-title">更新通道</h3>
+      <div class="channel-setting">
+        <div class="channel-info">
+          <div class="channel-current">
+            <Icon
+              :icon="isBeta ? 'lucide:flask-conical' : 'lucide:shield-check'"
+              width="18"
+              height="18"
+            />
+            <span class="channel-name">{{ isBeta ? '测试版' : '稳定版' }}</span>
+            <span v-if="isVersionedPath" class="version-badge">v{{ pathVersion }}</span>
+          </div>
+          <p class="channel-desc">
+            {{
+              isBeta ? '将收到所有部署更新，体验最新开发功能' : '仅在正式发版时更新，保持稳定体验'
+            }}
+          </p>
+        </div>
+        <button
+          class="channel-btn"
+          :class="{ 'to-beta': !isBeta, 'to-stable': isBeta }"
+          :disabled="switching"
+          @click="handleChannelSwitch"
+        >
+          <Icon
+            :icon="
+              switching
+                ? 'lucide:loader-2'
+                : isBeta
+                  ? 'lucide:shield-check'
+                  : 'lucide:flask-conical'
+            "
+            width="16"
+            height="16"
+            :class="{ spinning: switching }"
+          />
+          {{ switching ? '切换中...' : isBeta ? '切换到稳定版' : '切换到测试版' }}
         </button>
       </div>
     </div>
@@ -505,5 +568,99 @@ onMounted(() => {
 .prefetch-actions .action-btn {
   width: 100%;
   justify-content: center;
+}
+
+/* 更新通道 */
+.channel-setting {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.channel-info {
+  flex: 1;
+}
+
+.channel-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.channel-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.version-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.channel-desc {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.channel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.channel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.channel-btn.to-beta {
+  background: rgba(255, 152, 0, 0.15);
+  border-color: rgba(255, 152, 0, 0.3);
+  color: #ff9800;
+}
+
+.channel-btn.to-beta:hover:not(:disabled) {
+  background: rgba(255, 152, 0, 0.25);
+}
+
+.channel-btn.to-stable {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.channel-btn.to-stable:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.25);
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
