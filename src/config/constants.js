@@ -13,7 +13,7 @@ export const CURRENT_SCHEMA_VERSION = 1
  */
 export const CACHE_NAMES = {
   VIDEO: 'video-cache',
-  R2_VIDEO: 'r2-video-cache',
+  CDN_VIDEO: 'cdn-video-cache',
   IMAGE_FONT: 'image-font-cache',
   AUDIO: 'audio-cache',
   API: 'api-cache',

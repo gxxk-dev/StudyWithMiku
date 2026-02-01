@@ -113,10 +113,10 @@ export default defineConfig(({ mode }) => {
             },
             // R2 存储的视频文件（CDN 加速）
             {
-              urlPattern: /^https:\/\/assets\.frez79\.io\/mp4\/.*/i,
+              urlPattern: /^https:\/\/assets\.frez79\.io\/swm\/bg-video\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: CACHE_NAMES.R2_VIDEO,
+                cacheName: CACHE_NAMES.CDN_VIDEO,
                 expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 5个视频，30天
                 cacheableResponse: { statuses: [0, 200, 206] },
                 rangeRequests: true
