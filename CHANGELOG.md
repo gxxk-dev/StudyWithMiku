@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.1](https://github.com/gxxk-dev/StudyWithMiku/compare/v1.1.0...v1.1.1) (2026-02-01)
+
+### ♻️ 重构
+
+* **ui:** 将更新通道 UI 移至版本 tab 并优化布局 ([0b967c7](https://github.com/gxxk-dev/StudyWithMiku/commit/0b967c7e9838cb1815c776467ec5299ca70e6186))
+
 ## [1.1.0](https://github.com/gxxk-dev/StudyWithMiku/compare/v1.0.0...v1.1.0) (2026-02-01)
 
 ### ✨ 新功能
