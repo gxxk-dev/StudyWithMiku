@@ -23,7 +23,8 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:all": "bun run test:coverage && bun run test:e2e",
-    "release": "release-it"
+    "release": "release-it",
+    "build:versions": "node scripts/build-versions.js"
   },
   "dependencies": {
     "@iconify/vue": "^5.0.0",

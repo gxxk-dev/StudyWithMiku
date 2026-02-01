@@ -36,6 +36,7 @@ import TabStats from './settings/tabs/TabStats.vue'
 import TabCache from './settings/tabs/TabPWA.vue'
 import TabAbout from './settings/tabs/TabAbout.vue'
 import TabChangelog from './settings/tabs/TabChangelog.vue'
+import TabVersion from './settings/tabs/TabVersion.vue'
 
 defineProps({
   isOpen: {
@@ -55,6 +56,7 @@ const tabComponents = {
   media: TabMedia,
   stats: TabStats,
   cache: TabCache,
+  version: TabVersion,
   about: TabAbout,
   changelog: TabChangelog
 }

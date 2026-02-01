@@ -43,6 +43,7 @@ const navItems = [
   { id: 'media', icon: 'lucide:music', label: '媒体' },
   { id: 'stats', icon: 'lucide:bar-chart-3', label: '统计' },
   { id: 'cache', icon: 'lucide:hard-drive', label: '缓存', pwaOnly: true },
+  { id: 'version', icon: 'lucide:git-branch', label: '版本' },
   { id: 'about', icon: 'lucide:info', label: '关于' }
 ]
 

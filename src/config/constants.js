@@ -153,6 +153,14 @@ export const AUDIO_CONFIG = {
 }
 
 /**
+ * 版本切换配置
+ */
+export const VERSION_CONFIG = {
+  VERSIONS_FILE: '/versions.json',
+  VERSION_PATH_PREFIX: '/v/'
+}
+
+/**
  * 播放器配置常量
  */
 export const PLAYER_CONFIG = {

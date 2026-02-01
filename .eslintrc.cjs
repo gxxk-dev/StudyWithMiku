@@ -5,6 +5,10 @@ module.exports = {
     es2021: true,
     node: true
   },
+  globals: {
+    __APP_VERSION__: 'readonly',
+    __BUILD_TIME__: 'readonly'
+  },
   extends: ['eslint:recommended', 'plugin:vue/vue3-recommended', 'prettier'],
   parserOptions: {
     ecmaVersion: 'latest',

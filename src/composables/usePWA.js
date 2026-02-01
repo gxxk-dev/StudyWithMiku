@@ -1,4 +1,3 @@
-/* global __APP_VERSION__, __BUILD_TIME__ */
 import { ref, onMounted, onUnmounted } from 'vue'
 import { isPWAMode, watchPWAMode } from '../utils/pwaDetector.js'
 
