@@ -9,7 +9,7 @@
  */
 
 import { execSync } from 'child_process'
-import { existsSync, mkdirSync, cpSync, writeFileSync, rmSync } from 'fs'
+import { existsSync, mkdirSync, cpSync, writeFileSync, rmSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 
 const ROOT_DIR = resolve(import.meta.dirname, '..')
@@ -53,8 +53,37 @@ function getVersionTags() {
 }
 
 /**
+ * 从 worktree 的 constants.js 中提取 CURRENT_SCHEMA_VERSION
+ * @param {string} worktreeDir - worktree 目录
+ * @returns {number} - schema 版本号，未找到时返回 0
+ */
+function extractSchemaVersion(worktreeDir) {
+  const constantsPath = resolve(worktreeDir, 'src/config/constants.js')
+  if (!existsSync(constantsPath)) {
+    console.log('  未找到 constants.js，使用默认 schemaVersion: 0')
+    return 0
+  }
+
+  try {
+    const content = readFileSync(constantsPath, 'utf-8')
+    const match = content.match(/CURRENT_SCHEMA_VERSION\s*=\s*(\d+)/)
+    if (match) {
+      const version = parseInt(match[1], 10)
+      console.log(`  提取到 schemaVersion: ${version}`)
+      return version
+    }
+    console.log('  未找到 CURRENT_SCHEMA_VERSION，使用默认值: 0')
+    return 0
+  } catch (e) {
+    console.log(`  读取 constants.js 失败: ${e.message}，使用默认值: 0`)
+    return 0
+  }
+}
+
+/**
  * 为指定 tag 构建版本产物
  * @param {string} tag - 版本号（不含 v 前缀）
+ * @returns {{success: boolean, schemaVersion?: number}}
  */
 function buildVersion(tag) {
   const worktreeDir = resolve(WORKTREE_BASE, tag)
@@ -69,6 +98,9 @@ function buildVersion(tag) {
     }
     run(`git worktree add "${worktreeDir}" "v${tag}"`)
 
+    // 提取 schema 版本号（在构建前，从源码读取）
+    const schemaVersion = extractSchemaVersion(worktreeDir)
+
     // 安装依赖并构建
     console.log('  安装依赖...')
     run('bun install --frozen-lockfile', { cwd: worktreeDir })
@@ -79,17 +111,17 @@ function buildVersion(tag) {
     const buildOutput = resolve(worktreeDir, 'dist')
     if (!existsSync(buildOutput)) {
       console.error(`  构建产物不存在: ${buildOutput}`)
-      return false
+      return { success: false }
     }
 
     mkdirSync(versionDistDir, { recursive: true })
     cpSync(buildOutput, versionDistDir, { recursive: true })
     console.log(`  产物已复制到 ${versionDistDir}`)
 
-    return true
+    return { success: true, schemaVersion }
   } catch (e) {
     console.error(`  构建 v${tag} 失败:`, e.message)
-    return false
+    return { success: false }
   } finally {
     // 清理 worktree
     try {
@@ -123,9 +155,9 @@ function main() {
   const builtVersions = []
 
   for (const { tag, date } of tags) {
-    const success = buildVersion(tag)
-    if (success) {
-      builtVersions.push({ tag, date })
+    const result = buildVersion(tag)
+    if (result.success) {
+      builtVersions.push({ tag, date, schemaVersion: result.schemaVersion })
     }
   }
 
@@ -144,7 +176,7 @@ function main() {
 
 /**
  * 生成 versions.json
- * @param {Array<{tag: string, date: string}>} versions
+ * @param {Array<{tag: string, date: string, schemaVersion: number}>} versions
  */
 function writeVersionsJson(versions) {
   const manifest = {

@@ -3,6 +3,12 @@
  */
 
 /**
+ * 当前 schema 版本号
+ * 每次修改 localStorage 数据格式时递增此值，并在 migrations/ 目录下添加对应的迁移
+ */
+export const CURRENT_SCHEMA_VERSION = 1
+
+/**
  * 缓存名称常量
  */
 export const CACHE_NAMES = {
@@ -25,6 +31,8 @@ export const ALL_CACHE_NAMES = Object.values(CACHE_NAMES)
  * localStorage 键名
  */
 export const STORAGE_KEYS = {
+  // Schema 版本
+  SCHEMA_VERSION: 'swm_schema_version',
   // 用户设置
   USER_SETTINGS: 'swm_settings',
   // 服务器配置

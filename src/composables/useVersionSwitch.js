@@ -5,6 +5,7 @@
 
 import { ref, computed } from 'vue'
 import { VERSION_CONFIG } from '../config/constants.js'
+import { migrateTo } from '../services/migration/index.js'
 
 /**
  * 版本切换功能
@@ -63,6 +64,17 @@ export function useVersionSwitch() {
    * @param {string} targetVersion - 目标版本号
    */
   const switchVersion = async (targetVersion) => {
+    // 获取目标版本的 schemaVersion
+    const targetInfo = versions.value.find((v) => v.tag === targetVersion)
+    const targetSchema = targetInfo?.schemaVersion ?? 0
+
+    // 降级数据到目标 schema
+    const result = migrateTo(targetSchema)
+    if (!result.success) {
+      error.value = `数据迁移失败: ${result.error}`
+      return
+    }
+
     await cleanPWACache()
     window.location.href = `${VERSION_CONFIG.VERSION_PATH_PREFIX}${targetVersion}/`
   }
