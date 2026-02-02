@@ -1,6 +1,7 @@
 /* global __APP_VERSION__, __BUILD_TIME__ */
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { isPWAMode, watchPWAMode } from '../utils/pwaDetector.js'
+import { getDataVersion, CURRENT_DATA_VERSION, hasBackup } from '../services/migration.js'
 
 const formatFullTime = (date = new Date()) => {
   const pad = (value) => value.toString().padStart(2, '0')
@@ -26,6 +27,12 @@ export const usePWA = () => {
   const appBuildTime = ref(
     typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : formatFullTime()
   )
+
+  // 数据版本信息
+  const dataVersion = ref(getDataVersion())
+  const latestDataVersion = CURRENT_DATA_VERSION
+  const hasPendingMigration = computed(() => dataVersion.value < latestDataVersion)
+  const migrationBackup = computed(() => hasBackup())
 
   // 使用 ref 避免跨实例引用混乱
   const deferredPrompt = ref(null)
@@ -155,6 +162,10 @@ export const usePWA = () => {
     hasUpdate,
     appVersion,
     appBuildTime,
+    dataVersion,
+    latestDataVersion,
+    hasPendingMigration,
+    migrationBackup,
     installPWA,
     setHasUpdate,
     refreshApp

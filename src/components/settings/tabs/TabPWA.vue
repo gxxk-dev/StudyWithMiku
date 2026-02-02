@@ -11,7 +11,16 @@ import { useMusic } from '../../../composables/useMusic.js'
 import { STORAGE_KEYS } from '../../../config/constants.js'
 
 // PWA 状态（用于版本信息）
-const { appVersion, appBuildTime, refreshApp, hasUpdate } = usePWA()
+const {
+  appVersion,
+  appBuildTime,
+  refreshApp,
+  hasUpdate,
+  dataVersion,
+  latestDataVersion,
+  hasPendingMigration,
+  migrationBackup
+} = usePWA()
 
 // 缓存管理
 const {
@@ -151,7 +160,7 @@ onMounted(() => {
       <div class="version-info" :title="buildTimeTooltip">
         <div class="info-row">
           <Icon icon="mdi:tag" width="16" height="16" />
-          <span class="info-label">版本：</span>
+          <span class="info-label">应用版本：</span>
           <span class="info-value">{{ appVersion }}</span>
         </div>
         <div class="info-row">
@@ -159,7 +168,29 @@ onMounted(() => {
           <span class="info-label">构建时间：</span>
           <span class="info-value">{{ appBuildTime }}</span>
         </div>
+        <div class="info-row">
+          <Icon icon="mdi:database" width="16" height="16" />
+          <span class="info-label">数据版本：</span>
+          <span class="info-value">v{{ dataVersion }}</span>
+          <span v-if="migrationBackup.exists" class="backup-badge" title="存在迁移备份">
+            <Icon icon="mdi:backup-restore" width="14" height="14" />
+          </span>
+        </div>
       </div>
+
+      <!-- 更新提示 -->
+      <div v-if="hasUpdate" class="update-notice">
+        <div class="notice-header">
+          <Icon icon="lucide:download" width="18" height="18" />
+          <span>发现新版本</span>
+        </div>
+        <p v-if="hasPendingMigration" class="notice-migration">
+          <Icon icon="mdi:database-sync" width="14" height="14" />
+          更新将包含数据迁移 (v{{ dataVersion }} → v{{ latestDataVersion }})
+        </p>
+        <p class="notice-tip">更新后数据会自动备份，如遇问题可回滚</p>
+      </div>
+
       <div class="version-actions">
         <button v-if="hasUpdate" class="action-btn update-btn" @click="handleRefresh">
           <Icon icon="lucide:download" width="16" height="16" />
@@ -337,6 +368,50 @@ onMounted(() => {
 
 .info-value {
   color: rgba(255, 255, 255, 0.6);
+}
+
+.backup-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  color: rgba(76, 175, 80, 0.9);
+}
+
+/* 更新提示 */
+.update-notice {
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 8px;
+}
+
+.notice-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ff9800;
+  margin-bottom: 8px;
+}
+
+.notice-migration {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 6px 0;
+  padding: 6px 8px;
+  background: rgba(33, 150, 243, 0.15);
+  border-radius: 4px;
+}
+
+.notice-tip {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 4px 0 0 0;
 }
 
 .version-actions {

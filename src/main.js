@@ -3,6 +3,17 @@ import App from './App.vue'
 import './style.css'
 import './styles/common.scss'
 
+// 数据迁移（必须在应用初始化前执行）
+import { runMigrations } from './services/migration.js'
+
+const migrationResult = runMigrations()
+if (!migrationResult.success) {
+  console.warn('[App] 数据迁移失败:', migrationResult.errors)
+  if (migrationResult.rolledBack) {
+    console.log('[App] 数据已回滚到迁移前状态')
+  }
+}
+
 createApp(App).mount('#app')
 
 // PWA Service Worker 注册（仅在 PWA 模式下启用）

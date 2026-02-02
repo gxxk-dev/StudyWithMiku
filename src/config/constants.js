@@ -49,7 +49,9 @@ export const STORAGE_KEYS = {
   // 分享卡片
   SHARE_CARD_CONFIG: 'swm_share_card_config',
   // 自定义视频
-  CUSTOM_VIDEOS: 'swm_custom_videos'
+  CUSTOM_VIDEOS: 'swm_custom_videos',
+  // 数据版本（迁移系统使用）
+  DATA_VERSION: 'swm_data_version'
 }
 
 /**
