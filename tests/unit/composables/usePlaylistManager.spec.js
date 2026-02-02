@@ -38,16 +38,22 @@ describe('usePlaylistManager.js', () => {
       expect(manager.currentPlaylistId.value).toBe('test-1')
     })
 
-    it('localStorage 为空时应该初始化空数组', async () => {
+    it('localStorage 为空时应该创建内置默认歌单', async () => {
       const manager = await getManager()
       manager.initialize()
 
-      expect(manager.playlists.value).toEqual([])
-      expect(manager.currentPlaylistId.value).toBeNull()
+      // 应该自动创建内置默认歌单
+      expect(manager.playlists.value).toHaveLength(1)
+      expect(manager.playlists.value[0].id).toBe('builtin_studywithmiku')
+      expect(manager.playlists.value[0].name).toBe('Study with Miku')
+      expect(manager.defaultPlaylistId.value).toBe('builtin_studywithmiku')
+      expect(manager.currentPlaylistId.value).toBe('builtin_studywithmiku')
     })
 
     it('无效的 currentPlaylistId 应该被清除', async () => {
-      localStorage.setItem(STORAGE_KEYS.PLAYLISTS, JSON.stringify([]))
+      // 预设一个有效歌单，避免触发内置歌单创建
+      const playlists = [createPlaylistRef({ id: 'valid-id', name: 'Valid' })]
+      localStorage.setItem(STORAGE_KEYS.PLAYLISTS, JSON.stringify(playlists))
       localStorage.setItem(STORAGE_KEYS.CURRENT_PLAYLIST, JSON.stringify('invalid-id'))
 
       const manager = await getManager()
@@ -70,6 +76,8 @@ describe('usePlaylistManager.js', () => {
       const manager = await getManager()
       manager.initialize()
 
+      const initialCount = manager.playlists.value.length
+
       const result = manager.createPlaylist({
         name: 'My Playlist',
         mode: 'playlist',
@@ -81,7 +89,7 @@ describe('usePlaylistManager.js', () => {
       expect(result.playlist).toBeDefined()
       expect(result.playlist.mode).toBe('playlist')
       expect(result.playlist.source).toBe('netease')
-      expect(manager.playlists.value).toHaveLength(1)
+      expect(manager.playlists.value).toHaveLength(initialCount + 1)
     })
 
     it('应该成功创建 collection 模式歌单', async () => {
@@ -117,11 +125,15 @@ describe('usePlaylistManager.js', () => {
       const manager = await getManager()
       manager.initialize()
 
+      // 内置歌单 order 为 0，新创建的歌单 order 应该递增
+      const initialMaxOrder = manager.playlists.value.reduce((max, p) => Math.max(max, p.order), -1)
+
       manager.createPlaylist({ name: 'First', mode: 'playlist', source: 'netease', sourceId: '1' })
       manager.createPlaylist({ name: 'Second', mode: 'playlist', source: 'netease', sourceId: '2' })
 
-      expect(manager.playlists.value[0].order).toBe(0)
-      expect(manager.playlists.value[1].order).toBe(1)
+      const newPlaylists = manager.playlists.value.filter((p) => p.id !== 'builtin_studywithmiku')
+      expect(newPlaylists[0].order).toBe(initialMaxOrder + 1)
+      expect(newPlaylists[1].order).toBe(initialMaxOrder + 2)
     })
 
     it('达到最大数量限制时应该失败', async () => {
@@ -161,6 +173,8 @@ describe('usePlaylistManager.js', () => {
       const manager = await getManager()
       manager.initialize()
 
+      const initialCount = manager.playlists.value.length
+
       manager.createPlaylist({
         name: 'Test',
         mode: 'playlist',
@@ -169,7 +183,7 @@ describe('usePlaylistManager.js', () => {
       })
 
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.PLAYLISTS))
-      expect(stored).toHaveLength(1)
+      expect(stored).toHaveLength(initialCount + 1)
     })
   })
 
@@ -213,7 +227,8 @@ describe('usePlaylistManager.js', () => {
 
       manager.updatePlaylist(playlist.id, { id: 'new-id' })
 
-      expect(manager.playlists.value[0].id).toBe(originalId)
+      const updatedPlaylist = manager.getPlaylist(originalId)
+      expect(updatedPlaylist.id).toBe(originalId)
     })
 
     it('不应该允许更改 mode', async () => {
@@ -236,6 +251,7 @@ describe('usePlaylistManager.js', () => {
     it('应该成功删除歌单', async () => {
       const manager = await getManager()
       manager.initialize()
+      const initialCount = manager.playlists.value.length
       const { playlist } = manager.createPlaylist({
         name: 'Test',
         mode: 'playlist',
@@ -246,7 +262,7 @@ describe('usePlaylistManager.js', () => {
       const result = await manager.deletePlaylist(playlist.id)
 
       expect(result.success).toBe(true)
-      expect(manager.playlists.value).toHaveLength(0)
+      expect(manager.playlists.value).toHaveLength(initialCount)
     })
 
     it('不存在的歌单应该失败', async () => {
@@ -329,7 +345,8 @@ describe('usePlaylistManager.js', () => {
         const result = manager.addSong(playlist.id, createSong())
 
         expect(result.success).toBe(true)
-        expect(manager.playlists.value[0].songs).toHaveLength(1)
+        const updatedPlaylist = manager.getPlaylist(playlist.id)
+        expect(updatedPlaylist.songs).toHaveLength(1)
       })
 
       it('playlist 模式不应该允许添加歌曲', async () => {
@@ -359,7 +376,8 @@ describe('usePlaylistManager.js', () => {
         const song = { name: 'Test Song', artist: 'Test Artist' }
         manager.addSong(playlist.id, song)
 
-        expect(manager.playlists.value[0].songs[0].id).toBeDefined()
+        const updatedPlaylist = manager.getPlaylist(playlist.id)
+        expect(updatedPlaylist.songs[0].id).toBeDefined()
       })
 
       it('达到最大歌曲数量时应该失败', async () => {
@@ -393,7 +411,8 @@ describe('usePlaylistManager.js', () => {
 
         expect(result.success).toBe(true)
         expect(result.added).toBe(2)
-        expect(manager.playlists.value[0].songs).toHaveLength(2)
+        const updatedPlaylist = manager.getPlaylist(playlist.id)
+        expect(updatedPlaylist.songs).toHaveLength(2)
       })
 
       it('应该截断超出限制的歌曲', async () => {
@@ -561,11 +580,14 @@ describe('usePlaylistManager.js', () => {
           sourceId: '2'
         })
 
+        // 重新排序：Second, First（不包含内置歌单）
         const result = manager.reorderPlaylists([p2.id, p1.id])
 
         expect(result.success).toBe(true)
-        expect(manager.sortedPlaylists.value[0].name).toBe('Second')
-        expect(manager.sortedPlaylists.value[1].name).toBe('First')
+        // 验证 p2 的 order 小于 p1 的 order
+        const updatedP1 = manager.getPlaylist(p1.id)
+        const updatedP2 = manager.getPlaylist(p2.id)
+        expect(updatedP2.order).toBeLessThan(updatedP1.order)
       })
 
       it('无效 ID 应该失败', async () => {
@@ -612,14 +634,31 @@ describe('usePlaylistManager.js', () => {
     it('sortedPlaylists 应该按 order 排序', async () => {
       const manager = await getManager()
       manager.initialize()
-      manager.createPlaylist({ name: 'A', mode: 'playlist', source: 'netease', sourceId: '1' })
-      manager.createPlaylist({ name: 'B', mode: 'playlist', source: 'netease', sourceId: '2' })
-      manager.createPlaylist({ name: 'C', mode: 'playlist', source: 'netease', sourceId: '3' })
+      const { playlist: pA } = manager.createPlaylist({
+        name: 'A',
+        mode: 'playlist',
+        source: 'netease',
+        sourceId: '1'
+      })
+      const { playlist: pB } = manager.createPlaylist({
+        name: 'B',
+        mode: 'playlist',
+        source: 'netease',
+        sourceId: '2'
+      })
+      const { playlist: pC } = manager.createPlaylist({
+        name: 'C',
+        mode: 'playlist',
+        source: 'netease',
+        sourceId: '3'
+      })
 
       const sorted = manager.sortedPlaylists.value
-      expect(sorted[0].name).toBe('A')
-      expect(sorted[1].name).toBe('B')
-      expect(sorted[2].name).toBe('C')
+      // 内置歌单 order=0 排在最前面，然后是 A, B, C
+      expect(sorted[0].id).toBe('builtin_studywithmiku')
+      expect(sorted[1].id).toBe(pA.id)
+      expect(sorted[2].id).toBe(pB.id)
+      expect(sorted[3].id).toBe(pC.id)
     })
   })
 })

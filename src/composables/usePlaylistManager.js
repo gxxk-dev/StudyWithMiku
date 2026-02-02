@@ -4,10 +4,24 @@
  */
 
 import { ref, computed } from 'vue'
-import { STORAGE_KEYS, PLAYLIST_CONFIG } from '../config/constants.js'
+import { STORAGE_KEYS, PLAYLIST_CONFIG, API_CONFIG } from '../config/constants.js'
 import { safeLocalStorageGetJSON, safeLocalStorageSetJSON } from '../utils/storage.js'
 import { ErrorTypes } from '../types/playlist.js'
 import { deleteFromOPFS, deleteFileHandle } from '../services/localAudioStorage.js'
+
+/**
+ * 内置默认歌单配置
+ * 首次使用时自动创建
+ */
+const BUILTIN_PLAYLIST = {
+  id: 'builtin_studywithmiku',
+  name: 'Study with Miku',
+  cover: 'https://api.injahow.cn/meting/?server=netease&type=pic&id=109951172354364941',
+  order: 0,
+  mode: 'playlist',
+  source: 'netease',
+  sourceId: API_CONFIG.DEFAULT_PLAYLIST_ID
+}
 
 // ============ 模块级状态（单例模式）============
 
@@ -89,6 +103,7 @@ export const usePlaylistManager = () => {
 
   /**
    * 初始化歌单管理器，从 localStorage 加载数据
+   * 如果歌单列表为空，自动创建内置默认歌单
    * @returns {{success: boolean, error?: string}}
    */
   const initialize = () => {
@@ -100,6 +115,15 @@ export const usePlaylistManager = () => {
       playlists.value = safeLocalStorageGetJSON(STORAGE_KEYS.PLAYLISTS, [])
       currentPlaylistId.value = safeLocalStorageGetJSON(STORAGE_KEYS.CURRENT_PLAYLIST, null)
       defaultPlaylistId.value = safeLocalStorageGetJSON(STORAGE_KEYS.DEFAULT_PLAYLIST, null)
+
+      // 如果歌单列表为空，创建内置默认歌单
+      if (playlists.value.length === 0) {
+        playlists.value.push({ ...BUILTIN_PLAYLIST })
+        defaultPlaylistId.value = BUILTIN_PLAYLIST.id
+        currentPlaylistId.value = BUILTIN_PLAYLIST.id
+        persist()
+        console.debug('[PlaylistManager] 已创建内置默认歌单')
+      }
 
       // 验证 currentPlaylistId 是否有效
       if (

@@ -105,6 +105,7 @@ import { FOCUS_STORAGE_KEYS } from './composables/focus/constants.js'
 import { safeLocalStorageGetJSON } from './utils/storage.js'
 import { onlineServer } from './services/onlineServer.js'
 import { getConfig } from './services/runtimeConfig.js'
+import { usePlaylistManager } from './composables/usePlaylistManager.js'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
@@ -218,9 +219,18 @@ const hideErudaSwitch = () => {
 
 const playerAdapter = ref(null)
 const aplayerInitialized = ref(false)
-const { songs, loadSongs, isSpotify, spotifyPlaylistId, platform, applyUrlPlaylist } = useMusic()
+const {
+  songs,
+  loadSongs,
+  isSpotify,
+  spotifyPlaylistId,
+  platform,
+  applyUrlPlaylist,
+  loadFromPlaylist
+} = useMusic()
 const player = usePlayer()
 const { setHasUpdate, refreshApp } = usePWA()
+const { initialize: initPlaylistManager, currentPlaylist, defaultPlaylist } = usePlaylistManager()
 
 // 存储 playerElement 引用，确保添加和移除监听器时使用同一个元素
 const playerElementRef = ref(null)
@@ -486,7 +496,19 @@ onMounted(() => {
   }
 
   const initAPlayer = async () => {
-    await loadSongs()
+    // 初始化歌单管理器（如果歌单列表为空会自动创建内置默认歌单）
+    initPlaylistManager()
+
+    // 优先使用 PlaylistManager 的当前歌单或默认歌单
+    const playlistToLoad = currentPlaylist.value || defaultPlaylist.value
+    if (playlistToLoad) {
+      console.debug('[App] 使用 PlaylistManager 歌单:', playlistToLoad.name)
+      await loadFromPlaylist(playlistToLoad)
+    } else {
+      // 后备：使用旧的 loadSongs 逻辑（基于 DEFAULT_PLAYLIST_ID）
+      console.debug('[App] 使用后备默认歌单')
+      await loadSongs()
+    }
 
     const savedMusicIndex = getMusicIndex()
 
