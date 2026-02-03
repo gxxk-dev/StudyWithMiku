@@ -29,8 +29,15 @@
 
       <span class="status-divider"></span>
 
-      <!-- 状态徽章 - 点击暂停/继续 -->
-      <div class="status-badge" :class="[modeClass, statusBadgeClass]" @click.stop="toggleTimer">
+      <!-- 状态徽章 - 点击暂停/继续，休息时长按跳过 -->
+      <div
+        class="status-badge"
+        :class="[modeClass, statusBadgeClass]"
+        @click.stop="toggleTimer"
+        @pointerdown="handlePointerDown"
+        @pointerup="handlePointerUp"
+        @pointerleave="handlePointerLeave"
+      >
         {{ statusText }}
       </div>
 
@@ -69,7 +76,42 @@ const onlineCount = onlineServer.onlineCount
 const isConnected = computed(() => onlineServer.connectionStatus.value === 'connected')
 
 // 番茄钟状态
-const { mode, remaining, isRunning, isPaused, isIdle, start, pause, resume } = useFocus()
+const { mode, remaining, isRunning, isPaused, isIdle, start, pause, resume, skip } = useFocus()
+
+// 长按跳过休息
+const LONG_PRESS_DURATION = 800
+let longPressTimer = null
+let isLongPress = false
+
+// 是否处于休息阶段
+const isBreakMode = computed(() => {
+  return mode.value === FocusMode.SHORT_BREAK || mode.value === FocusMode.LONG_BREAK
+})
+
+const handlePointerDown = () => {
+  isLongPress = false
+  // 仅在休息阶段启用长按跳过
+  if (isBreakMode.value && !isIdle.value) {
+    longPressTimer = setTimeout(() => {
+      isLongPress = true
+      skip()
+    }, LONG_PRESS_DURATION)
+  }
+}
+
+const handlePointerUp = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+}
+
+const handlePointerLeave = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+}
 
 // 当前时间
 const currentTime = ref('')
@@ -94,6 +136,10 @@ onUnmounted(() => {
   if (timeInterval) {
     clearInterval(timeInterval)
     timeInterval = null
+  }
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
   }
 })
 
@@ -151,6 +197,11 @@ const statusText = computed(() => {
 
 // 点击状态徽章切换计时器
 const toggleTimer = () => {
+  // 长按后不触发点击
+  if (isLongPress) {
+    isLongPress = false
+    return
+  }
   if (isIdle.value) {
     start()
   } else if (isRunning.value) {
