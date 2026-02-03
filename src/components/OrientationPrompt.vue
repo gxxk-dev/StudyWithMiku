@@ -21,6 +21,9 @@ import { Icon } from '@iconify/vue'
 
 const showPrompt = ref(false)
 
+// 暴露显示状态供外部使用
+defineExpose({ showPrompt })
+
 // 检测是否为移动设备
 const isMobileDevice = () => {
   return (

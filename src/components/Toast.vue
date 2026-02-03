@@ -45,8 +45,9 @@
 <script setup>
 import { Icon } from '@iconify/vue'
 
-defineProps({
-  notifications: { type: Array, required: true }
+const props = defineProps({
+  notifications: { type: Array, required: true },
+  paused: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['remove', 'action'])
@@ -68,10 +69,12 @@ const getIcon = (type) => {
 /**
  * 获取进度条样式
  * 使用 CSS 动画从 100% 宽度缩减到 0%
+ * 当 paused 为 true 时暂停动画
  */
 const getProgressStyle = (notification) => {
   return {
-    animationDuration: `${notification.duration}ms`
+    animationDuration: `${notification.duration}ms`,
+    animationPlayState: props.paused ? 'paused' : 'running'
   }
 }
 </script>
@@ -81,7 +84,7 @@ const getProgressStyle = (notification) => {
   position: fixed;
   top: 70px;
   right: 20px;
-  z-index: 2000;
+  z-index: 9998;
   display: flex;
   flex-direction: column;
   gap: 10px;

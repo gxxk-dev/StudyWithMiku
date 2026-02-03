@@ -70,10 +70,15 @@
     />
 
     <!-- Toast 通知 -->
-    <Toast :notifications="notifications" @remove="removeNotification" @action="handleAction" />
+    <Toast
+      :notifications="notifications"
+      :paused="toastPaused"
+      @remove="removeNotification"
+      @action="handleAction"
+    />
 
     <!-- 横屏提示 -->
-    <OrientationPrompt />
+    <OrientationPrompt ref="orientationPromptRef" />
 
     <!-- 设置面板 -->
     <SettingsModal
@@ -88,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import { useVideo } from './composables/useVideo.js'
 import { isHoveringUI } from './utils/uiState.js'
@@ -126,6 +131,7 @@ const erudaInitialized = ref(false)
 const settingsModalOpen = ref(false)
 const focusSummaryModalOpen = ref(false)
 const settingsModalRef = ref(null)
+const orientationPromptRef = ref(null)
 
 const openSettingsModal = () => {
   settingsModalOpen.value = true
@@ -144,7 +150,16 @@ const closeFocusSummaryModal = () => {
 }
 
 // Toast 状态
-const { notifications, showToast, showConfirm, removeNotification, handleAction } = useToast()
+const {
+  notifications,
+  paused: toastPaused,
+  showToast,
+  showConfirm,
+  removeNotification,
+  handleAction,
+  pauseTimers,
+  resumeTimers
+} = useToast()
 
 // Focus 状态
 const { updateSettings: updateFocusSettings, start: startFocus } = useFocus()
@@ -153,6 +168,17 @@ const { updateSettings: updateFocusSettings, start: startFocus } = useFocus()
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
 
 const isAnyModalOpen = () => settingsModalOpen.value || focusSummaryModalOpen.value
+
+// 监听横屏提示显示状态，控制 Toast 计时器暂停/恢复
+const isOrientationPromptVisible = computed(() => orientationPromptRef.value?.showPrompt ?? false)
+
+watch(isOrientationPromptVisible, (visible) => {
+  if (visible) {
+    pauseTimers()
+  } else {
+    resumeTimers()
+  }
+})
 
 const startHideTimer = () => {
   if (inactivityTimer.value) {
