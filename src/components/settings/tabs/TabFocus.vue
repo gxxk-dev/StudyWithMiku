@@ -19,8 +19,8 @@ const notificationPermission = computed(() => {
 
 // Slider 填充百分比计算
 const focusFillPercent = computed(() => ((focusMinutes.value - 1) / (120 - 1)) * 100)
-const shortBreakFillPercent = computed(() => ((shortBreakMinutes.value - 1) / (30 - 1)) * 100)
-const longBreakFillPercent = computed(() => ((longBreakMinutes.value - 1) / (60 - 1)) * 100)
+const shortBreakFillPercent = computed(() => (shortBreakMinutes.value / 30) * 100)
+const longBreakFillPercent = computed(() => (longBreakMinutes.value / 60) * 100)
 
 // 通用 clamp
 const clamp = (val, min, max) => Math.min(max, Math.max(min, val))
@@ -115,18 +115,19 @@ const handleNotificationSound = (e) => {
             <input
               type="number"
               class="number-input"
-              min="1"
+              min="0"
               max="30"
               :value="shortBreakMinutes"
-              @change="handleNumberInput('shortBreakDuration', 1, 30, $event)"
+              @change="handleNumberInput('shortBreakDuration', 0, 30, $event)"
             />
-            <span>分钟</span>
+            <span v-if="shortBreakMinutes > 0">分钟</span>
+            <span v-else class="disabled-hint">已禁用</span>
           </span>
         </div>
         <input
           type="range"
           class="slider"
-          min="1"
+          min="0"
           max="30"
           step="1"
           :value="shortBreakMinutes"
@@ -143,18 +144,19 @@ const handleNotificationSound = (e) => {
             <input
               type="number"
               class="number-input"
-              min="1"
+              min="0"
               max="60"
               :value="longBreakMinutes"
-              @change="handleNumberInput('longBreakDuration', 1, 60, $event)"
+              @change="handleNumberInput('longBreakDuration', 0, 60, $event)"
             />
-            <span>分钟</span>
+            <span v-if="longBreakMinutes > 0">分钟</span>
+            <span v-else class="disabled-hint">已禁用</span>
           </span>
         </div>
         <input
           type="range"
           class="slider"
-          min="1"
+          min="0"
           max="60"
           step="1"
           :value="longBreakMinutes"
@@ -377,6 +379,12 @@ const handleNotificationSound = (e) => {
 .setting-hint {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.disabled-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
 }
 
 /* Slider 样式 */

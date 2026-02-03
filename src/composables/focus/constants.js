@@ -27,7 +27,8 @@ export const CompletionType = {
   COMPLETED: 'completed',
   CANCELLED: 'cancelled',
   SKIPPED: 'skipped',
-  INTERRUPTED: 'interrupted'
+  INTERRUPTED: 'interrupted',
+  DISABLED: 'disabled'
 }
 
 /**

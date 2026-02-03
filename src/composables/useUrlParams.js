@@ -6,8 +6,8 @@ import { ref, computed } from 'vue'
  * 支持的参数：
  * - playlist: 歌单配置（格式：platform:id）
  * - focus: 专注时长（分钟，1-120）
- * - short: 短休息时长（分钟，1-60）
- * - long: 长休息时长（分钟，1-60）
+ * - short: 短休息时长（分钟，0-60，0 表示禁用）
+ * - long: 长休息时长（分钟，0-60，0 表示禁用）
  * - interval: 长休息间隔（1-10）
  * - autostart: 自动启动专注（值为 1 时启用）
  * - save: 保存配置到本地（值为 1 时启用）
@@ -92,7 +92,7 @@ export function useUrlParams() {
 
     const short = params.get('short')
     if (short) {
-      const parsed = validateNumber('short', short, 1, 60)
+      const parsed = validateNumber('short', short, 0, 60)
       if (parsed !== null) {
         focusConfig.shortBreakDuration = parsed * 60
       }
@@ -100,7 +100,7 @@ export function useUrlParams() {
 
     const long = params.get('long')
     if (long) {
-      const parsed = validateNumber('long', long, 1, 60)
+      const parsed = validateNumber('long', long, 0, 60)
       if (parsed !== null) {
         focusConfig.longBreakDuration = parsed * 60
       }

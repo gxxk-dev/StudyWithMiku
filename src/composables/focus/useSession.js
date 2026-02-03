@@ -186,6 +186,25 @@ const handleComplete = () => {
   // 切换到下一个模式
   switchToNextMode()
 
+  // 检查新模式是否被禁用（时长为 0）
+  // 仅对休息模式生效，防止无限循环
+  while (getCurrentDuration() === 0 && mode.value !== FocusMode.FOCUS) {
+    // 记录被禁用跳过的休息
+    const now = Date.now()
+    const disabledRecord = {
+      mode: mode.value,
+      startTime: now,
+      endTime: now,
+      duration: 0,
+      elapsed: 0,
+      completionType: CompletionType.DISABLED
+    }
+    addRecord(disabledRecord)
+
+    // 继续切换到下一模式
+    switchToNextMode()
+  }
+
   // 发送通知
   sendNotification()
 
