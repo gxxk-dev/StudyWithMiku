@@ -107,6 +107,7 @@ import { setupMediaSession, cleanupMediaSession } from './player/mediaSessionBri
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
 import { useFocus } from './composables/useFocus.js'
+import { useClipboardDetection } from './composables/useClipboardDetection.js'
 import { FOCUS_STORAGE_KEYS } from './composables/focus/constants.js'
 import { safeLocalStorageGetJSON } from './utils/storage.js'
 import { onlineServer } from './services/onlineServer.js'
@@ -163,6 +164,9 @@ const {
 
 // Focus 状态
 const { updateSettings: updateFocusSettings, start: startFocus } = useFocus()
+
+// 剪贴板检测
+const { checkClipboard } = useClipboardDetection()
 
 // === URL 参数处理（必须在组件初始化之前执行）===
 const { urlConfig, hasUrlParams, validationWarnings } = useUrlParams()
@@ -598,11 +602,263 @@ onMounted(() => {
     },
     getConfig('UI_CONFIG', 'APLAYER_LOAD_DELAY')
   )
+
+  // === 剪贴板检测 ===
+  const platformLabels = {
+    netease: '网易云',
+    tencent: 'QQ音乐',
+    spotify: 'Spotify'
+  }
+
+  /**
+   * 处理检测到的剪贴板歌单
+   * @param {{platform: string, playlistId: string}} detected - 检测结果
+   */
+  const handleClipboardPlaylist = async (detected) => {
+    const platformLabel = platformLabels[detected.platform] || detected.platform
+
+    showConfirm('检测到歌单链接', `是否切换到 ${platformLabel} 歌单？`, {
+      confirmText: '切换',
+      cancelText: '取消',
+      onConfirm: async () => {
+        const playlistConfig = `${detected.platform}:${detected.playlistId}`
+        const success = await applyUrlPlaylist(playlistConfig)
+
+        if (success) {
+          showToast(
+            'success',
+            '歌单已切换',
+            platformLabel,
+            getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+          )
+        } else {
+          showToast(
+            'error',
+            '歌单加载失败',
+            '请检查链接是否正确',
+            getConfig('UI_CONFIG', 'TOAST_ERROR_DURATION')
+          )
+        }
+      }
+    })
+  }
+
+  /**
+   * 处理检测到的应用 URL（带专注配置）
+   * @param {{config: Object, warnings: string[]}} detected - 检测结果
+   */
+  const handleClipboardAppUrl = async (detected) => {
+    const { config, warnings } = detected
+
+    // 构建配置摘要
+    const summaryParts = []
+
+    // 专注时长配置
+    if (config.focus) {
+      const focusParts = []
+      if (config.focus.focusDuration) {
+        focusParts.push(`专注 ${config.focus.focusDuration / 60} 分钟`)
+      }
+      if (config.focus.shortBreakDuration !== undefined) {
+        focusParts.push(`短休息 ${config.focus.shortBreakDuration / 60} 分钟`)
+      }
+      if (config.focus.longBreakDuration !== undefined) {
+        focusParts.push(`长休息 ${config.focus.longBreakDuration / 60} 分钟`)
+      }
+      if (config.focus.longBreakInterval) {
+        focusParts.push(`间隔 ${config.focus.longBreakInterval} 次`)
+      }
+      if (focusParts.length > 0) {
+        summaryParts.push(focusParts.join('、'))
+      }
+    }
+
+    // 歌单配置
+    if (config.playlist) {
+      const platformLabel = platformLabels[config.playlist.platform] || config.playlist.platform
+      summaryParts.push(`歌单：${platformLabel}`)
+    }
+
+    // 自动启动
+    if (config.autostart) {
+      summaryParts.push('自动启动专注')
+    }
+
+    const summary = summaryParts.join('\n')
+
+    // 显示确认对话框
+    showConfirm('检测到专注配置', summary || '应用分享的配置？', {
+      confirmText: '应用并开始',
+      cancelText: '取消',
+      onConfirm: async () => {
+        // 显示警告（如有）
+        if (warnings && warnings.length > 0) {
+          showToast(
+            'warning',
+            '部分参数无效',
+            warnings.join('；'),
+            getConfig('UI_CONFIG', 'TOAST_ERROR_DURATION')
+          )
+        }
+
+        // 应用歌单配置
+        if (config.playlist) {
+          const playlistConfig = `${config.playlist.platform}:${config.playlist.id}`
+          const success = await applyUrlPlaylist(playlistConfig)
+          if (!success) {
+            showToast(
+              'error',
+              '歌单加载失败',
+              '将使用当前歌单',
+              getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+            )
+          }
+        }
+
+        // 应用专注配置
+        if (config.focus) {
+          updateFocusSettings(config.focus)
+        }
+
+        // 启动专注（如果配置了自动启动，或者有专注时长配置）
+        if (config.autostart || config.focus) {
+          startFocus()
+          showToast('success', '专注已启动', '', getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION'))
+        }
+      }
+    })
+  }
+
+  /**
+   * 执行剪贴板检测
+   */
+  const performClipboardCheck = async () => {
+    const detected = await checkClipboard()
+    if (!detected) return
+
+    // 根据检测类型分发处理
+    if (detected.type === 'appUrl') {
+      await handleClipboardAppUrl(detected)
+    } else if (detected.type === 'playlist') {
+      await handleClipboardPlaylist(detected)
+    }
+  }
+
+  // === 剪贴板权限管理 ===
+  let clipboardPermissionGranted = false
+  let firstInteractionHandled = false
+
+  /**
+   * 检查剪贴板读取权限
+   * @returns {Promise<'granted'|'denied'|'prompt'|'unknown'>} 权限状态
+   */
+  const checkClipboardPermission = async () => {
+    if (!navigator.permissions) return 'unknown'
+    try {
+      const result = await navigator.permissions.query({ name: 'clipboard-read' })
+      return result.state
+    } catch {
+      // 某些浏览器不支持 clipboard-read 权限查询
+      return 'unknown'
+    }
+  }
+
+  /**
+   * 首次用户交互时触发剪贴板检测
+   */
+  const handleFirstInteraction = async () => {
+    if (firstInteractionHandled) return
+    firstInteractionHandled = true
+
+    // 提示用户需要点击粘贴按钮
+    showToast(
+      'info',
+      '检测剪贴板',
+      '如弹出菜单，请点击"粘贴"以启用自动检测',
+      getConfig('UI_CONFIG', 'TOAST_DEFAULT_DURATION')
+    )
+
+    // 稍微延迟执行，让用户看到提示
+    await new Promise((resolve) => setTimeout(resolve, 300))
+
+    // 执行检测（此时用户刚交互，浏览器会弹出权限请求）
+    await performClipboardCheck()
+
+    // 检测后更新权限状态
+    const state = await checkClipboardPermission()
+    clipboardPermissionGranted = state === 'granted'
+  }
+
+  // 页面获得焦点时检测（仅在权限已授予时）
+  let visibilityCheckTimeout = null
+  const handleVisibilityChange = async () => {
+    if (document.visibilityState === 'visible') {
+      // 如果尚未进行首次交互检测，跳过
+      if (!firstInteractionHandled) return
+
+      // 预检查权限状态
+      if (!clipboardPermissionGranted) {
+        const state = await checkClipboardPermission()
+        if (state === 'denied') {
+          console.debug('[ClipboardDetection] 权限已被拒绝，跳过 visibilitychange 检测')
+          return
+        }
+        // 'granted', 'prompt', 'unknown' 都尝试检测
+        clipboardPermissionGranted = state === 'granted'
+      }
+
+      // 防抖：避免频繁切换时多次触发
+      if (visibilityCheckTimeout) {
+        clearTimeout(visibilityCheckTimeout)
+      }
+      visibilityCheckTimeout = setTimeout(() => {
+        performClipboardCheck()
+        visibilityCheckTimeout = null
+      }, 500)
+    }
+  }
+
+  // 初始化时检查权限状态
+  checkClipboardPermission().then((state) => {
+    clipboardPermissionGranted = state === 'granted'
+    if (state === 'granted') {
+      // 权限已授予，可以直接在页面加载时检测
+      firstInteractionHandled = true
+      setTimeout(
+        () => {
+          performClipboardCheck()
+        },
+        getConfig('UI_CONFIG', 'APLAYER_LOAD_DELAY') + 500
+      )
+    } else {
+      // 权限未授予或需要询问，等待用户交互
+      document.addEventListener('click', handleFirstInteraction, { once: true })
+      document.addEventListener('touchstart', handleFirstInteraction, { once: true })
+    }
+  })
+
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  // 存储清理函数
+  window.__clipboardCleanup = () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    document.removeEventListener('click', handleFirstInteraction)
+    document.removeEventListener('touchstart', handleFirstInteraction)
+    if (visibilityCheckTimeout) {
+      clearTimeout(visibilityCheckTimeout)
+    }
+  }
+  // === 剪贴板检测结束 ===
 })
 
 onUnmounted(() => {
   // 断开在线计数服务器连接
   onlineServer.disconnect()
+
+  // 清理剪贴板检测监听器
+  if (window.__clipboardCleanup) {
+    window.__clipboardCleanup()
+    delete window.__clipboardCleanup
+  }
 
   if (loadTimer.value) {
     clearTimeout(loadTimer.value)
