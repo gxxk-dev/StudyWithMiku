@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { usePWA } from '../../../composables/usePWA.js'
 import { useToast } from '../../../composables/useToast.js'
+import { getDataVersion, CURRENT_DATA_VERSION } from '../../../services/migration.js'
 
 const emit = defineEmits(['navigate'])
 
@@ -11,6 +12,8 @@ const { isPWA, isOnline, appVersion, appBuildTime, canInstall, installPWA } = us
 const { showToast } = useToast()
 
 const browserInfo = ref('')
+const screenResolution = ref('')
+const dataSchemaVersion = ref('')
 
 const getBrowserInfo = () => {
   const ua = navigator.userAgent
@@ -32,6 +35,24 @@ const getBrowserInfo = () => {
   }
 
   return `${browserName} ${browserVersion}`
+}
+
+// 获取屏幕分辨率
+const getScreenResolution = () => {
+  const width = window.screen.width
+  const height = window.screen.height
+  const dpr = window.devicePixelRatio || 1
+  return `${width}×${height} @${dpr}x`
+}
+
+// 获取数据 schema 版本
+const getDataSchemaVersion = () => {
+  const current = getDataVersion()
+  const latest = CURRENT_DATA_VERSION
+  if (current === latest) {
+    return `v${current}`
+  }
+  return `v${current} → v${latest}`
 }
 
 const techStack = [
@@ -73,6 +94,8 @@ const openChangelog = () => {
 
 onMounted(() => {
   browserInfo.value = getBrowserInfo()
+  screenResolution.value = getScreenResolution()
+  dataSchemaVersion.value = getDataSchemaVersion()
 })
 </script>
 
@@ -80,7 +103,7 @@ onMounted(() => {
   <div class="tab-content">
     <!-- 版本信息 -->
     <div class="settings-section">
-      <h3 class="section-title">Version Info</h3>
+      <h3 class="section-title">System Info</h3>
       <div class="info-list">
         <div class="info-item">
           <Icon icon="mdi:tag" width="16" height="16" />
@@ -106,6 +129,16 @@ onMounted(() => {
           <Icon icon="mdi:wifi" width="16" height="16" />
           <span class="info-label">网络状态：</span>
           <span class="info-value">{{ isOnline ? '在线' : '离线' }}</span>
+        </div>
+        <div class="info-item">
+          <Icon icon="mdi:monitor" width="16" height="16" />
+          <span class="info-label">屏幕分辨率：</span>
+          <span class="info-value">{{ screenResolution }}</span>
+        </div>
+        <div class="info-item">
+          <Icon icon="mdi:database" width="16" height="16" />
+          <span class="info-label">数据版本：</span>
+          <span class="info-value">{{ dataSchemaVersion }}</span>
         </div>
       </div>
 
