@@ -11,6 +11,7 @@
         loop
         playsinline
         webkit-playsinline
+        disablepictureinpicture
         @loadeddata="onVideoLoaded"
       ></video>
     </transition>
