@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { generateShareUrl } from '@/composables/useUrlParams.js'
 
 describe('useUrlParams.js', () => {
   // 保存原始的 window.location
@@ -24,6 +25,109 @@ describe('useUrlParams.js', () => {
 
   afterEach(() => {
     window.location = originalLocation
+  })
+
+  describe('generateShareUrl', () => {
+    it('应该生成包含时长设置的 URL', () => {
+      const url = generateShareUrl({
+        focusSettings: {
+          focusDuration: 1500, // 25 分钟
+          shortBreakDuration: 300, // 5 分钟
+          longBreakDuration: 900, // 15 分钟
+          longBreakInterval: 4
+        },
+        playlist: null,
+        autostart: false,
+        save: false
+      })
+
+      expect(url).toBe('http://localhost:3000/?focus=25&short=5&long=15&interval=4')
+    })
+
+    it('应该生成包含歌单的 URL', () => {
+      const url = generateShareUrl({
+        focusSettings: null,
+        playlist: { platform: 'netease', id: '12345678' },
+        autostart: false,
+        save: false
+      })
+
+      expect(url).toBe('http://localhost:3000/?playlist=netease%3A12345678')
+    })
+
+    it('应该生成包含 autostart 的 URL', () => {
+      const url = generateShareUrl({
+        focusSettings: null,
+        playlist: null,
+        autostart: true,
+        save: false
+      })
+
+      expect(url).toBe('http://localhost:3000/?autostart=1')
+    })
+
+    it('应该生成包含 save 的 URL', () => {
+      const url = generateShareUrl({
+        focusSettings: null,
+        playlist: null,
+        autostart: false,
+        save: true
+      })
+
+      expect(url).toBe('http://localhost:3000/?save=1')
+    })
+
+    it('应该生成完整的组合 URL', () => {
+      const url = generateShareUrl({
+        focusSettings: {
+          focusDuration: 3000, // 50 分钟
+          shortBreakDuration: 600, // 10 分钟
+          longBreakDuration: 1200, // 20 分钟
+          longBreakInterval: 3
+        },
+        playlist: { platform: 'spotify', id: 'abc123' },
+        autostart: true,
+        save: true
+      })
+
+      const parsed = new URL(url)
+      expect(parsed.searchParams.get('focus')).toBe('50')
+      expect(parsed.searchParams.get('short')).toBe('10')
+      expect(parsed.searchParams.get('long')).toBe('20')
+      expect(parsed.searchParams.get('interval')).toBe('3')
+      expect(parsed.searchParams.get('playlist')).toBe('spotify:abc123')
+      expect(parsed.searchParams.get('autostart')).toBe('1')
+      expect(parsed.searchParams.get('save')).toBe('1')
+    })
+
+    it('应该正确处理 0 分钟的休息时长', () => {
+      const url = generateShareUrl({
+        focusSettings: {
+          focusDuration: 1500,
+          shortBreakDuration: 0,
+          longBreakDuration: 0,
+          longBreakInterval: 4
+        },
+        playlist: null,
+        autostart: false,
+        save: false
+      })
+
+      const parsed = new URL(url)
+      expect(parsed.searchParams.get('short')).toBe('0')
+      expect(parsed.searchParams.get('long')).toBe('0')
+    })
+
+    it('没有参数时应该生成空查询字符串的 URL', () => {
+      const url = generateShareUrl({
+        focusSettings: null,
+        playlist: null,
+        autostart: false,
+        save: false
+      })
+
+      expect(url).toBe('http://localhost:3000/?')
+    })
   })
 
   describe('解析 playlist 参数', () => {

@@ -1,6 +1,43 @@
 import { ref, computed } from 'vue'
 
 /**
+ * 生成分享 URL
+ * @param {Object} options - 配置选项
+ * @param {Object|null} options.focusSettings - 专注设置（null 表示不包含时长）
+ * @param {number} options.focusSettings.focusDuration - 专注时长（秒）
+ * @param {number} options.focusSettings.shortBreakDuration - 短休息时长（秒）
+ * @param {number} options.focusSettings.longBreakDuration - 长休息时长（秒）
+ * @param {number} options.focusSettings.longBreakInterval - 长休息间隔
+ * @param {Object|null} options.playlist - 歌单 { platform, id }（null 表示不包含）
+ * @param {boolean} options.autostart - 是否自动启动
+ * @param {boolean} options.save - 是否覆写配置
+ * @returns {string} 完整的分享 URL
+ */
+export function generateShareUrl({ focusSettings, playlist, autostart, save }) {
+  const params = new URLSearchParams()
+
+  // 时长设置（转换为分钟）
+  if (focusSettings) {
+    params.set('focus', Math.round(focusSettings.focusDuration / 60))
+    params.set('short', Math.round(focusSettings.shortBreakDuration / 60))
+    params.set('long', Math.round(focusSettings.longBreakDuration / 60))
+    params.set('interval', focusSettings.longBreakInterval)
+  }
+
+  // 歌单
+  if (playlist) {
+    params.set('playlist', `${playlist.platform}:${playlist.id}`)
+  }
+
+  // 标志参数
+  if (autostart) params.set('autostart', '1')
+  if (save) params.set('save', '1')
+
+  const baseUrl = window.location.origin + window.location.pathname
+  return `${baseUrl}?${params.toString()}`
+}
+
+/**
  * URL 参数解析和验证
  *
  * 支持的参数：

@@ -1,9 +1,55 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useFocus } from '../../../composables/useFocus.js'
+import { usePlaylistManager } from '../../../composables/usePlaylistManager.js'
+import { generateShareUrl } from '../../../composables/useUrlParams.js'
 
 const { settings, updateSettings, requestNotificationPermission } = useFocus()
+
+// 歌单管理
+const { currentPlaylist } = usePlaylistManager()
+
+// 分享选项
+const includeDuration = ref(true)
+const includePlaylist = ref(true)
+const includeAutostart = ref(false)
+const includeSave = ref(false)
+const generatedUrl = ref('')
+const copySuccess = ref(false)
+
+// 当前歌单是否可序列化（仅 mode='playlist' 且有 source/sourceId）
+const canIncludePlaylist = computed(() => {
+  const p = currentPlaylist.value
+  return p && p.mode === 'playlist' && p.source && p.sourceId
+})
+
+const handleGenerateUrl = () => {
+  const playlistInfo =
+    canIncludePlaylist.value && includePlaylist.value
+      ? { platform: currentPlaylist.value.source, id: currentPlaylist.value.sourceId }
+      : null
+
+  generatedUrl.value = generateShareUrl({
+    focusSettings: includeDuration.value ? settings.value : null,
+    playlist: playlistInfo,
+    autostart: includeAutostart.value,
+    save: includeSave.value
+  })
+}
+
+const handleCopyUrl = async () => {
+  if (!generatedUrl.value) return
+  try {
+    await navigator.clipboard.writeText(generatedUrl.value)
+    copySuccess.value = true
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
+  } catch {
+    // 复制失败时静默处理
+  }
+}
 
 // 分钟 <-> 秒转换的 computed
 const focusMinutes = computed(() => Math.round(settings.value.focusDuration / 60))
@@ -282,6 +328,86 @@ const handleNotificationSound = (e) => {
         </label>
       </div>
     </div>
+
+    <!-- Section 4: 分享配置 -->
+    <div class="settings-section">
+      <h3 class="section-title">
+        <Icon icon="lucide:share-2" width="18" height="18" />
+        <span>分享配置</span>
+      </h3>
+
+      <!-- 包含时长 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">包含时长</span>
+          <span class="setting-hint">分享专注/休息时长设置</span>
+        </div>
+        <label class="toggle">
+          <input v-model="includeDuration" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- 包含歌单 -->
+      <div v-if="canIncludePlaylist" class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">包含歌单</span>
+          <span class="setting-hint">将当前歌单一起分享</span>
+        </div>
+        <label class="toggle">
+          <input v-model="includePlaylist" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- 本地歌单提示 -->
+      <div v-else-if="currentPlaylist" class="permission-banner info">
+        <Icon icon="lucide:info" width="16" height="16" />
+        <span>本地歌单暂不支持通过链接分享</span>
+      </div>
+
+      <!-- 自动启动 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">自动启动</span>
+          <span class="setting-hint">打开链接后自动开始专注</span>
+        </div>
+        <label class="toggle">
+          <input v-model="includeAutostart" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- 覆写配置 -->
+      <div class="setting-item row">
+        <div class="setting-info">
+          <span class="setting-label">覆写配置</span>
+          <span class="setting-hint">将配置保存到使用者本地</span>
+        </div>
+        <label class="toggle">
+          <input v-model="includeSave" type="checkbox" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- 覆写提示 -->
+      <div v-if="includeSave" class="share-disclaimer">对方可以选择是否保存到本地</div>
+
+      <!-- 生成按钮 -->
+      <button class="share-generate-btn" @click="handleGenerateUrl">
+        <Icon icon="lucide:link" width="16" height="16" />
+        <span>生成分享链接</span>
+      </button>
+
+      <!-- URL 展示 -->
+      <div v-if="generatedUrl" class="share-url-display">
+        <div class="share-url-text">{{ generatedUrl }}</div>
+        <button class="share-copy-btn" :class="{ success: copySuccess }" @click="handleCopyUrl">
+          <Icon :icon="copySuccess ? 'lucide:check' : 'lucide:copy'" width="16" height="16" />
+          <span>{{ copySuccess ? '已复制' : '复制' }}</span>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -558,5 +684,92 @@ const handleNotificationSound = (e) => {
   background: rgba(99, 102, 241, 0.15);
   border: 1px solid rgba(99, 102, 241, 0.3);
   color: #818cf8;
+}
+
+/* 分享提示 */
+.share-disclaimer {
+  padding: 8px 12px;
+  margin-top: -8px;
+  margin-bottom: 12px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+/* 生成按钮 */
+.share-generate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #39c5bb 0%, #2db5aa 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-generate-btn:hover {
+  background: linear-gradient(135deg, #4dd5cb 0%, #3dc5ba 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(57, 197, 187, 0.3);
+}
+
+/* URL 展示 */
+.share-url-display {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.share-url-text {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.7);
+  word-break: break-all;
+  max-height: 80px;
+  overflow-y: auto;
+}
+
+.share-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid rgba(57, 197, 187, 0.3);
+  border-radius: 6px;
+  background: rgba(57, 197, 187, 0.1);
+  color: #39c5bb;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.share-copy-btn:hover {
+  background: rgba(57, 197, 187, 0.2);
+  border-color: rgba(57, 197, 187, 0.5);
+}
+
+.share-copy-btn.success {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
+  color: #4caf50;
 }
 </style>
