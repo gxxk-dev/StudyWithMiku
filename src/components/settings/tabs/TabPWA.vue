@@ -8,6 +8,7 @@ import { Icon } from '@iconify/vue'
 import { usePWA } from '../../../composables/usePWA.js'
 import { useCache } from '../../../composables/useCache.js'
 import { useMusic } from '../../../composables/useMusic.js'
+import { useToast } from '../../../composables/useToast.js'
 import { STORAGE_KEYS } from '../../../config/constants.js'
 
 // PWA 状态（用于版本信息）
@@ -36,6 +37,9 @@ const {
 
 // 音乐信息（用于预加载）
 const { playlistId, platform, songs } = useMusic()
+
+// Toast 通知
+const { showToast } = useToast()
 
 // 缓存折叠状态
 const expandedSections = ref({ sw: false, ls: false, memory: false, prefetch: false })
@@ -95,28 +99,28 @@ const refreshStats = async () => {
 const clearSwCache = async (name) => {
   if (confirm(`确定要清除 ${name} 缓存吗？`)) {
     const success = await clearServiceWorkerCache(name)
-    alert(success ? `${name} 已清除` : `清除 ${name} 失败`)
+    showToast(success ? 'success' : 'error', success ? `${name} 已清除` : `清除 ${name} 失败`)
   }
 }
 
 const clearLsCategory = async (category) => {
   if (confirm(`确定要清除 ${categoryLabels[category]} 吗？`)) {
     await clearLocalStorageCategory(category)
-    alert(`${categoryLabels[category]} 已清除`)
+    showToast('success', `${categoryLabels[category]} 已清除`)
   }
 }
 
 const clearMemCache = async (type) => {
   if (confirm(`确定要清除 ${memoryTypeLabels[type]} 缓存吗？`)) {
     await clearMemoryCacheType(type)
-    alert(`${memoryTypeLabels[type]} 缓存已清除`)
+    showToast('success', `${memoryTypeLabels[type]} 缓存已清除`)
   }
 }
 
 const confirmClearAll = async () => {
   if (confirm('确定要清除所有缓存吗？这将删除所有视频、音乐、歌单数据（不包括应用设置）。')) {
     await clearAllCaches()
-    alert('所有缓存已清除')
+    showToast('success', '所有缓存已清除')
   }
 }
 
@@ -125,10 +129,10 @@ const handlePrefetch = async () => {
   prefetching.value = true
   try {
     await triggerPrefetch(songs.value, platform.value, playlistId.value)
-    alert('预加载完成')
+    showToast('success', '预加载完成')
     await refreshStats()
   } catch (error) {
-    alert('预加载失败: ' + error.message)
+    showToast('error', '预加载失败', error.message)
   } finally {
     prefetching.value = false
   }
@@ -136,7 +140,7 @@ const handlePrefetch = async () => {
 
 const handleClearPrefetchTimestamp = () => {
   clearPrefetchTimestamp(platform.value, playlistId.value)
-  alert('预加载时间戳已重置')
+  showToast('success', '预加载时间戳已重置')
 }
 
 // 刷新应用

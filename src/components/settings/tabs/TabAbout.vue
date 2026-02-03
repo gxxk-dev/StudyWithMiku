@@ -2,10 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { usePWA } from '../../../composables/usePWA.js'
+import { useToast } from '../../../composables/useToast.js'
 
 const emit = defineEmits(['navigate'])
 
 const { isPWA, isOnline, appVersion, appBuildTime, canInstall, installPWA } = usePWA()
+
+const { showToast } = useToast()
 
 const browserInfo = ref('')
 
@@ -43,16 +46,16 @@ const techStack = [
 // 处理 PWA 安装
 const handlePWAInstall = async () => {
   if (isPWA.value) {
-    alert('当前已经在 PWA 模式下运行')
+    showToast('info', '当前已经在 PWA 模式下运行')
     return
   }
   if (canInstall.value) {
     const accepted = await installPWA()
     if (accepted) {
-      alert('感谢安装！')
+      showToast('success', '感谢安装！')
     }
   } else {
-    alert('请使用浏览器菜单中的"安装"或"添加到主屏幕"选项')
+    showToast('info', '请使用浏览器菜单中的"安装"或"添加到主屏幕"选项')
   }
 }
 
