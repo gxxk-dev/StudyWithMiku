@@ -26,8 +26,9 @@ binding = "DB"
 database_name = "study-with-miku-db"
 database_id = "placeholder"
 
-# 环境变量 (非敏感)
-[vars]
-WEBAUTHN_RP_ID = "study-with-miku.pages.dev"
-WEBAUTHN_RP_NAME = "Study with Miku"
-OAUTH_CALLBACK_BASE = "https://study-with-miku.pages.dev"
+# 环境变量 (可选，会自动从请求 URL 检测)
+# 如果需要覆盖自动检测，可以取消注释以下配置：
+# [vars]
+# WEBAUTHN_RP_ID = "study-with-miku.pages.dev"
+# WEBAUTHN_RP_NAME = "Study with Miku"
+# OAUTH_CALLBACK_BASE = "https://study-with-miku.pages.dev"

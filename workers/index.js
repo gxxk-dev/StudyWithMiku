@@ -3,6 +3,7 @@ import { OnlineCounter } from './online-counter.js'
 import { AuthChallenge } from './auth-challenge.js'
 import { corsGuard, handleCorsOptions } from './middleware/cors.js'
 import { securityHeaders } from './middleware/securityHeaders.js'
+import { envDefaults } from './middleware/envDefaults.js'
 import { getCounterStub } from './services/counter.js'
 import authRoutes from './routes/auth.js'
 import oauthRoutes from './routes/oauth.js'
@@ -12,7 +13,8 @@ const app = new Hono()
 
 const handleOptionsRoute = (c) => handleCorsOptions(c.req.raw)
 
-// 全局安全头
+// 全局中间件
+app.use('*', envDefaults()) // 自动检测环境变量
 app.use('*', securityHeaders())
 
 // CORS 配置
