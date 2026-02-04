@@ -26,14 +26,17 @@
     "release": "release-it"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
     "@iconify/vue": "^5.0.0",
+    "@simplewebauthn/server": "^13.2.2",
     "@vueuse/core": "^10.1.2",
     "aplayer": "^1.10.1",
     "chart.js": "^4.5.1",
     "hono": "^4.11.0",
     "html2canvas": "^1.4.1",
     "marked": "^17.0.1",
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",

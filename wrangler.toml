@@ -8,6 +8,26 @@ assets = { directory = "./dist", binding = "ASSETS" }
 name = "ONLINE_COUNTER"
 class_name = "OnlineCounter"
 
+[[durable_objects.bindings]]
+name = "AUTH_CHALLENGE"
+class_name = "AuthChallenge"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["OnlineCounter"]
+
+[[migrations]]
+tag = "v2"
+new_classes = ["AuthChallenge"]
+
+# D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "study-with-miku-db"
+database_id = "placeholder"
+
+# 环境变量 (非敏感)
+[vars]
+WEBAUTHN_RP_ID = "study-with-miku.pages.dev"
+WEBAUTHN_RP_NAME = "Study with Miku"
+OAUTH_CALLBACK_BASE = "https://study-with-miku.pages.dev"

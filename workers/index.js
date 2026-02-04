@@ -1,18 +1,35 @@
 import { Hono } from 'hono'
 import { OnlineCounter } from './online-counter.js'
+import { AuthChallenge } from './auth-challenge.js'
 import { corsGuard, handleCorsOptions } from './middleware/cors.js'
+import { securityHeaders } from './middleware/securityHeaders.js'
 import { getCounterStub } from './services/counter.js'
+import authRoutes from './routes/auth.js'
+import oauthRoutes from './routes/oauth.js'
+import dataRoutes from './routes/data.js'
 
 const app = new Hono()
 
 const handleOptionsRoute = (c) => handleCorsOptions(c.req.raw)
 
+// 全局安全头
+app.use('*', securityHeaders())
+
+// CORS 配置
 app.use('/ws', corsGuard)
 app.use('/count', corsGuard)
+app.use('/auth/*', corsGuard)
+app.use('/oauth/*', corsGuard)
+app.use('/api/*', corsGuard)
 
+// OPTIONS 预检请求
 app.options('/ws', handleOptionsRoute)
 app.options('/count', handleOptionsRoute)
+app.options('/auth/*', handleOptionsRoute)
+app.options('/oauth/*', handleOptionsRoute)
+app.options('/api/*', handleOptionsRoute)
 
+// 在线计数路由
 app.get('/count', async (c) => {
   try {
     const stub = getCounterStub(c.env)
@@ -34,5 +51,14 @@ app.get('/ws', async (c) => {
   }
 })
 
+// 认证路由
+app.route('/auth', authRoutes)
+
+// OAuth 路由
+app.route('/oauth', oauthRoutes)
+
+// 数据同步路由
+app.route('/api/data', dataRoutes)
+
 export default app
-export { OnlineCounter }
+export { OnlineCounter, AuthChallenge }

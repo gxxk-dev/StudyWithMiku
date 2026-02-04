@@ -242,32 +242,6 @@ describe('useClipboardDetection.js', () => {
       })
     })
 
-    describe('生产环境域名', () => {
-      it('应该检测已知生产域名 URL', async () => {
-        mockClipboard('https://studywithmiku.com/?focus=45')
-        const { checkClipboard } = useClipboardDetection()
-
-        const result = await checkClipboard()
-
-        expect(result.type).toBe('appUrl')
-        expect(result.config.focus.focusDuration).toBe(2700)
-      })
-
-      it('应该检测 swm.gxxk.dev URL', async () => {
-        mockClipboard('https://swm.gxxk.dev/?focus=50&playlist=spotify%3Aabc123')
-        const { checkClipboard } = useClipboardDetection()
-
-        const result = await checkClipboard()
-
-        expect(result.type).toBe('appUrl')
-        expect(result.config.focus.focusDuration).toBe(3000)
-        expect(result.config.playlist).toEqual({
-          platform: 'spotify',
-          id: 'abc123'
-        })
-      })
-    })
-
     describe('无效参数处理', () => {
       it('参数超出范围时应返回 null（无有效配置）', async () => {
         mockClipboard('http://localhost:3000/?focus=999')

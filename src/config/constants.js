@@ -51,7 +51,13 @@ export const STORAGE_KEYS = {
   // 自定义视频
   CUSTOM_VIDEOS: 'swm_custom_videos',
   // 数据版本（迁移系统使用）
-  DATA_VERSION: 'swm_data_version'
+  DATA_VERSION: 'swm_data_version',
+  // 认证相关
+  AUTH_ACCESS_TOKEN: 'swm_access_token',
+  AUTH_REFRESH_TOKEN: 'swm_refresh_token',
+  AUTH_USER: 'swm_user',
+  // 数据同步版本
+  SYNC_VERSION_PREFIX: 'swm_sync_version'
 }
 
 /**
@@ -174,4 +180,22 @@ export const PLAYER_CONFIG = {
     listMaxHeight: '200px',
     width: '300px'
   }
+}
+
+/**
+ * 认证配置常量
+ */
+export const AUTH_CONFIG = {
+  // Token 刷新阈值（秒），在过期前多少秒开始刷新
+  TOKEN_REFRESH_THRESHOLD: 60,
+  // 数据类型 (与后端 DATA_CONFIG.TYPES 保持一致)
+  DATA_TYPES: {
+    FOCUS_RECORDS: 'focus_records',
+    FOCUS_SETTINGS: 'focus_settings',
+    PLAYLISTS: 'playlists',
+    USER_SETTINGS: 'user_settings',
+    SHARE_CONFIG: 'share_config'
+  },
+  // 支持的 OAuth Provider
+  OAUTH_PROVIDERS: ['github', 'google', 'microsoft']
 }
