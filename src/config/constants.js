@@ -188,6 +188,14 @@ export const PLAYER_CONFIG = {
 export const AUTH_CONFIG = {
   // Token 刷新阈值（秒），在过期前多少秒开始刷新
   TOKEN_REFRESH_THRESHOLD: 60,
+  // Token 检查间隔（毫秒）
+  TOKEN_CHECK_INTERVAL: 30000,
+  // 同步防抖延迟（毫秒）
+  SYNC_DEBOUNCE_DELAY: 2000,
+  // 最大重试次数
+  MAX_RETRY_ATTEMPTS: 3,
+  // 重试延迟（毫秒）
+  RETRY_DELAY: 1000,
   // 数据类型 (与后端 DATA_CONFIG.TYPES 保持一致)
   DATA_TYPES: {
     FOCUS_RECORDS: 'focus_records',
@@ -198,4 +206,43 @@ export const AUTH_CONFIG = {
   },
   // 支持的 OAuth Provider
   OAUTH_PROVIDERS: ['github', 'google', 'microsoft']
+}
+
+/**
+ * 认证 API 端点
+ */
+export const AUTH_API = {
+  BASE_URL: '/auth',
+  REGISTER_OPTIONS: '/auth/register/options',
+  REGISTER_VERIFY: '/auth/register/verify',
+  LOGIN_OPTIONS: '/auth/login/options',
+  LOGIN_VERIFY: '/auth/login/verify',
+  REFRESH: '/auth/refresh',
+  LOGOUT: '/auth/logout',
+  ME: '/auth/me',
+  DEVICES: '/auth/devices',
+  ADD_DEVICE_OPTIONS: '/auth/devices/add/options',
+  ADD_DEVICE_VERIFY: '/auth/devices/add/verify',
+  DELETE_DEVICE: (id) => `/auth/devices/${id}`
+}
+
+/**
+ * OAuth API 端点
+ */
+export const OAUTH_API = {
+  GITHUB: '/oauth/github',
+  GOOGLE: '/oauth/google',
+  MICROSOFT: '/oauth/microsoft',
+  CALLBACK: '/oauth/callback'
+}
+
+/**
+ * 数据同步 API 端点
+ */
+export const DATA_API = {
+  BASE_URL: '/api/data',
+  GET_DATA: (type) => `/api/data/${type}`,
+  UPDATE_DATA: (type) => `/api/data/${type}`,
+  SYNC_ALL: '/api/data',
+  BATCH_SYNC: '/api/data/sync'
 }

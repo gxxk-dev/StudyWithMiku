@@ -4,10 +4,12 @@
  */
 
 import { ref, computed } from 'vue'
-import { STORAGE_KEYS, PLAYLIST_CONFIG, API_CONFIG } from '../config/constants.js'
+import { STORAGE_KEYS, PLAYLIST_CONFIG, API_CONFIG, AUTH_CONFIG } from '../config/constants.js'
 import { safeLocalStorageGetJSON, safeLocalStorageSetJSON } from '../utils/storage.js'
 import { ErrorTypes } from '../types/playlist.js'
 import { deleteFromOPFS, deleteFileHandle } from '../services/localAudioStorage.js'
+import { useAuth } from './useAuth.js'
+import { useDataSync } from './useDataSync.js'
 
 /**
  * 内置默认歌单配置
@@ -54,6 +56,22 @@ const persist = () => {
   safeLocalStorageSetJSON(STORAGE_KEYS.PLAYLISTS, playlists.value)
   safeLocalStorageSetJSON(STORAGE_KEYS.CURRENT_PLAYLIST, currentPlaylistId.value)
   safeLocalStorageSetJSON(STORAGE_KEYS.DEFAULT_PLAYLIST, defaultPlaylistId.value)
+
+  // 如果用户已登录，自动上传到服务器
+  const { isAuthenticated } = useAuth()
+  const { uploadData } = useDataSync()
+
+  if (isAuthenticated.value) {
+    const playlistsData = {
+      playlists: playlists.value,
+      currentId: currentPlaylistId.value,
+      defaultId: defaultPlaylistId.value
+    }
+    uploadData(AUTH_CONFIG.DATA_TYPES.PLAYLISTS, playlistsData).catch((error) => {
+      console.error('上传歌单失败:', error)
+      // 不影响本地保存，错误会被加入离线队列
+    })
+  }
 }
 
 /**
@@ -106,7 +124,7 @@ export const usePlaylistManager = () => {
    * 如果歌单列表为空，自动创建内置默认歌单
    * @returns {{success: boolean, error?: string}}
    */
-  const initialize = () => {
+  const initialize = async () => {
     if (initialized) {
       return { success: true }
     }
@@ -123,6 +141,42 @@ export const usePlaylistManager = () => {
         currentPlaylistId.value = BUILTIN_PLAYLIST.id
         persist()
         console.debug('[PlaylistManager] 已创建内置默认歌单')
+      }
+
+      // 如果用户已登录，下载并合并服务器数据
+      const { isAuthenticated } = useAuth()
+      const { downloadData } = useDataSync()
+
+      if (isAuthenticated.value) {
+        try {
+          const serverData = await downloadData(AUTH_CONFIG.DATA_TYPES.PLAYLISTS)
+          if (serverData && typeof serverData === 'object') {
+            // 合并歌单列表
+            if (serverData.playlists && Array.isArray(serverData.playlists)) {
+              const { mergePlaylists } = await import('../utils/syncConflictResolver.js')
+              playlists.value = mergePlaylists(playlists.value, serverData.playlists)
+            }
+
+            // 使用服务器的当前和默认歌单 ID（如果有效）
+            if (
+              serverData.currentId &&
+              playlists.value.find((p) => p.id === serverData.currentId)
+            ) {
+              currentPlaylistId.value = serverData.currentId
+            }
+            if (
+              serverData.defaultId &&
+              playlists.value.find((p) => p.id === serverData.defaultId)
+            ) {
+              defaultPlaylistId.value = serverData.defaultId
+            }
+
+            persist()
+          }
+        } catch (error) {
+          console.error('[PlaylistManager] 下载歌单失败:', error)
+          // 不影响初始化流程，继续使用本地数据
+        }
       }
 
       // 验证 currentPlaylistId 是否有效

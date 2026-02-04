@@ -1,5 +1,5 @@
 import { safeLocalStorageGet, safeLocalStorageSet } from './storage.js'
-import { STORAGE_KEYS } from '../config/constants.js'
+import { STORAGE_KEYS, AUTH_CONFIG } from '../config/constants.js'
 
 const STORAGE_KEY = STORAGE_KEYS.USER_SETTINGS
 
@@ -37,6 +37,60 @@ const saveSettings = (settings) => {
   const current = getSettings()
   const merged = { ...current, ...settings }
   safeLocalStorageSet(STORAGE_KEY, JSON.stringify(merged))
+
+  // 如果用户已登录，自动上传到服务器
+  // 使用动态导入避免循环依赖
+  import('../composables/useAuth.js')
+    .then(({ useAuth }) => {
+      import('../composables/useDataSync.js')
+        .then(({ useDataSync }) => {
+          const { isAuthenticated } = useAuth()
+          const { uploadData } = useDataSync()
+
+          if (isAuthenticated.value) {
+            uploadData(AUTH_CONFIG.DATA_TYPES.USER_SETTINGS, merged).catch((error) => {
+              console.error('上传用户设置失败:', error)
+              // 不影响本地保存，错误会被加入离线队列
+            })
+          }
+        })
+        .catch((error) => {
+          console.error('导入 useDataSync 失败:', error)
+        })
+    })
+    .catch((error) => {
+      console.error('导入 useAuth 失败:', error)
+    })
+}
+
+/**
+ * 初始化用户设置
+ * 如果用户已登录，从服务器下载并合并设置
+ */
+export const initializeUserSettings = async () => {
+  try {
+    const { useAuth } = await import('../composables/useAuth.js')
+    const { useDataSync } = await import('../composables/useDataSync.js')
+    const { isAuthenticated } = useAuth()
+    const { downloadData } = useDataSync()
+
+    if (isAuthenticated.value) {
+      try {
+        const serverSettings = await downloadData(AUTH_CONFIG.DATA_TYPES.USER_SETTINGS)
+        if (serverSettings && typeof serverSettings === 'object') {
+          // 合并服务器设置（服务器优先）
+          const localSettings = getSettings()
+          const merged = { ...defaultSettings, ...localSettings, ...serverSettings }
+          safeLocalStorageSet(STORAGE_KEY, JSON.stringify(merged))
+        }
+      } catch (error) {
+        console.error('下载用户设置失败:', error)
+        // 不影响初始化流程，继续使用本地设置
+      }
+    }
+  } catch (error) {
+    console.error('初始化用户设置失败:', error)
+  }
 }
 
 export const saveVideoIndex = (index) => {

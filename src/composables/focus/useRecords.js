@@ -10,6 +10,9 @@ import {
   safeLocalStorageRemove
 } from '../../utils/storage.js'
 import { FOCUS_STORAGE_KEYS, QUERY_DEFAULTS, FocusMode, CompletionType } from './constants.js'
+import { useAuth } from '../useAuth.js'
+import { useDataSync } from '../useDataSync.js'
+import { AUTH_CONFIG } from '../../config/constants.js'
 
 // 模块级单例状态
 const records = ref([])
@@ -18,7 +21,7 @@ let initialized = false
 /**
  * 初始化记录存储
  */
-const initialize = () => {
+const initialize = async () => {
   if (initialized) {
     return
   }
@@ -26,6 +29,25 @@ const initialize = () => {
   const savedRecords = safeLocalStorageGetJSON(FOCUS_STORAGE_KEYS.RECORDS, [])
   records.value = Array.isArray(savedRecords) ? savedRecords : []
   initialized = true
+
+  // 如果用户已登录，下载并合并服务器数据
+  const { isAuthenticated } = useAuth()
+  const { downloadData } = useDataSync()
+
+  if (isAuthenticated.value) {
+    try {
+      const serverRecords = await downloadData(AUTH_CONFIG.DATA_TYPES.FOCUS_RECORDS)
+      if (serverRecords && Array.isArray(serverRecords)) {
+        // 合并本地和服务器记录（使用冲突解决器）
+        const { mergeFocusRecords } = await import('../../utils/syncConflictResolver.js')
+        records.value = mergeFocusRecords(records.value, serverRecords)
+        persistRecords()
+      }
+    } catch (error) {
+      console.error('下载 Focus 记录失败:', error)
+      // 不影响初始化流程，继续使用本地数据
+    }
+  }
 }
 
 /**
@@ -33,6 +55,17 @@ const initialize = () => {
  */
 const persistRecords = () => {
   safeLocalStorageSetJSON(FOCUS_STORAGE_KEYS.RECORDS, records.value)
+
+  // 如果用户已登录，自动上传到服务器
+  const { isAuthenticated } = useAuth()
+  const { uploadData } = useDataSync()
+
+  if (isAuthenticated.value) {
+    uploadData(AUTH_CONFIG.DATA_TYPES.FOCUS_RECORDS, records.value).catch((error) => {
+      console.error('上传 Focus 记录失败:', error)
+      // 不影响本地保存，错误会被加入离线队列
+    })
+  }
 }
 
 /**

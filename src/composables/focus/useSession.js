@@ -18,6 +18,9 @@ import {
 } from './constants.js'
 import { createTimer } from './useTimer.js'
 import { useRecords } from './useRecords.js'
+import { useAuth } from '../useAuth.js'
+import { useDataSync } from '../useDataSync.js'
+import { AUTH_CONFIG } from '../../config/constants.js'
 
 // 模块级单例状态
 const state = ref(FocusState.IDLE)
@@ -32,10 +35,28 @@ let timer = null
 /**
  * 初始化设置
  */
-const initializeSettings = () => {
+const initializeSettings = async () => {
   const savedSettings = safeLocalStorageGetJSON(FOCUS_STORAGE_KEYS.SETTINGS, null)
   if (savedSettings) {
     settings.value = { ...DEFAULT_SETTINGS, ...savedSettings }
+  }
+
+  // 如果用户已登录，下载并合并服务器设置
+  const { isAuthenticated } = useAuth()
+  const { downloadData } = useDataSync()
+
+  if (isAuthenticated.value) {
+    try {
+      const serverSettings = await downloadData(AUTH_CONFIG.DATA_TYPES.FOCUS_SETTINGS)
+      if (serverSettings && typeof serverSettings === 'object') {
+        // 合并服务器设置（服务器优先）
+        settings.value = { ...DEFAULT_SETTINGS, ...settings.value, ...serverSettings }
+        persistSettings()
+      }
+    } catch (error) {
+      console.error('下载 Focus 设置失败:', error)
+      // 不影响初始化流程，继续使用本地设置
+    }
   }
 }
 
@@ -44,6 +65,17 @@ const initializeSettings = () => {
  */
 const persistSettings = () => {
   safeLocalStorageSetJSON(FOCUS_STORAGE_KEYS.SETTINGS, settings.value)
+
+  // 如果用户已登录，自动上传到服务器
+  const { isAuthenticated } = useAuth()
+  const { uploadData } = useDataSync()
+
+  if (isAuthenticated.value) {
+    uploadData(AUTH_CONFIG.DATA_TYPES.FOCUS_SETTINGS, settings.value).catch((error) => {
+      console.error('上传 Focus 设置失败:', error)
+      // 不影响本地保存，错误会被加入离线队列
+    })
+  }
 }
 
 /**
