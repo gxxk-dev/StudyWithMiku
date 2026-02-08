@@ -252,7 +252,7 @@ describe('userData.js', () => {
       expect(result.serverData).toBeDefined()
     })
 
-    it('focus_records 冲突时应该自动合并', async () => {
+    it('focus_records 冲突时应该返回冲突（客户端负责合并）', async () => {
       // 模拟服务端有一条记录
       const existingRecords = [createFocusRecordData({ id: 'server-record' })]
       await mockDB
@@ -275,8 +275,10 @@ describe('userData.js', () => {
         0 // 版本不匹配
       )
 
-      expect(result.success).toBe(true)
-      expect(result.merged).toBe(true)
+      // 现在应该返回冲突，让客户端处理
+      expect(result.success).toBe(false)
+      expect(result.conflict).toBe(true)
+      expect(result.serverVersion).toBe(1)
     })
 
     it('验证失败时应该返回错误', async () => {

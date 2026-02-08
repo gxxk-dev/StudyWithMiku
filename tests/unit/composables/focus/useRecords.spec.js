@@ -62,7 +62,7 @@ describe('useRecords', () => {
       expect(records.value).toHaveLength(1)
     })
 
-    it('应该自动生成 ID', () => {
+    it('应该自动生成 UUID 格式的 ID', () => {
       const { addRecord } = useRecords()
 
       const result = addRecord({
@@ -70,7 +70,10 @@ describe('useRecords', () => {
         duration: 25 * 60
       })
 
-      expect(result.data.id).toMatch(/^focus-\d+-[a-z0-9]+$/)
+      // UUID v4 格式
+      expect(result.data.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      )
     })
 
     it('应该使用提供的 ID', () => {

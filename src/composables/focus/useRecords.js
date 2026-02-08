@@ -11,8 +11,7 @@ import {
 } from '../../utils/storage.js'
 import { FOCUS_STORAGE_KEYS, QUERY_DEFAULTS, FocusMode, CompletionType } from './constants.js'
 import { useAuth } from '../useAuth.js'
-import { useDataSync } from '../useDataSync.js'
-import { AUTH_CONFIG } from '../../config/constants.js'
+import { useSyncEngine, generateUUID } from './useSyncEngine.js'
 
 // 模块级单例状态
 const records = ref([])
@@ -30,21 +29,20 @@ const initialize = async () => {
   records.value = Array.isArray(savedRecords) ? savedRecords : []
   initialized = true
 
-  // 如果用户已登录，下载并合并服务器数据
+  // 如果用户已登录，执行同步
   const { isAuthenticated } = useAuth()
-  const { downloadData } = useDataSync()
+  const { sync } = useSyncEngine()
 
   if (isAuthenticated.value) {
     try {
-      const serverRecords = await downloadData(AUTH_CONFIG.DATA_TYPES.FOCUS_RECORDS)
-      if (serverRecords && Array.isArray(serverRecords)) {
-        // 合并本地和服务器记录（使用冲突解决器）
-        const { mergeFocusRecords } = await import('../../utils/syncConflictResolver.js')
-        records.value = mergeFocusRecords(records.value, serverRecords)
-        persistRecords()
+      const result = await sync()
+      if (result.merged) {
+        // 同步后重新加载本地数据
+        const updatedRecords = safeLocalStorageGetJSON(FOCUS_STORAGE_KEYS.RECORDS, [])
+        records.value = Array.isArray(updatedRecords) ? updatedRecords : []
       }
     } catch (error) {
-      console.error('下载 Focus 记录失败:', error)
+      console.error('同步 Focus 记录失败:', error)
       // 不影响初始化流程，继续使用本地数据
     }
   }
@@ -52,27 +50,26 @@ const initialize = async () => {
 
 /**
  * 持久化记录到 localStorage
+ * @param {string} action - 操作类型 (add|update|delete)
+ * @param {Object} record - 变更的记录
  */
-const persistRecords = () => {
+const persistRecords = (action = null, record = null) => {
   safeLocalStorageSetJSON(FOCUS_STORAGE_KEYS.RECORDS, records.value)
 
-  // 如果用户已登录，自动上传到服务器
+  // 如果用户已登录，将变更加入队列
   const { isAuthenticated } = useAuth()
-  const { uploadData } = useDataSync()
+  const { queueChange } = useSyncEngine()
 
-  if (isAuthenticated.value) {
-    uploadData(AUTH_CONFIG.DATA_TYPES.FOCUS_RECORDS, records.value).catch((error) => {
-      console.error('上传 Focus 记录失败:', error)
-      // 不影响本地保存，错误会被加入离线队列
-    })
+  if (isAuthenticated.value && action && record) {
+    queueChange(action, record)
   }
 }
 
 /**
- * 生成唯一 ID
+ * 生成唯一 ID (UUID v4)
  */
 const generateId = () => {
-  return `focus-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return generateUUID()
 }
 
 /**
@@ -87,18 +84,20 @@ const addRecord = (record) => {
     return { success: false, error: 'Invalid record data' }
   }
 
+  const now = Date.now()
   const newRecord = {
     id: record.id || generateId(),
     mode: record.mode || FocusMode.FOCUS,
-    startTime: record.startTime || Date.now(),
-    endTime: record.endTime || Date.now(),
+    startTime: record.startTime || now,
+    endTime: record.endTime || now,
     duration: record.duration || 0,
     elapsed: record.elapsed || 0,
-    completionType: record.completionType || CompletionType.COMPLETED
+    completionType: record.completionType || CompletionType.COMPLETED,
+    updatedAt: now
   }
 
   records.value.push(newRecord)
-  persistRecords()
+  persistRecords('add', newRecord)
 
   return { success: true, data: newRecord }
 }
@@ -138,11 +137,12 @@ const updateRecord = (id, updates) => {
   const updatedRecord = {
     ...records.value[index],
     ...updates,
-    id // 确保 ID 不被覆盖
+    id, // 确保 ID 不被覆盖
+    updatedAt: Date.now()
   }
 
   records.value[index] = updatedRecord
-  persistRecords()
+  persistRecords('update', updatedRecord)
 
   return { success: true, data: updatedRecord }
 }
@@ -161,8 +161,9 @@ const deleteRecord = (id) => {
     return { success: false, error: 'Record not found' }
   }
 
+  const deletedRecord = { ...records.value[index], updatedAt: Date.now() }
   records.value.splice(index, 1)
-  persistRecords()
+  persistRecords('delete', deletedRecord)
 
   return { success: true }
 }
@@ -312,6 +313,7 @@ const importRecords = (importedRecords, options = {}) => {
   }
 
   const existingIds = new Set(records.value.map((r) => r.id))
+  const now = Date.now()
 
   for (const record of importedRecords) {
     if (!record || typeof record !== 'object') {
@@ -328,11 +330,12 @@ const importRecords = (importedRecords, options = {}) => {
     const newRecord = {
       id: record.id || generateId(),
       mode: record.mode || FocusMode.FOCUS,
-      startTime: record.startTime || Date.now(),
-      endTime: record.endTime || Date.now(),
+      startTime: record.startTime || now,
+      endTime: record.endTime || now,
       duration: record.duration || 0,
       elapsed: record.elapsed || 0,
-      completionType: record.completionType || CompletionType.COMPLETED
+      completionType: record.completionType || CompletionType.COMPLETED,
+      updatedAt: record.updatedAt || now
     }
 
     records.value.push(newRecord)
@@ -340,7 +343,8 @@ const importRecords = (importedRecords, options = {}) => {
     imported++
   }
 
-  persistRecords()
+  // 批量导入不逐条加入队列，直接保存
+  safeLocalStorageSetJSON(FOCUS_STORAGE_KEYS.RECORDS, records.value)
 
   return { success: true, imported, skipped }
 }

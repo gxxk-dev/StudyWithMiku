@@ -70,3 +70,28 @@ export const ExportFormat = {
   CSV: 'csv',
   MARKDOWN: 'markdown'
 }
+
+/**
+ * 同步协议版本
+ */
+export const SYNC_PROTOCOL = {
+  /** 当前协议版本 */
+  VERSION: 1,
+  /** 最低支持版本 */
+  MIN_SUPPORTED: 1
+}
+
+/**
+ * 同步阈值配置
+ */
+export const SYNC_THRESHOLD = 100
+
+/**
+ * 同步存储键名
+ */
+export const SYNC_STORAGE_KEYS = {
+  QUEUE: 'swm_sync_queue',
+  VERSION: 'swm_sync_version',
+  PROTOCOL: 'swm_sync_protocol',
+  LAST_SYNC: 'swm_sync_last_time'
+}

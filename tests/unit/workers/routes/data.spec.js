@@ -409,8 +409,9 @@ describe('data routes', () => {
 
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.results[0].success).toBe(true)
-      expect(body.results[0].merged).toBe(true)
+      // 现在返回冲突，让客户端处理
+      expect(body.results[0].success).toBe(false)
+      expect(body.results[0].conflict).toBe(true)
     })
   })
 })

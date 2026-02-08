@@ -90,6 +90,24 @@ export const getUserData = async (d1, userId, dataType) => {
 }
 
 /**
+ * 仅获取数据版本号
+ * @param {Object} d1 - D1 数据库实例
+ * @param {string} userId - 用户 ID
+ * @param {string} dataType - 数据类型
+ * @returns {Promise<number>}
+ */
+export const getDataVersion = async (d1, userId, dataType) => {
+  const db = createDb(d1)
+  const row = await db
+    .select({ version: userData.version })
+    .from(userData)
+    .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
+    .get()
+
+  return row?.version || 0
+}
+
+/**
  * 获取用户的所有数据
  * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
@@ -118,7 +136,7 @@ export const getAllUserData = async (d1, userId) => {
 }
 
 /**
- * 更新指定类型的用户数据
+ * 更新指定类型的用户数据（纯存储，不做合并）
  * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @param {string} dataType - 数据类型
@@ -156,34 +174,8 @@ export const updateUserData = async (d1, userId, dataType, data, clientVersion) 
     return { success: true, version: 1 }
   }
 
-  // 版本冲突检测
+  // 版本冲突检测 - 返回冲突让客户端处理
   if (clientVersion !== current.version) {
-    // focus_records 特殊处理：自动合并
-    if (dataType === DATA_CONFIG.TYPES.FOCUS_RECORDS) {
-      const merged = mergeFocusRecords(current.data, data)
-      const mergedValidation = validateUserData(dataType, merged)
-
-      if (!mergedValidation.valid) {
-        return {
-          success: false,
-          conflict: true,
-          serverData: current.data,
-          serverVersion: current.version,
-          error: 'Merge validation failed'
-        }
-      }
-
-      const newVersion = current.version + 1
-      const jsonStr = JSON.stringify(mergedValidation.data)
-      await db
-        .update(userData)
-        .set({ data: jsonStr, version: newVersion })
-        .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
-
-      return { success: true, version: newVersion, merged: true }
-    }
-
-    // 其他类型：返回冲突
     return {
       success: false,
       conflict: true,
@@ -247,35 +239,85 @@ export const checkUserQuota = async (d1, userId) => {
 }
 
 /**
- * 合并 Focus Records (按 id 去重)
- * @param {Array} serverRecords - 服务端记录
- * @param {Array} clientRecords - 客户端记录
- * @returns {Array}
+ * 应用增量更新
+ * @param {Object} d1 - D1 数据库实例
+ * @param {string} userId - 用户 ID
+ * @param {string} dataType - 数据类型
+ * @param {Array} changes - 变更数组 [{action, record}]
+ * @param {number} clientVersion - 客户端版本号
+ * @returns {Promise<{success: boolean, version?: number, conflict?: boolean, serverVersion?: number}>}
  */
-const mergeFocusRecords = (serverRecords, clientRecords) => {
-  if (!Array.isArray(serverRecords)) serverRecords = []
-  if (!Array.isArray(clientRecords)) clientRecords = []
+export const applyDelta = async (d1, userId, dataType, changes, clientVersion) => {
+  const db = createDb(d1)
 
-  const recordMap = new Map()
+  // 获取当前数据
+  const current = await getUserData(d1, userId, dataType)
 
-  // 先添加服务端记录
-  for (const record of serverRecords) {
-    recordMap.set(record.id, record)
+  // 版本检查
+  if (current.version !== 0 && clientVersion !== current.version) {
+    return {
+      success: false,
+      conflict: true,
+      serverVersion: current.version
+    }
   }
 
-  // 客户端记录覆盖
-  for (const record of clientRecords) {
-    recordMap.set(record.id, record)
+  // 应用变更
+  let records = Array.isArray(current.data) ? [...current.data] : []
+  const recordMap = new Map(records.map((r) => [r.id, r]))
+
+  for (const change of changes) {
+    const { action, record } = change
+    if (!record || !record.id) continue
+
+    switch (action) {
+      case 'add':
+      case 'update':
+        recordMap.set(record.id, record)
+        break
+      case 'delete':
+        recordMap.delete(record.id)
+        break
+    }
   }
 
-  // 按 startTime 排序
-  const merged = Array.from(recordMap.values())
-  merged.sort((a, b) => a.startTime - b.startTime)
+  // 转换回数组并排序
+  records = Array.from(recordMap.values())
+  records.sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
 
-  // 超过上限时保留最新的
-  if (merged.length > DATA_CONFIG.MAX_FOCUS_RECORDS) {
-    return merged.slice(-DATA_CONFIG.MAX_FOCUS_RECORDS)
+  // 限制记录数量
+  if (records.length > DATA_CONFIG.MAX_FOCUS_RECORDS) {
+    records = records.slice(-DATA_CONFIG.MAX_FOCUS_RECORDS)
   }
 
-  return merged
+  // 验证数据
+  const validation = validateUserData(dataType, records)
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: validation.error,
+      code: validation.code
+    }
+  }
+
+  // 保存
+  const newVersion = current.version + 1
+  const jsonStr = JSON.stringify(validation.data)
+
+  if (current.version === 0) {
+    await db.insert(userData).values({
+      userId,
+      dataType,
+      data: jsonStr,
+      version: 1
+    })
+    return { success: true, version: 1 }
+  }
+
+  await db
+    .update(userData)
+    .set({ data: jsonStr, version: newVersion })
+    .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
+
+  return { success: true, version: newVersion }
 }

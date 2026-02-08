@@ -15,8 +15,13 @@ import {
   getAllUserData,
   updateUserData,
   syncUserData,
-  checkUserQuota
+  checkUserQuota,
+  getDataVersion,
+  applyDelta
 } from '../services/userData.js'
+
+/** 同步协议版本 */
+const SYNC_PROTOCOL_VERSION = 1
 
 const data = new Hono()
 
@@ -85,11 +90,41 @@ data.get('/:type', zValidator('param', z.object({ type: z.string() })), async (c
 
   const result = await getUserData(c.env.DB, id, type)
 
-  return c.json({
+  const response = c.json({
     type,
     data: result.data,
     version: result.version
   })
+
+  // 添加协议版本头
+  response.headers.set('X-Sync-Protocol-Version', String(SYNC_PROTOCOL_VERSION))
+  return response
+})
+
+/**
+ * GET /api/data/:type/version
+ * 仅获取指定类型数据的版本号
+ */
+data.get('/:type/version', zValidator('param', z.object({ type: z.string() })), async (c) => {
+  const { id } = c.get('user')
+  const { type } = c.req.valid('param')
+
+  const typeValidation = dataTypeParamSchema.safeParse({ type })
+  if (!typeValidation.success) {
+    return c.json(
+      {
+        error: 'Invalid data type',
+        code: ERROR_CODES.INVALID_TYPE
+      },
+      400
+    )
+  }
+
+  const version = await getDataVersion(c.env.DB, id, type)
+
+  const response = c.json({ type, version })
+  response.headers.set('X-Sync-Protocol-Version', String(SYNC_PROTOCOL_VERSION))
+  return response
 })
 
 /**
@@ -189,6 +224,58 @@ data.put(
       success: true,
       version: result.version,
       merged: result.merged || false
+    })
+  }
+)
+
+/**
+ * POST /api/data/:type/delta
+ * 增量更新指定类型的用户数据
+ */
+data.post(
+  '/:type/delta',
+  checkBodySize,
+  zValidator('param', z.object({ type: z.string() })),
+  async (c) => {
+    const { id } = c.get('user')
+    const { type } = c.req.valid('param')
+
+    const typeValidation = dataTypeParamSchema.safeParse({ type })
+    if (!typeValidation.success) {
+      return c.json({ error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
+    }
+
+    let body
+    try {
+      body = await c.req.json()
+    } catch {
+      return c.json({ error: 'Invalid JSON', code: ERROR_CODES.INVALID_JSON }, 400)
+    }
+
+    const { changes, version } = body
+    if (!Array.isArray(changes) || version === undefined) {
+      return c.json(
+        { error: 'Missing changes or version', code: ERROR_CODES.VALIDATION_FAILED },
+        400
+      )
+    }
+
+    const result = await applyDelta(c.env.DB, id, type, changes, version)
+
+    if (!result.success) {
+      return c.json(
+        {
+          error: result.error || 'Delta apply failed',
+          code: result.code || ERROR_CODES.VERSION_CONFLICT,
+          serverVersion: result.serverVersion
+        },
+        result.conflict ? 200 : 400
+      )
+    }
+
+    return c.json({
+      success: true,
+      version: result.version
     })
   }
 )

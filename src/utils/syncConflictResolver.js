@@ -4,7 +4,7 @@
  */
 
 /**
- * 合并 Focus 记录（按 id 去重）
+ * 合并 Focus 记录（Last-Write-Wins 基于 updatedAt）
  * @param {Array} localRecords - 本地记录
  * @param {Array} serverRecords - 服务器记录
  * @returns {Array} 合并后的记录
@@ -13,35 +13,32 @@ export const mergeFocusRecords = (localRecords, serverRecords) => {
   if (!Array.isArray(localRecords)) localRecords = []
   if (!Array.isArray(serverRecords)) serverRecords = []
 
-  // 使用 Map 按 id 去重
+  // 使用 Map 按 id 去重，基于 updatedAt 实现 LWW
   const recordMap = new Map()
 
-  // 先添加服务器记录
-  serverRecords.forEach((record) => {
-    if (record && record.id) {
-      recordMap.set(record.id, record)
-    }
-  })
+  // 合并所有记录
+  const allRecords = [...serverRecords, ...localRecords]
+  for (const record of allRecords) {
+    if (!record || !record.id) continue
 
-  // 再添加本地记录（覆盖同 id 的服务器记录）
-  localRecords.forEach((record) => {
-    if (record && record.id) {
-      // 如果本地记录更新，使用本地版本
-      const existing = recordMap.get(record.id)
-      if (
-        !existing ||
-        (record.updatedAt && existing.updatedAt && record.updatedAt > existing.updatedAt)
-      ) {
+    const existing = recordMap.get(record.id)
+    if (!existing) {
+      recordMap.set(record.id, record)
+    } else {
+      // Last-Write-Wins: 比较 updatedAt
+      const existingTime = existing.updatedAt || existing.startTime || 0
+      const recordTime = record.updatedAt || record.startTime || 0
+      if (recordTime > existingTime) {
         recordMap.set(record.id, record)
       }
     }
-  })
+  }
 
-  // 转换为数组并按时间排序
+  // 转换为数组并按 startTime 降序排序
   return Array.from(recordMap.values()).sort((a, b) => {
-    const timeA = a.startTime || a.createdAt || 0
-    const timeB = b.startTime || b.createdAt || 0
-    return timeB - timeA // 降序
+    const timeA = a.startTime || 0
+    const timeB = b.startTime || 0
+    return timeB - timeA
   })
 }
 
