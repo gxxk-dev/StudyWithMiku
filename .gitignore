@@ -5,6 +5,8 @@ dist
 .wrangler
 dev-dist
 bun.lock
+wrangler.toml
+wrangler.jsonc
 
 # Generated files
 public/help-metadata.json
