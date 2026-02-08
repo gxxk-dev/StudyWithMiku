@@ -187,6 +187,7 @@ describe('data routes', () => {
         user_id: 'user-conflict',
         data_type: DATA_CONFIG.TYPES.FOCUS_SETTINGS,
         data: JSON.stringify(createFocusSettingsData()),
+        data_format: 'json',
         version: 5
       })
 
@@ -383,6 +384,7 @@ describe('data routes', () => {
         user_id: 'user-merge',
         data_type: DATA_CONFIG.TYPES.FOCUS_RECORDS,
         data: JSON.stringify([serverRecord]),
+        data_format: 'json',
         version: 1
       })
 

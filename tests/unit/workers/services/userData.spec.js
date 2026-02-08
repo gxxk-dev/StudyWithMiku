@@ -228,11 +228,14 @@ describe('userData.js', () => {
     it('版本不匹配时应该返回冲突', async () => {
       // 使用独立用户避免测试间干扰
       await mockDB
-        .prepare('INSERT INTO user_data (user_id, data_type, data, version) VALUES (?, ?, ?, ?)')
+        .prepare(
+          'INSERT INTO user_data (user_id, data_type, data, data_format, version) VALUES (?, ?, ?, ?, ?)'
+        )
         .bind(
           'user-conflict-test',
           DATA_CONFIG.TYPES.FOCUS_SETTINGS,
           JSON.stringify(createFocusSettingsData()),
+          'json',
           5
         )
         .run()
@@ -256,11 +259,14 @@ describe('userData.js', () => {
       // 模拟服务端有一条记录
       const existingRecords = [createFocusRecordData({ id: 'server-record' })]
       await mockDB
-        .prepare('INSERT INTO user_data (user_id, data_type, data, version) VALUES (?, ?, ?, ?)')
+        .prepare(
+          'INSERT INTO user_data (user_id, data_type, data, data_format, version) VALUES (?, ?, ?, ?, ?)'
+        )
         .bind(
           'user-merge-test',
           DATA_CONFIG.TYPES.FOCUS_RECORDS,
           JSON.stringify(existingRecords),
+          'json',
           1
         )
         .run()

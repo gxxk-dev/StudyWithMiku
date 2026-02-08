@@ -6,10 +6,11 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
+import { encode, decode } from 'cbor-x'
 import { ERROR_CODES } from '../constants.js'
 import { dataRateLimit } from '../middleware/rateLimit.js'
 import { requireAuth } from '../middleware/auth.js'
-import { dataTypeParamSchema, syncRequestSchema } from '../schemas/auth.js'
+import { dataTypeParamSchema } from '../schemas/auth.js'
 import {
   getUserData,
   getAllUserData,
@@ -19,9 +20,74 @@ import {
   getDataVersion,
   applyDelta
 } from '../services/userData.js'
+import { CBOR_PROTOCOL_VERSION } from '../utils/cborServer.js'
 
 /** 同步协议版本 */
 const SYNC_PROTOCOL_VERSION = 1
+
+/** CBOR Content-Type */
+const CBOR_CONTENT_TYPE = 'application/cbor'
+
+/**
+ * 检查客户端是否接受 CBOR 响应
+ * @param {Object} c - Hono context
+ * @returns {boolean}
+ */
+const acceptsCbor = (c) => {
+  const accept = c.req.header('Accept') || ''
+  return accept.includes(CBOR_CONTENT_TYPE)
+}
+
+/**
+ * 检查请求是否为 CBOR 格式
+ * @param {Object} c - Hono context
+ * @returns {boolean}
+ */
+const isCborRequest = (c) => {
+  const contentType = c.req.header('Content-Type') || ''
+  return contentType.includes(CBOR_CONTENT_TYPE)
+}
+
+/**
+ * 解析请求体（支持 JSON 和 CBOR）
+ * @param {Object} c - Hono context
+ * @returns {Promise<{data: *, error?: string}>}
+ */
+const parseRequestBody = async (c) => {
+  try {
+    if (isCborRequest(c)) {
+      const buffer = await c.req.arrayBuffer()
+      return { data: decode(new Uint8Array(buffer)) }
+    }
+    return { data: await c.req.json() }
+  } catch {
+    return { error: isCborRequest(c) ? 'Invalid CBOR' : 'Invalid JSON' }
+  }
+}
+
+/**
+ * 发送响应（支持 JSON 和 CBOR）
+ * @param {Object} c - Hono context
+ * @param {*} data - 响应数据
+ * @param {number} status - HTTP 状态码
+ * @returns {Response}
+ */
+const sendResponse = (c, data, status = 200) => {
+  if (acceptsCbor(c)) {
+    const cborData = encode(data)
+    return new Response(cborData, {
+      status,
+      headers: {
+        'Content-Type': CBOR_CONTENT_TYPE,
+        'X-Sync-Protocol-Version': String(SYNC_PROTOCOL_VERSION),
+        'X-Cbor-Protocol-Version': String(CBOR_PROTOCOL_VERSION)
+      }
+    })
+  }
+  const response = c.json(data, status)
+  response.headers.set('X-Sync-Protocol-Version', String(SYNC_PROTOCOL_VERSION))
+  return response
+}
 
 const data = new Hono()
 
@@ -59,7 +125,7 @@ data.get('/', async (c) => {
   const allData = await getAllUserData(c.env.DB, id)
   const quota = await checkUserQuota(c.env.DB, id)
 
-  return c.json({
+  return sendResponse(c, {
     data: allData,
     quota: {
       used: quota.used,
@@ -76,29 +142,18 @@ data.get('/:type', zValidator('param', z.object({ type: z.string() })), async (c
   const { id } = c.get('user')
   const { type } = c.req.valid('param')
 
-  // 验证数据类型
   const typeValidation = dataTypeParamSchema.safeParse({ type })
   if (!typeValidation.success) {
-    return c.json(
-      {
-        error: 'Invalid data type',
-        code: ERROR_CODES.INVALID_TYPE
-      },
-      400
-    )
+    return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
   }
 
   const result = await getUserData(c.env.DB, id, type)
 
-  const response = c.json({
+  return sendResponse(c, {
     type,
     data: result.data,
     version: result.version
   })
-
-  // 添加协议版本头
-  response.headers.set('X-Sync-Protocol-Version', String(SYNC_PROTOCOL_VERSION))
-  return response
 })
 
 /**
@@ -111,20 +166,11 @@ data.get('/:type/version', zValidator('param', z.object({ type: z.string() })), 
 
   const typeValidation = dataTypeParamSchema.safeParse({ type })
   if (!typeValidation.success) {
-    return c.json(
-      {
-        error: 'Invalid data type',
-        code: ERROR_CODES.INVALID_TYPE
-      },
-      400
-    )
+    return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
   }
 
   const version = await getDataVersion(c.env.DB, id, type)
-
-  const response = c.json({ type, version })
-  response.headers.set('X-Sync-Protocol-Version', String(SYNC_PROTOCOL_VERSION))
-  return response
+  return sendResponse(c, { type, version })
 })
 
 /**
@@ -139,88 +185,59 @@ data.put(
     const { id } = c.get('user')
     const { type } = c.req.valid('param')
 
-    // 验证数据类型
     const typeValidation = dataTypeParamSchema.safeParse({ type })
     if (!typeValidation.success) {
-      return c.json(
-        {
-          error: 'Invalid data type',
-          code: ERROR_CODES.INVALID_TYPE
-        },
+      return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
+    }
+
+    // 解析请求体（支持 JSON 和 CBOR）
+    const parsed = await parseRequestBody(c)
+    if (parsed.error) {
+      return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
+    }
+
+    const { data: reqData, version } = parsed.data
+    if (reqData === undefined || version === undefined) {
+      return sendResponse(
+        c,
+        { error: 'Missing data or version field', code: ERROR_CODES.VALIDATION_FAILED },
         400
       )
     }
 
-    // 解析请求体
-    let body
-    try {
-      body = await c.req.json()
-    } catch {
-      return c.json(
-        {
-          error: 'Invalid JSON',
-          code: ERROR_CODES.INVALID_JSON
-        },
-        400
-      )
-    }
-
-    const { data, version } = body
-
-    if (data === undefined || version === undefined) {
-      return c.json(
-        {
-          error: 'Missing data or version field',
-          code: ERROR_CODES.VALIDATION_FAILED
-        },
-        400
-      )
-    }
-
-    // 检查配额
     const quota = await checkUserQuota(c.env.DB, id)
     if (!quota.withinQuota) {
-      return c.json(
+      return sendResponse(
+        c,
         {
           error: 'Storage quota exceeded',
           code: ERROR_CODES.QUOTA_EXCEEDED,
-          quota: {
-            used: quota.used,
-            limit: quota.limit
-          }
+          quota: { used: quota.used, limit: quota.limit }
         },
         413
       )
     }
 
-    // 更新数据
-    const result = await updateUserData(c.env.DB, id, type, data, version)
+    const result = await updateUserData(c.env.DB, id, type, reqData, version)
 
     if (!result.success) {
       if (result.conflict) {
-        return c.json(
-          {
-            error: 'Version conflict',
-            code: ERROR_CODES.VERSION_CONFLICT,
-            conflict: true,
-            serverData: result.serverData,
-            serverVersion: result.serverVersion
-          },
-          200 // 返回 200 让客户端处理冲突
-        )
+        return sendResponse(c, {
+          error: 'Version conflict',
+          code: ERROR_CODES.VERSION_CONFLICT,
+          conflict: true,
+          serverData: result.serverData,
+          serverVersion: result.serverVersion
+        })
       }
-
-      return c.json(
-        {
-          error: result.error,
-          code: result.code,
-          details: result.details
-        },
+      return sendResponse(
+        c,
+        { error: result.error, code: result.code, details: result.details },
         400
       )
     }
 
-    return c.json({
+    return sendResponse(c, {
       success: true,
       version: result.version,
       merged: result.merged || false
@@ -242,19 +259,18 @@ data.post(
 
     const typeValidation = dataTypeParamSchema.safeParse({ type })
     if (!typeValidation.success) {
-      return c.json({ error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
+      return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
     }
 
-    let body
-    try {
-      body = await c.req.json()
-    } catch {
-      return c.json({ error: 'Invalid JSON', code: ERROR_CODES.INVALID_JSON }, 400)
+    const parsed = await parseRequestBody(c)
+    if (parsed.error) {
+      return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
     }
 
-    const { changes, version } = body
+    const { changes, version } = parsed.data
     if (!Array.isArray(changes) || version === undefined) {
-      return c.json(
+      return sendResponse(
+        c,
         { error: 'Missing changes or version', code: ERROR_CODES.VALIDATION_FAILED },
         400
       )
@@ -263,7 +279,8 @@ data.post(
     const result = await applyDelta(c.env.DB, id, type, changes, version)
 
     if (!result.success) {
-      return c.json(
+      return sendResponse(
+        c,
         {
           error: result.error || 'Delta apply failed',
           code: result.code || ERROR_CODES.VERSION_CONFLICT,
@@ -273,10 +290,7 @@ data.post(
       )
     }
 
-    return c.json({
-      success: true,
-      version: result.version
-    })
+    return sendResponse(c, { success: true, version: result.version })
   }
 )
 
@@ -284,50 +298,45 @@ data.post(
  * POST /api/data/sync
  * 批量同步用户数据
  */
-data.post('/sync', checkBodySize, zValidator('json', syncRequestSchema), async (c) => {
+data.post('/sync', checkBodySize, async (c) => {
   const { id } = c.get('user')
-  const { changes } = c.req.valid('json')
 
-  if (!changes || changes.length === 0) {
-    return c.json({ results: [] })
+  const parsed = await parseRequestBody(c)
+  if (parsed.error) {
+    return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
   }
 
-  // 预验证所有数据类型
+  const { changes } = parsed.data
+  if (!changes || changes.length === 0) {
+    return sendResponse(c, { results: [] })
+  }
+
   for (const change of changes) {
     const typeValidation = dataTypeParamSchema.safeParse({ type: change.type })
     if (!typeValidation.success) {
-      return c.json(
-        {
-          error: `Invalid data type: ${change.type}`,
-          code: ERROR_CODES.INVALID_TYPE
-        },
+      return sendResponse(
+        c,
+        { error: `Invalid data type: ${change.type}`, code: ERROR_CODES.INVALID_TYPE },
         400
       )
     }
   }
 
-  // 检查配额
   const quota = await checkUserQuota(c.env.DB, id)
   if (!quota.withinQuota) {
-    return c.json(
+    return sendResponse(
+      c,
       {
         error: 'Storage quota exceeded',
         code: ERROR_CODES.QUOTA_EXCEEDED,
-        quota: {
-          used: quota.used,
-          limit: quota.limit
-        }
+        quota: { used: quota.used, limit: quota.limit }
       },
       413
     )
   }
 
-  // 执行批量同步
   const results = await syncUserData(c.env.DB, id, changes)
-
-  return c.json({
-    results
-  })
+  return sendResponse(c, { results })
 })
 
 export default data

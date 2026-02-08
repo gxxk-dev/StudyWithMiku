@@ -27,7 +27,8 @@ const fieldMappings = {
   },
   user_data: {
     user_id: 'userId',
-    data_type: 'dataType'
+    data_type: 'dataType',
+    data_format: 'dataFormat'
   }
 }
 

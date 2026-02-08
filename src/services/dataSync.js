@@ -3,10 +3,12 @@
  * @module services/dataSync
  *
  * 封装用户数据的上传、下载、批量同步 API 调用
+ * 支持 CBOR 和 JSON 两种格式
  */
 
 import { DATA_API, AUTH_CONFIG } from '../config/constants.js'
 import { ERROR_TYPES } from './auth.js'
+import { CBOR_CONTENT_TYPE, createCborRequestInit, parseCborResponse } from '../utils/cborClient.js'
 
 /**
  * 创建认证错误对象（从 auth.js 导入的辅助函数）
@@ -25,38 +27,39 @@ const createSyncError = (type, message, details = null) => {
 }
 
 /**
- * 发送 API 请求（带重试机制）
+ * 发送 API 请求（带重试机制，支持 CBOR）
  * @param {string} url - 请求 URL
  * @param {Object} options - fetch 选项
+ * @param {string} dataType - 数据类型（用于 CBOR 解码）
  * @param {number} retries - 剩余重试次数
  * @returns {Promise<any>} 响应数据
  */
-const fetchWithRetry = async (url, options = {}, retries = AUTH_CONFIG.MAX_RETRY_ATTEMPTS) => {
+const fetchWithRetry = async (
+  url,
+  options = {},
+  dataType = null,
+  retries = AUTH_CONFIG.MAX_RETRY_ATTEMPTS
+) => {
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': CBOR_CONTENT_TYPE,
+        Accept: CBOR_CONTENT_TYPE,
         ...options.headers
       }
     })
 
-    // 解析响应
-    const data = await response.json()
+    // 解析响应（支持 CBOR 和 JSON）
+    const data = await parseCborResponse(response, dataType)
 
-    // 检查 HTTP 状态码
     if (!response.ok) {
-      // Token 过期
       if (response.status === 401) {
         throw createSyncError(ERROR_TYPES.TOKEN_EXPIRED, data.error || 'Token 已过期', data)
       }
-
-      // 版本冲突
       if (response.status === 409) {
         throw createSyncError('CONFLICT_ERROR', data.error || '数据版本冲突', data)
       }
-
-      // 其他错误
       throw createSyncError(
         ERROR_TYPES.AUTH_ERROR,
         data.error || `请求失败: ${response.status}`,
@@ -66,18 +69,13 @@ const fetchWithRetry = async (url, options = {}, retries = AUTH_CONFIG.MAX_RETRY
 
     return data
   } catch (error) {
-    // 网络错误，尝试重试
     if (error.name === 'TypeError' && retries > 0) {
       await new Promise((resolve) => setTimeout(resolve, AUTH_CONFIG.RETRY_DELAY))
-      return fetchWithRetry(url, options, retries - 1)
+      return fetchWithRetry(url, options, dataType, retries - 1)
     }
-
-    // 如果是已知错误，直接抛出
     if (error.type) {
       throw error
     }
-
-    // 未知错误
     throw createSyncError(ERROR_TYPES.NETWORK_ERROR, error.message || '网络请求失败', error)
   }
 }
@@ -109,12 +107,16 @@ export const getData = async (accessToken, dataType) => {
 
   validateDataType(dataType)
 
-  return fetchWithRetry(DATA_API.GET_DATA(dataType), {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`
-    }
-  })
+  return fetchWithRetry(
+    DATA_API.GET_DATA(dataType),
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    },
+    dataType
+  )
 }
 
 /**
@@ -132,18 +134,20 @@ export const updateData = async (accessToken, dataType, data, version = null) =>
 
   validateDataType(dataType)
 
-  const payload = {
-    data,
-    version
-  }
+  const cborInit = createCborRequestInit(dataType, { data, version })
 
-  return fetchWithRetry(DATA_API.UPDATE_DATA(dataType), {
-    method: 'PUT',
-    headers: {
-      Authorization: `Bearer ${accessToken}`
+  return fetchWithRetry(
+    DATA_API.UPDATE_DATA(dataType),
+    {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...cborInit.headers
+      },
+      body: cborInit.body
     },
-    body: JSON.stringify(payload)
-  })
+    dataType
+  )
 }
 
 /**
@@ -157,12 +161,16 @@ export const syncAll = async (accessToken) => {
     throw createSyncError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
   }
 
-  return fetchWithRetry(DATA_API.SYNC_ALL, {
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${accessToken}`
-    }
-  })
+  return fetchWithRetry(
+    DATA_API.SYNC_ALL,
+    {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    },
+    null
+  )
 }
 
 /**
@@ -181,18 +189,24 @@ export const batchSync = async (accessToken, syncRequest) => {
     throw createSyncError(ERROR_TYPES.VALIDATION_ERROR, '同步请求格式无效')
   }
 
-  // 验证所有数据类型
   syncRequest.changes.forEach((change) => {
     validateDataType(change.dataType)
   })
 
-  return fetchWithRetry(DATA_API.BATCH_SYNC, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`
+  const cborInit = createCborRequestInit(null, syncRequest)
+
+  return fetchWithRetry(
+    DATA_API.BATCH_SYNC,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...cborInit.headers
+      },
+      body: cborInit.body
     },
-    body: JSON.stringify(syncRequest)
-  })
+    null
+  )
 }
 
 /**
@@ -208,12 +222,16 @@ export const deleteData = async (accessToken, dataType) => {
 
   validateDataType(dataType)
 
-  return fetchWithRetry(DATA_API.UPDATE_DATA(dataType), {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${accessToken}`
-    }
-  })
+  return fetchWithRetry(
+    DATA_API.UPDATE_DATA(dataType),
+    {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    },
+    dataType
+  )
 }
 
 /**

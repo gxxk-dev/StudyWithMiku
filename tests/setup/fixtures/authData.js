@@ -105,6 +105,7 @@ export const sampleBlacklist = [
 
 /**
  * 示例用户数据
+ * 注意：data_format 字段标识数据格式，'json' 表示 JSON 字符串
  */
 export const sampleUserData = [
   {
@@ -121,6 +122,7 @@ export const sampleUserData = [
         completionType: 'completed'
       }
     ]),
+    data_format: 'json',
     version: 1
   },
   {
@@ -136,6 +138,7 @@ export const sampleUserData = [
       notificationEnabled: true,
       notificationSound: true
     }),
+    data_format: 'json',
     version: 2
   }
 ]
