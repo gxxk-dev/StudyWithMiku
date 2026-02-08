@@ -17,7 +17,11 @@ import {
 } from '../../../../workers/services/user.js'
 import { AUTH_PROVIDER } from '../../../../workers/constants.js'
 import { createMockD1 } from '../../../setup/fixtures/workerMocks.js'
-import { sampleUsers, createOAuthUser } from '../../../setup/fixtures/authData.js'
+import {
+  sampleUsers,
+  sampleUsersCamelCase,
+  createOAuthUser
+} from '../../../setup/fixtures/authData.js'
 
 describe('user.js', () => {
   let mockDB
@@ -37,9 +41,9 @@ describe('user.js', () => {
       expect(user.username).toBe('testuser')
     })
 
-    it('不存在的用户应该返回 null', async () => {
+    it('不存在的用户应该返回 null 或 undefined', async () => {
       const user = await findUserByUsername(mockDB, 'nonexistent')
-      expect(user).toBeNull()
+      expect(user).toBeFalsy()
     })
   })
 
@@ -51,9 +55,9 @@ describe('user.js', () => {
       expect(user.username).toBe('testuser')
     })
 
-    it('不存在的 ID 应该返回 null', async () => {
+    it('不存在的 ID 应该返回 null 或 undefined', async () => {
       const user = await findUserById(mockDB, 'nonexistent-id')
-      expect(user).toBeNull()
+      expect(user).toBeFalsy()
     })
   })
 
@@ -63,12 +67,12 @@ describe('user.js', () => {
 
       expect(user).not.toBeNull()
       expect(user.username).toBe('github_user')
-      expect(user.auth_provider).toBe('github')
+      expect(user.authProvider).toBe('github')
     })
 
-    it('不存在的 provider ID 应该返回 null', async () => {
+    it('不存在的 provider ID 应该返回 null 或 undefined', async () => {
       const user = await findUserByProvider(mockDB, 'github', 'nonexistent')
-      expect(user).toBeNull()
+      expect(user).toBeFalsy()
     })
   })
 
@@ -152,7 +156,7 @@ describe('user.js', () => {
 
       expect(isNew).toBe(true)
       expect(user.id).toBeDefined()
-      expect(user.auth_provider).toBe('github')
+      expect(user.authProvider).toBe('github')
     })
 
     it('已存在的 OAuth 用户应该直接返回', async () => {
@@ -181,29 +185,29 @@ describe('user.js', () => {
   })
 
   describe('updateUser', () => {
-    it('应该更新用户的 display_name', async () => {
-      await updateUser(mockDB, 'user-001', { display_name: 'Updated Name' })
+    it('应该更新用户的 displayName', async () => {
+      await updateUser(mockDB, 'user-001', { displayName: 'Updated Name' })
 
       const user = await findUserById(mockDB, 'user-001')
-      expect(user.display_name).toBe('Updated Name')
+      expect(user.displayName).toBe('Updated Name')
     })
 
-    it('应该更新用户的 avatar_url', async () => {
-      await updateUser(mockDB, 'user-001', { avatar_url: 'https://new-avatar.png' })
+    it('应该更新用户的 avatarUrl', async () => {
+      await updateUser(mockDB, 'user-001', { avatarUrl: 'https://new-avatar.png' })
 
       const user = await findUserById(mockDB, 'user-001')
-      expect(user.avatar_url).toBe('https://new-avatar.png')
+      expect(user.avatarUrl).toBe('https://new-avatar.png')
     })
 
     it('不允许的字段应该被忽略', async () => {
       await updateUser(mockDB, 'user-001', {
         username: 'hacked_username',
-        display_name: 'Valid Update'
+        displayName: 'Valid Update'
       })
 
       const user = await findUserById(mockDB, 'user-001')
       expect(user.username).toBe('testuser') // 没有被修改
-      expect(user.display_name).toBe('Valid Update')
+      expect(user.displayName).toBe('Valid Update')
     })
   })
 
@@ -212,13 +216,13 @@ describe('user.js', () => {
       await deleteUser(mockDB, 'user-001')
 
       const user = await findUserById(mockDB, 'user-001')
-      expect(user).toBeNull()
+      expect(user).toBeFalsy()
     })
   })
 
   describe('formatUserForResponse', () => {
     it('应该正确格式化用户响应', () => {
-      const formatted = formatUserForResponse(sampleUsers[0])
+      const formatted = formatUserForResponse(sampleUsersCamelCase[0])
 
       expect(formatted).toEqual({
         id: 'user-001',
@@ -230,7 +234,7 @@ describe('user.js', () => {
     })
 
     it('应该处理带有头像的用户', () => {
-      const formatted = formatUserForResponse(sampleUsers[1])
+      const formatted = formatUserForResponse(sampleUsersCamelCase[1])
 
       expect(formatted.avatarUrl).toBe('https://github.com/avatar.png')
       expect(formatted.authProvider).toBe('github')

@@ -3,6 +3,8 @@
  * @description 用户数据同步服务
  */
 
+import { eq, and, sql } from 'drizzle-orm'
+import { createDb, userData } from '../db/index.js'
 import { DATA_CONFIG, ERROR_CODES } from '../constants.js'
 import { dataTypeSchemas } from '../schemas/auth.js'
 
@@ -64,16 +66,18 @@ export const validateUserData = (type, data) => {
 
 /**
  * 获取指定类型的用户数据
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @param {string} dataType - 数据类型
  * @returns {Promise<{data: *, version: number}>}
  */
-export const getUserData = async (db, userId, dataType) => {
+export const getUserData = async (d1, userId, dataType) => {
+  const db = createDb(d1)
   const row = await db
-    .prepare('SELECT data, version FROM user_data WHERE user_id = ? AND data_type = ?')
-    .bind(userId, dataType)
-    .first()
+    .select({ data: userData.data, version: userData.version })
+    .from(userData)
+    .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
+    .get()
 
   if (!row) {
     return { data: null, version: 0 }
@@ -87,19 +91,24 @@ export const getUserData = async (db, userId, dataType) => {
 
 /**
  * 获取用户的所有数据
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @returns {Promise<Object<string, {data: *, version: number}>>}
  */
-export const getAllUserData = async (db, userId) => {
-  const { results } = await db
-    .prepare('SELECT data_type, data, version FROM user_data WHERE user_id = ?')
-    .bind(userId)
-    .all()
+export const getAllUserData = async (d1, userId) => {
+  const db = createDb(d1)
+  const results = await db
+    .select({
+      dataType: userData.dataType,
+      data: userData.data,
+      version: userData.version
+    })
+    .from(userData)
+    .where(eq(userData.userId, userId))
 
   const dataMap = {}
   for (const row of results) {
-    dataMap[row.data_type] = {
+    dataMap[row.dataType] = {
       data: JSON.parse(row.data),
       version: row.version
     }
@@ -110,14 +119,16 @@ export const getAllUserData = async (db, userId) => {
 
 /**
  * 更新指定类型的用户数据
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @param {string} dataType - 数据类型
  * @param {*} data - 数据内容
  * @param {number} clientVersion - 客户端版本号
  * @returns {Promise<{success: boolean, version?: number, conflict?: boolean, serverData?: *, serverVersion?: number, error?: string, code?: string}>}
  */
-export const updateUserData = async (db, userId, dataType, data, clientVersion) => {
+export const updateUserData = async (d1, userId, dataType, data, clientVersion) => {
+  const db = createDb(d1)
+
   // 验证数据
   const validation = validateUserData(dataType, data)
   if (!validation.valid) {
@@ -130,18 +141,17 @@ export const updateUserData = async (db, userId, dataType, data, clientVersion) 
   }
 
   // 获取当前服务端数据
-  const current = await getUserData(db, userId, dataType)
+  const current = await getUserData(d1, userId, dataType)
 
   // 首次写入
   if (current.version === 0) {
     const jsonStr = JSON.stringify(validation.data)
-    await db
-      .prepare(
-        `INSERT INTO user_data (user_id, data_type, data, version)
-         VALUES (?, ?, ?, 1)`
-      )
-      .bind(userId, dataType, jsonStr)
-      .run()
+    await db.insert(userData).values({
+      userId,
+      dataType,
+      data: jsonStr,
+      version: 1
+    })
 
     return { success: true, version: 1 }
   }
@@ -166,9 +176,9 @@ export const updateUserData = async (db, userId, dataType, data, clientVersion) 
       const newVersion = current.version + 1
       const jsonStr = JSON.stringify(mergedValidation.data)
       await db
-        .prepare('UPDATE user_data SET data = ?, version = ? WHERE user_id = ? AND data_type = ?')
-        .bind(jsonStr, newVersion, userId, dataType)
-        .run()
+        .update(userData)
+        .set({ data: jsonStr, version: newVersion })
+        .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
 
       return { success: true, version: newVersion, merged: true }
     }
@@ -186,25 +196,25 @@ export const updateUserData = async (db, userId, dataType, data, clientVersion) 
   const newVersion = current.version + 1
   const jsonStr = JSON.stringify(validation.data)
   await db
-    .prepare('UPDATE user_data SET data = ?, version = ? WHERE user_id = ? AND data_type = ?')
-    .bind(jsonStr, newVersion, userId, dataType)
-    .run()
+    .update(userData)
+    .set({ data: jsonStr, version: newVersion })
+    .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
 
   return { success: true, version: newVersion }
 }
 
 /**
  * 批量同步用户数据
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @param {Array<{type: string, data: *, version: number}>} changes - 变更列表
  * @returns {Promise<Array<{type: string, success: boolean, version?: number, conflict?: boolean, serverData?: *, error?: string}>>}
  */
-export const syncUserData = async (db, userId, changes) => {
+export const syncUserData = async (d1, userId, changes) => {
   const results = []
 
   for (const change of changes) {
-    const result = await updateUserData(db, userId, change.type, change.data, change.version)
+    const result = await updateUserData(d1, userId, change.type, change.data, change.version)
     results.push({
       type: change.type,
       ...result
@@ -216,15 +226,17 @@ export const syncUserData = async (db, userId, changes) => {
 
 /**
  * 检查用户存储配额
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @returns {Promise<{withinQuota: boolean, used: number, limit: number}>}
  */
-export const checkUserQuota = async (db, userId) => {
+export const checkUserQuota = async (d1, userId) => {
+  const db = createDb(d1)
   const result = await db
-    .prepare('SELECT SUM(LENGTH(data)) as total FROM user_data WHERE user_id = ?')
-    .bind(userId)
-    .first()
+    .select({ total: sql`SUM(LENGTH(${userData.data}))` })
+    .from(userData)
+    .where(eq(userData.userId, userId))
+    .get()
 
   const used = result?.total || 0
   return {

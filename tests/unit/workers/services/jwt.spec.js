@@ -219,7 +219,7 @@ describe('jwt.js', () => {
       expect(isBlacklisted).toBe(true)
     })
 
-    it('重复加入应该不报错 (INSERT OR IGNORE)', async () => {
+    it('重复加入应该不报错 (ON CONFLICT)', async () => {
       const jti = 'test-jti-002'
       const expiresAt = Math.floor(Date.now() / 1000) + 3600
 

@@ -280,12 +280,12 @@ auth.post('/login/options', authRateLimit, zValidator('json', loginOptionsSchema
   }
 
   // 检查是否是 WebAuthn 用户
-  if (user.auth_provider !== 'webauthn') {
+  if (user.authProvider !== 'webauthn') {
     return c.json(
       {
         error: 'Please login with your OAuth provider',
         code: ERROR_CODES.INVALID_CREDENTIALS,
-        authProvider: user.auth_provider
+        authProvider: user.authProvider
       },
       400
     )
@@ -557,7 +557,7 @@ auth.post('/devices/add/options', requireAuth(), async (c) => {
   const options = await createRegistrationOptions({
     userId: id,
     username,
-    displayName: user.display_name,
+    displayName: user.displayName,
     rpId: c.env.WEBAUTHN_RP_ID,
     rpName: c.env.WEBAUTHN_RP_NAME,
     db: c.env.DB

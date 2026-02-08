@@ -44,7 +44,7 @@ describe('credential.js', () => {
 
       const saved = await findCredentialById(mockDB, 'new-credential-001')
       expect(saved).not.toBeNull()
-      expect(saved.user_id).toBe('user-001')
+      expect(saved.userId).toBe('user-001')
     })
 
     it('重复 ID 应该抛出错误', async () => {
@@ -65,9 +65,9 @@ describe('credential.js', () => {
 
       expect(cred).not.toBeNull()
       expect(cred.id).toBe('credential-001')
-      expect(cred.user_id).toBe('user-001')
+      expect(cred.userId).toBe('user-001')
       expect(cred.transports).toEqual(['internal'])
-      expect(cred.backed_up).toBe(false)
+      expect(cred.backedUp).toBe(false)
     })
 
     it('应该正确解析 transports JSON', async () => {
@@ -76,9 +76,9 @@ describe('credential.js', () => {
       expect(cred.transports).toEqual(['usb'])
     })
 
-    it('不存在的凭证应该返回 null', async () => {
+    it('不存在的凭证应该返回 null 或 undefined', async () => {
       const cred = await findCredentialById(mockDB, 'nonexistent')
-      expect(cred).toBeNull()
+      expect(cred).toBeFalsy()
     })
   })
 
@@ -113,7 +113,7 @@ describe('credential.js', () => {
       expect(deleted).toBe(true)
 
       const cred = await findCredentialById(mockDB, 'credential-001')
-      expect(cred).toBeNull()
+      expect(cred).toBeFalsy()
     })
 
     it('不属于用户的凭证不应该被删除', async () => {
@@ -121,7 +121,7 @@ describe('credential.js', () => {
       expect(deleted).toBe(false)
 
       const cred = await findCredentialById(mockDB, 'credential-001')
-      expect(cred).not.toBeNull()
+      expect(cred).toBeTruthy()
     })
 
     it('不存在的凭证应该返回 false', async () => {
@@ -146,13 +146,13 @@ describe('credential.js', () => {
     it('应该正确格式化凭证响应（排除敏感数据）', () => {
       const cred = {
         id: 'credential-001',
-        user_id: 'user-001',
-        public_key: new Uint8Array([1, 2, 3]),
+        userId: 'user-001',
+        publicKey: new Uint8Array([1, 2, 3]),
         counter: 5,
         transports: ['internal'],
-        device_type: 'platform',
-        device_name: 'My Device',
-        backed_up: true
+        deviceType: 'platform',
+        deviceName: 'My Device',
+        backedUp: true
       }
 
       const formatted = formatCredentialForResponse(cred)
@@ -166,8 +166,8 @@ describe('credential.js', () => {
       })
 
       // 确保敏感字段不在响应中
-      expect(formatted.user_id).toBeUndefined()
-      expect(formatted.public_key).toBeUndefined()
+      expect(formatted.userId).toBeUndefined()
+      expect(formatted.publicKey).toBeUndefined()
       expect(formatted.counter).toBeUndefined()
     })
   })

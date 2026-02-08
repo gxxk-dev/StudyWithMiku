@@ -3,6 +3,8 @@
  * @description 用户 CRUD 服务
  */
 
+import { eq, and } from 'drizzle-orm'
+import { createDb, users } from '../db/index.js'
 import { AUTH_PROVIDER, USERNAME_REGEX } from '../constants.js'
 
 /**
@@ -17,46 +19,55 @@ const generateUserId = () => {
 
 /**
  * 通过用户名查找用户
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} username - 用户名
  * @returns {Promise<Object|null>}
  */
-export const findUserByUsername = async (db, username) => {
-  return db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first()
+export const findUserByUsername = async (d1, username) => {
+  const db = createDb(d1)
+  return db.select().from(users).where(eq(users.username, username)).get()
 }
 
 /**
  * 通过 ID 查找用户
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @returns {Promise<Object|null>}
  */
-export const findUserById = async (db, userId) => {
-  return db.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
+export const findUserById = async (d1, userId) => {
+  const db = createDb(d1)
+  return db.select().from(users).where(eq(users.id, userId)).get()
 }
 
 /**
  * 通过 OAuth Provider ID 查找用户
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} provider - OAuth provider (github/google/microsoft)
  * @param {string} providerId - Provider 用户 ID
  * @returns {Promise<Object|null>}
  */
-export const findUserByProvider = async (db, provider, providerId) => {
+export const findUserByProvider = async (d1, provider, providerId) => {
+  const db = createDb(d1)
   return db
-    .prepare('SELECT * FROM users WHERE auth_provider = ? AND provider_id = ?')
-    .bind(provider, providerId)
-    .first()
+    .select()
+    .from(users)
+    .where(and(eq(users.authProvider, provider), eq(users.providerId, providerId)))
+    .get()
 }
 
 /**
  * 检查用户名是否已存在
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} username - 用户名
  * @returns {Promise<boolean>}
  */
-export const usernameExists = async (db, username) => {
-  const result = await db.prepare('SELECT 1 FROM users WHERE username = ?').bind(username).first()
+export const usernameExists = async (d1, username) => {
+  const db = createDb(d1)
+  const result = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, username))
+    .get()
   return !!result
 }
 
@@ -71,22 +82,22 @@ export const isValidUsername = (username) => {
 
 /**
  * 创建 WebAuthn 用户
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {Object} params
  * @param {string} params.username - 用户名
  * @param {string} [params.displayName] - 显示名称
  * @returns {Promise<Object>}
  */
-export const createWebAuthnUser = async (db, { username, displayName }) => {
+export const createWebAuthnUser = async (d1, { username, displayName }) => {
+  const db = createDb(d1)
   const userId = generateUserId()
 
-  await db
-    .prepare(
-      `INSERT INTO users (id, username, display_name, auth_provider)
-       VALUES (?, ?, ?, ?)`
-    )
-    .bind(userId, username, displayName || username, AUTH_PROVIDER.WEBAUTHN)
-    .run()
+  await db.insert(users).values({
+    id: userId,
+    username,
+    displayName: displayName || username,
+    authProvider: AUTH_PROVIDER.WEBAUTHN
+  })
 
   return {
     id: userId,
@@ -98,7 +109,7 @@ export const createWebAuthnUser = async (db, { username, displayName }) => {
 
 /**
  * 创建或获取 OAuth 用户
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {Object} params
  * @param {string} params.provider - OAuth provider
  * @param {string} params.providerId - Provider 用户 ID
@@ -108,11 +119,13 @@ export const createWebAuthnUser = async (db, { username, displayName }) => {
  * @returns {Promise<{user: Object, isNew: boolean}>}
  */
 export const createOrGetOAuthUser = async (
-  db,
+  d1,
   { provider, providerId, preferredUsername, displayName, avatarUrl }
 ) => {
+  const db = createDb(d1)
+
   // 检查是否已存在
-  const existingUser = await findUserByProvider(db, provider, providerId)
+  const existingUser = await findUserByProvider(d1, provider, providerId)
   if (existingUser) {
     return { user: existingUser, isNew: false }
   }
@@ -121,28 +134,29 @@ export const createOrGetOAuthUser = async (
   let username = sanitizeUsername(preferredUsername)
   let suffix = 0
 
-  while (await usernameExists(db, username)) {
+  while (await usernameExists(d1, username)) {
     suffix++
     username = `${sanitizeUsername(preferredUsername)}${suffix}`
   }
 
   const userId = generateUserId()
 
-  await db
-    .prepare(
-      `INSERT INTO users (id, username, display_name, avatar_url, auth_provider, provider_id)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .bind(userId, username, displayName || username, avatarUrl || null, provider, providerId)
-    .run()
+  await db.insert(users).values({
+    id: userId,
+    username,
+    displayName: displayName || username,
+    avatarUrl: avatarUrl || null,
+    authProvider: provider,
+    providerId
+  })
 
   const user = {
     id: userId,
     username,
-    display_name: displayName || username,
-    avatar_url: avatarUrl,
-    auth_provider: provider,
-    provider_id: providerId
+    displayName: displayName || username,
+    avatarUrl,
+    authProvider: provider,
+    providerId
   }
 
   return { user, isNew: true }
@@ -150,34 +164,36 @@ export const createOrGetOAuthUser = async (
 
 /**
  * 更新用户信息
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @param {Object} updates - 要更新的字段
  * @returns {Promise<void>}
  */
-export const updateUser = async (db, userId, updates) => {
-  const allowedFields = ['display_name', 'avatar_url']
-  const fieldsToUpdate = Object.keys(updates).filter((k) => allowedFields.includes(k))
+export const updateUser = async (d1, userId, updates) => {
+  const db = createDb(d1)
+  const allowedFields = ['displayName', 'avatarUrl']
+  const fieldsToUpdate = {}
 
-  if (fieldsToUpdate.length === 0) return
+  for (const key of allowedFields) {
+    if (key in updates) {
+      fieldsToUpdate[key] = updates[key]
+    }
+  }
 
-  const setClause = fieldsToUpdate.map((f) => `${f} = ?`).join(', ')
-  const values = fieldsToUpdate.map((f) => updates[f])
+  if (Object.keys(fieldsToUpdate).length === 0) return
 
-  await db
-    .prepare(`UPDATE users SET ${setClause} WHERE id = ?`)
-    .bind(...values, userId)
-    .run()
+  await db.update(users).set(fieldsToUpdate).where(eq(users.id, userId))
 }
 
 /**
  * 删除用户
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} userId - 用户 ID
  * @returns {Promise<void>}
  */
-export const deleteUser = async (db, userId) => {
-  await db.prepare('DELETE FROM users WHERE id = ?').bind(userId).run()
+export const deleteUser = async (d1, userId) => {
+  const db = createDb(d1)
+  await db.delete(users).where(eq(users.id, userId))
 }
 
 /**
@@ -210,8 +226,8 @@ export const formatUserForResponse = (user) => {
   return {
     id: user.id,
     username: user.username,
-    displayName: user.display_name,
-    avatarUrl: user.avatar_url,
-    authProvider: user.auth_provider
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    authProvider: user.authProvider
   }
 }

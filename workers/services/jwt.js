@@ -4,6 +4,8 @@
  */
 
 import { sign, verify } from 'hono/jwt'
+import { eq, lt } from 'drizzle-orm'
+import { createDb, tokenBlacklist } from '../db/index.js'
 import { JWT_CONFIG, ERROR_CODES, BLACKLIST_CLEANUP_PROBABILITY } from '../constants.js'
 
 /**
@@ -131,42 +133,49 @@ export const verifyToken = async (token, secret, expectedType = JWT_CONFIG.TOKEN
 
 /**
  * 检查 Token 是否在黑名单中
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} jti - JWT ID
  * @returns {Promise<boolean>}
  */
-export const isTokenBlacklisted = async (db, jti) => {
-  const result = await db.prepare('SELECT 1 FROM token_blacklist WHERE jti = ?').bind(jti).first()
+export const isTokenBlacklisted = async (d1, jti) => {
+  const db = createDb(d1)
+  const result = await db
+    .select({ jti: tokenBlacklist.jti })
+    .from(tokenBlacklist)
+    .where(eq(tokenBlacklist.jti, jti))
+    .get()
   return !!result
 }
 
 /**
  * 将 Token 加入黑名单
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @param {string} jti - JWT ID
  * @param {number} expiresAt - Token 原始过期时间 (Unix 时间戳)
  * @returns {Promise<void>}
  */
-export const blacklistToken = async (db, jti, expiresAt) => {
+export const blacklistToken = async (d1, jti, expiresAt) => {
+  const db = createDb(d1)
   await db
-    .prepare('INSERT OR IGNORE INTO token_blacklist (jti, expires_at) VALUES (?, ?)')
-    .bind(jti, expiresAt)
-    .run()
+    .insert(tokenBlacklist)
+    .values({ jti, expiresAt })
+    .onConflictDoNothing({ target: tokenBlacklist.jti })
 
   // 概率性清理过期条目
   if (Math.random() < BLACKLIST_CLEANUP_PROBABILITY) {
-    await cleanupBlacklist(db)
+    await cleanupBlacklist(d1)
   }
 }
 
 /**
  * 清理过期的黑名单条目
- * @param {Object} db - D1 数据库实例
+ * @param {Object} d1 - D1 数据库实例
  * @returns {Promise<void>}
  */
-export const cleanupBlacklist = async (db) => {
+export const cleanupBlacklist = async (d1) => {
+  const db = createDb(d1)
   const now = Math.floor(Date.now() / 1000)
-  await db.prepare('DELETE FROM token_blacklist WHERE expires_at < ?').bind(now).run()
+  await db.delete(tokenBlacklist).where(lt(tokenBlacklist.expiresAt, now))
 }
 
 /**

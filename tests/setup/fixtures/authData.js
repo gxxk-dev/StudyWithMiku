@@ -3,7 +3,8 @@
  */
 
 /**
- * 示例用户数据
+ * 示例用户数据（数据库存储格式 - snake_case）
+ * Mock D1 会自动转换为 camelCase 返回
  */
 export const sampleUsers = [
   {
@@ -29,6 +30,36 @@ export const sampleUsers = [
     avatar_url: 'https://google.com/avatar.png',
     auth_provider: 'google',
     provider_id: 'google-id-123'
+  }
+]
+
+/**
+ * 示例用户数据（camelCase 格式，用于 formatUserForResponse 测试）
+ */
+export const sampleUsersCamelCase = [
+  {
+    id: 'user-001',
+    username: 'testuser',
+    displayName: 'Test User',
+    avatarUrl: null,
+    authProvider: 'webauthn',
+    providerId: null
+  },
+  {
+    id: 'user-002',
+    username: 'github_user',
+    displayName: 'GitHub User',
+    avatarUrl: 'https://github.com/avatar.png',
+    authProvider: 'github',
+    providerId: '12345678'
+  },
+  {
+    id: 'user-003',
+    username: 'google_user',
+    displayName: 'Google User',
+    avatarUrl: 'https://google.com/avatar.png',
+    authProvider: 'google',
+    providerId: 'google-id-123'
   }
 ]
 
