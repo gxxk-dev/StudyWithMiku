@@ -147,9 +147,9 @@ export const serializeCredential = (credential, isRegistration = false) => {
     // 注册流程
     response.response.attestationObject = bufferToBase64URL(credential.response.attestationObject)
 
-    // 可选：传输方式
+    // 可选：传输方式（放在 response.response 内部，与后端 schema 一致）
     if (credential.response.getTransports) {
-      response.transports = credential.response.getTransports()
+      response.response.transports = credential.response.getTransports()
     }
   } else {
     // 登录流程

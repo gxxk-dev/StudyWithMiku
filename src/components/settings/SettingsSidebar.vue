@@ -41,6 +41,7 @@ const isHiddenTab = computed(() => hiddenTabs.includes(props.activeTab))
 const navItems = [
   { id: 'focus', icon: 'lucide:timer', label: '专注' },
   { id: 'media', icon: 'lucide:music', label: '媒体' },
+  { id: 'account', icon: 'lucide:user', label: '账号' },
   { id: 'stats', icon: 'lucide:bar-chart-3', label: '统计' },
   { id: 'cache', icon: 'lucide:hard-drive', label: '缓存', pwaOnly: true },
   { id: 'about', icon: 'lucide:info', label: '关于' }

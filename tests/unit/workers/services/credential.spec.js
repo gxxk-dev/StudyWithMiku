@@ -159,10 +159,12 @@ describe('credential.js', () => {
 
       expect(formatted).toEqual({
         id: 'credential-001',
+        credentialId: 'credential-001',
         deviceType: 'platform',
         deviceName: 'My Device',
         transports: ['internal'],
-        backedUp: true
+        backedUp: true,
+        lastUsed: null
       })
 
       // 确保敏感字段不在响应中

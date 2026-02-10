@@ -190,7 +190,7 @@ export const batchSync = async (accessToken, syncRequest) => {
   }
 
   syncRequest.changes.forEach((change) => {
-    validateDataType(change.dataType)
+    validateDataType(change.type)
   })
 
   const cborInit = createCborRequestInit(null, syncRequest)
@@ -243,7 +243,8 @@ export const deleteData = async (accessToken, dataType) => {
 export const hasData = async (accessToken, dataType) => {
   try {
     const response = await getData(accessToken, dataType)
-    return response.success && response.data !== null
+    // 后端返回 { type, data, version }，不包含 success 字段
+    return response.data !== null && response.data !== undefined
   } catch (error) {
     // 如果是 404 错误，说明数据不存在
     if (error.details && error.details.status === 404) {

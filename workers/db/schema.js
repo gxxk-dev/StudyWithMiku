@@ -36,12 +36,13 @@ export const credentials = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    publicKey: blob('public_key', { mode: 'buffer' }).notNull(),
+    publicKey: blob('public_key').notNull(),
     counter: integer('counter').notNull().default(0),
     transports: text('transports'),
     deviceType: text('device_type'),
     deviceName: text('device_name'),
-    backedUp: integer('backed_up').notNull().default(0)
+    backedUp: integer('backed_up').notNull().default(0),
+    lastUsedAt: integer('last_used_at')
   },
   (table) => [index('idx_credentials_user_id').on(table.userId)]
 )
@@ -71,7 +72,7 @@ export const userData = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     dataType: text('data_type').notNull(),
-    data: blob('data', { mode: 'buffer' }).notNull(),
+    data: blob('data').notNull(),
     dataFormat: text('data_format').notNull().default('cbor'),
     version: integer('version').notNull().default(1)
   },

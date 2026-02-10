@@ -213,6 +213,7 @@ export const AUTH_CONFIG = {
  */
 export const AUTH_API = {
   BASE_URL: '/auth',
+  CONFIG: '/auth/config',
   REGISTER_OPTIONS: '/auth/register/options',
   REGISTER_VERIFY: '/auth/register/verify',
   LOGIN_OPTIONS: '/auth/login/options',

@@ -10,8 +10,8 @@
 export const WEBAUTHN_CONFIG = {
   /** 挑战有效期 (毫秒) */
   CHALLENGE_TTL: 5 * 60 * 1000,
-  /** 支持的认证器类型 */
-  AUTHENTICATOR_ATTACHMENT: 'platform',
+  /** 支持的认证器类型 (undefined 允许任何类型) */
+  AUTHENTICATOR_ATTACHMENT: undefined,
   /** 用户验证要求 */
   USER_VERIFICATION: 'preferred',
   /** 驻留凭证要求 */
@@ -164,9 +164,11 @@ export const ERROR_CODES = {
 
 /**
  * 用户名验证正则
+ * 允许：字母、数字、下划线、连字符、中日韩文字
  * @type {RegExp}
  */
-export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
+export const USERNAME_REGEX =
+  /^[\w\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u3040-\u309f\u30a0-\u30ff-]{2,20}$/u
 
 /**
  * Token 黑名单清理概率 (每次登录时)

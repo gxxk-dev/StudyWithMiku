@@ -10,6 +10,7 @@ import { ErrorTypes } from '../types/playlist.js'
 import { deleteFromOPFS, deleteFileHandle } from '../services/localAudioStorage.js'
 import { useAuth } from './useAuth.js'
 import { useDataSync } from './useDataSync.js'
+import { mergePlaylists } from '../utils/syncConflictResolver.js'
 
 /**
  * 内置默认歌单配置
@@ -153,7 +154,6 @@ export const usePlaylistManager = () => {
           if (serverData && typeof serverData === 'object') {
             // 合并歌单列表
             if (serverData.playlists && Array.isArray(serverData.playlists)) {
-              const { mergePlaylists } = await import('../utils/syncConflictResolver.js')
               playlists.value = mergePlaylists(playlists.value, serverData.playlists)
             }
 

@@ -79,12 +79,15 @@ export const getGitHubUser = async (accessToken) => {
     const response = await fetch(OAUTH_CONFIG.GITHUB.USER_URL, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        Accept: 'application/json'
+        Accept: 'application/json',
+        'User-Agent': 'StudyWithMiku'
       }
     })
 
     if (!response.ok) {
-      return { error: 'Failed to fetch user info' }
+      const text = await response.text()
+      console.error('GitHub API error:', response.status, text)
+      return { error: `GitHub API error: ${response.status}` }
     }
 
     const data = await response.json()
@@ -100,6 +103,7 @@ export const getGitHubUser = async (accessToken) => {
       }
     }
   } catch (error) {
+    console.error('GitHub fetch exception:', error)
     return { error: error.message }
   }
 }

@@ -148,7 +148,7 @@ export const verifyAuthentication = async ({
       expectedRPID,
       credential: {
         id: credential.id,
-        publicKey: credential.public_key,
+        publicKey: credential.publicKey,
         counter: credential.counter,
         transports: credential.transports
       },
@@ -173,7 +173,7 @@ export const verifyAuthentication = async ({
     return {
       verified: true,
       credentialId: credential.id,
-      userId: credential.user_id,
+      userId: credential.userId,
       newCounter: verification.authenticationInfo.newCounter,
       counterWarning
     }
@@ -199,20 +199,27 @@ export const getDeviceType = (authenticatorData) => {
 /**
  * 生成设备默认名称
  * @param {string[]} transports - 传输方式
+ * @param {string} [deviceType] - 设备类型 (singleDevice/multiDevice)
  * @returns {string}
  */
-export const generateDeviceName = (transports = []) => {
+export const generateDeviceName = (transports = [], deviceType) => {
+  // 优先判断 internal（平台认证器，如指纹、面部识别）
   if (transports.includes('internal')) {
-    return 'Built-in Authenticator'
+    return '内置认证器'
   }
+  // hybrid 通常是手机作为认证器
+  if (transports.includes('hybrid')) {
+    return '手机认证器'
+  }
+  // 如果只有 usb，可能是硬件安全密钥
   if (transports.includes('usb')) {
-    return 'USB Security Key'
+    return 'USB 安全密钥'
   }
   if (transports.includes('nfc')) {
-    return 'NFC Security Key'
+    return 'NFC 安全密钥'
   }
   if (transports.includes('ble')) {
-    return 'Bluetooth Security Key'
+    return '蓝牙安全密钥'
   }
-  return 'Security Key'
+  return '安全密钥'
 }

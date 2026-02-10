@@ -23,6 +23,11 @@ export const securityHeaders = () => {
   return async (c, next) => {
     await next()
 
+    // WebSocket 升级响应的 headers 是不可变的，跳过
+    if (c.res.status === 101) {
+      return
+    }
+
     // 添加安全头
     for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
       c.res.headers.set(key, value)

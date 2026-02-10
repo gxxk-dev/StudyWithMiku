@@ -65,6 +65,21 @@ const generateChallengeId = () => {
   return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
+/**
+ * GET /auth/config
+ * 获取服务端认证配置
+ */
+auth.get('/config', (c) => {
+  return c.json({
+    webauthn: true,
+    oauth: {
+      github: !!c.env.GITHUB_CLIENT_ID && !!c.env.GITHUB_CLIENT_SECRET,
+      google: !!c.env.GOOGLE_CLIENT_ID && !!c.env.GOOGLE_CLIENT_SECRET,
+      microsoft: !!c.env.MICROSOFT_CLIENT_ID && !!c.env.MICROSOFT_CLIENT_SECRET
+    }
+  })
+})
+
 // ============================================================
 // 注册流程
 // ============================================================
@@ -248,9 +263,12 @@ auth.post(
         display_name: user.displayName,
         auth_provider: user.authProvider
       }),
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL
+      tokens: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL,
+        tokenType: 'Bearer'
+      }
     })
   }
 )
@@ -391,9 +409,12 @@ auth.post('/login/verify', authRateLimit, zValidator('json', loginVerifySchema),
 
   const result = {
     user: formatUserForResponse(user),
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL
+    tokens: {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL,
+      tokenType: 'Bearer'
+    }
   }
 
   // 如果有计数器警告，添加到响应中
@@ -465,7 +486,8 @@ auth.post('/refresh', authRateLimit, zValidator('json', refreshTokenSchema), asy
   return c.json({
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
-    expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL
+    expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL,
+    tokenType: 'Bearer'
   })
 })
 

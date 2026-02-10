@@ -246,6 +246,23 @@ data.put(
 )
 
 /**
+ * DELETE /api/data/:type
+ * 删除指定类型的用户数据
+ */
+data.delete('/:type', zValidator('param', z.object({ type: z.string() })), async (c) => {
+  const { id } = c.get('user')
+  const { type } = c.req.valid('param')
+
+  const typeValidation = dataTypeParamSchema.safeParse({ type })
+  if (!typeValidation.success) {
+    return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
+  }
+
+  await updateUserData(c.env.DB, id, type, null, null)
+  return sendResponse(c, { success: true })
+})
+
+/**
  * POST /api/data/:type/delta
  * 增量更新指定类型的用户数据
  */

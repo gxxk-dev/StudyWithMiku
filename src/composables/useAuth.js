@@ -18,6 +18,14 @@ const isAuthenticated = ref(false)
 const isLoading = ref(false)
 const error = ref(null)
 const devices = ref([])
+const availableProviders = ref({
+  webauthn: true,
+  oauth: {
+    github: false,
+    google: false,
+    microsoft: false
+  }
+})
 
 // Token 刷新定时器
 let tokenRefreshTimer = null
@@ -147,9 +155,9 @@ export const useAuth = () => {
         try {
           const accessToken = authStorage.getAccessToken()
           if (accessToken) {
-            const latestUser = await authService.getCurrentUser(accessToken)
-            user.value = latestUser
-            authStorage.saveUser(latestUser)
+            const response = await authService.getCurrentUser(accessToken)
+            user.value = response.user
+            authStorage.saveUser(response.user)
           }
         } catch (error) {
           console.warn('获取最新用户信息失败:', error)
@@ -168,8 +176,9 @@ export const useAuth = () => {
   /**
    * WebAuthn 注册
    * @param {string} username - 用户名
+   * @param {string} [deviceName] - 设备名称
    */
-  const register = async (username) => {
+  const register = async (username, deviceName) => {
     if (!webauthnHelper.isWebAuthnSupported()) {
       throw new Error('浏览器不支持 WebAuthn')
     }
@@ -179,13 +188,13 @@ export const useAuth = () => {
 
     try {
       // 获取注册选项
-      const options = await authService.registerOptions(username)
+      const { challengeId, options } = await authService.registerOptions(username)
 
       // 创建凭据
       const credential = await webauthnHelper.createCredential(options)
 
       // 验证注册
-      const response = await authService.registerVerify(username, credential)
+      const response = await authService.registerVerify(challengeId, credential, deviceName)
 
       // 设置认证状态
       setAuthState(response.user, response.tokens)
@@ -213,13 +222,13 @@ export const useAuth = () => {
 
     try {
       // 获取登录选项
-      const options = await authService.loginOptions(username)
+      const { challengeId, options } = await authService.loginOptions(username)
 
       // 获取凭据
       const credential = await webauthnHelper.getCredential(options)
 
       // 验证登录
-      const response = await authService.loginVerify(username, credential)
+      const response = await authService.loginVerify(challengeId, credential)
 
       // 设置认证状态
       setAuthState(response.user, response.tokens)
@@ -351,9 +360,9 @@ export const useAuth = () => {
     clearError()
 
     try {
-      const deviceList = await authService.getDevices(accessToken)
-      devices.value = deviceList
-      return deviceList
+      const response = await authService.getDevices(accessToken)
+      devices.value = response.devices
+      return response.devices
     } catch (error) {
       setError(error)
       throw error
@@ -364,8 +373,9 @@ export const useAuth = () => {
 
   /**
    * 添加新设备
+   * @param {string} [deviceName] - 设备名称
    */
-  const addDevice = async () => {
+  const addDevice = async (deviceName) => {
     if (!webauthnHelper.isWebAuthnSupported()) {
       throw new Error('浏览器不支持 WebAuthn')
     }
@@ -381,23 +391,42 @@ export const useAuth = () => {
 
     try {
       // 获取添加设备选项
-      const options = await authService.addDeviceOptions(accessToken)
+      const { challengeId, options } = await authService.addDeviceOptions(accessToken)
 
       // 创建凭据
       const credential = await webauthnHelper.createCredential(options)
 
       // 验证添加设备
-      const device = await authService.addDeviceVerify(accessToken, credential)
+      const result = await authService.addDeviceVerify(
+        accessToken,
+        challengeId,
+        credential,
+        deviceName
+      )
 
       // 更新设备列表
-      devices.value.push(device)
+      devices.value.push(result.device)
 
-      return device
+      return result.device
     } catch (error) {
       setError(error)
       throw error
     } finally {
       isLoading.value = false
+    }
+  }
+
+  /**
+   * 获取认证配置
+   */
+  const fetchConfig = async () => {
+    try {
+      const config = await authService.getAuthConfig()
+      availableProviders.value = config
+      return config
+    } catch (error) {
+      console.warn('获取认证配置失败:', error)
+      // 保持默认值
     }
   }
 
@@ -439,6 +468,7 @@ export const useAuth = () => {
     isLoading: readonly(isLoading),
     error: readonly(error),
     devices: readonly(devices),
+    availableProviders: readonly(availableProviders),
 
     // 计算属性
     isWebAuthnSupported,
@@ -446,6 +476,7 @@ export const useAuth = () => {
 
     // 方法
     initialize,
+    fetchConfig,
     register,
     login,
     loginWithOAuth,

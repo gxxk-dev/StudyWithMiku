@@ -49,12 +49,14 @@ export class AuthChallenge {
    * @returns {Promise<Response>}
    */
   async storeChallenge(request) {
-    const { challengeId, challenge, userId, type } = await request.json()
+    const { challengeId, challenge, userId, type, username, displayName } = await request.json()
 
     await this.storage.put(challengeId, {
       challenge,
       userId,
       type,
+      username,
+      displayName,
       createdAt: Date.now()
     })
 

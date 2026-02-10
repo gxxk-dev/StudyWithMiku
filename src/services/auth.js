@@ -112,18 +112,19 @@ export const registerOptions = async (username) => {
 
 /**
  * 验证 WebAuthn 注册
- * @param {string} username - 用户名
- * @param {Object} credential - 凭据
+ * @param {string} challengeId - 挑战 ID
+ * @param {Object} response - WebAuthn 响应
+ * @param {string} [deviceName] - 设备名称
  * @returns {Promise<Object>} 认证响应（包含 tokens 和 user）
  */
-export const registerVerify = async (username, credential) => {
-  if (!username || !credential) {
-    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '用户名和凭据不能为空')
+export const registerVerify = async (challengeId, response, deviceName) => {
+  if (!challengeId || !response) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '挑战 ID 和响应不能为空')
   }
 
   return fetchWithRetry(AUTH_API.REGISTER_VERIFY, {
     method: 'POST',
-    body: JSON.stringify({ username, credential })
+    body: JSON.stringify({ challengeId, response, deviceName })
   })
 }
 
@@ -145,18 +146,18 @@ export const loginOptions = async (username) => {
 
 /**
  * 验证 WebAuthn 登录
- * @param {string} username - 用户名
- * @param {Object} credential - 凭据
+ * @param {string} challengeId - 挑战 ID
+ * @param {Object} response - WebAuthn 响应
  * @returns {Promise<Object>} 认证响应（包含 tokens 和 user）
  */
-export const loginVerify = async (username, credential) => {
-  if (!username || !credential) {
-    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '用户名和凭据不能为空')
+export const loginVerify = async (challengeId, response) => {
+  if (!challengeId || !response) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '挑战 ID 和响应不能为空')
   }
 
   return fetchWithRetry(AUTH_API.LOGIN_VERIFY, {
     method: 'POST',
-    body: JSON.stringify({ username, credential })
+    body: JSON.stringify({ challengeId, response })
   })
 }
 
@@ -189,7 +190,9 @@ export const oauthLogin = (provider, redirectUri = null) => {
  * @returns {Object|null} 认证响应（包含 tokens 和 user），如果不是回调页面则返回 null
  */
 export const handleOAuthCallback = () => {
-  const urlParams = new URLSearchParams(window.location.search)
+  // 后端使用 URL fragment (#) 传递 token，需要解析 hash
+  const hash = window.location.hash.substring(1) // 移除开头的 #
+  const urlParams = new URLSearchParams(hash)
 
   // 检查是否有 Token
   const accessToken = urlParams.get('access_token')
@@ -222,10 +225,10 @@ export const handleOAuthCallback = () => {
     }
   }
 
-  // 清理 URL（移除查询参数）
+  // 清理 URL（移除 hash fragment）
   const returnUrl = sessionStorage.getItem('swm_oauth_return_url') || '/'
   sessionStorage.removeItem('swm_oauth_return_url')
-  window.history.replaceState({}, document.title, returnUrl)
+  window.history.replaceState({}, document.title, window.location.pathname)
 
   return {
     tokens: {
@@ -329,12 +332,14 @@ export const addDeviceOptions = async (accessToken) => {
 /**
  * 验证添加设备
  * @param {string} accessToken - 访问令牌
- * @param {Object} credential - 凭据
+ * @param {string} challengeId - 挑战 ID
+ * @param {Object} response - WebAuthn 响应
+ * @param {string} [deviceName] - 设备名称
  * @returns {Promise<Object>} 设备信息
  */
-export const addDeviceVerify = async (accessToken, credential) => {
-  if (!accessToken || !credential) {
-    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌和凭据不能为空')
+export const addDeviceVerify = async (accessToken, challengeId, response, deviceName) => {
+  if (!accessToken || !challengeId || !response) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌、挑战 ID 和响应不能为空')
   }
 
   return fetchWithRetry(AUTH_API.ADD_DEVICE_VERIFY, {
@@ -342,7 +347,17 @@ export const addDeviceVerify = async (accessToken, credential) => {
     headers: {
       Authorization: `Bearer ${accessToken}`
     },
-    body: JSON.stringify({ credential })
+    body: JSON.stringify({ challengeId, response, deviceName })
+  })
+}
+
+/**
+ * 获取服务端认证配置
+ * @returns {Promise<Object>} 认证配置
+ */
+export const getAuthConfig = async () => {
+  return fetchWithRetry(AUTH_API.CONFIG, {
+    method: 'GET'
   })
 }
 

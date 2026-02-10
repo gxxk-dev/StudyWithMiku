@@ -1,5 +1,7 @@
 import { safeLocalStorageGet, safeLocalStorageSet } from './storage.js'
 import { STORAGE_KEYS, AUTH_CONFIG } from '../config/constants.js'
+import { useAuth } from '../composables/useAuth.js'
+import { useDataSync } from '../composables/useDataSync.js'
 
 const STORAGE_KEY = STORAGE_KEYS.USER_SETTINGS
 
@@ -39,28 +41,15 @@ const saveSettings = (settings) => {
   safeLocalStorageSet(STORAGE_KEY, JSON.stringify(merged))
 
   // 如果用户已登录，自动上传到服务器
-  // 使用动态导入避免循环依赖
-  import('../composables/useAuth.js')
-    .then(({ useAuth }) => {
-      import('../composables/useDataSync.js')
-        .then(({ useDataSync }) => {
-          const { isAuthenticated } = useAuth()
-          const { uploadData } = useDataSync()
+  const { isAuthenticated } = useAuth()
+  const { uploadData } = useDataSync()
 
-          if (isAuthenticated.value) {
-            uploadData(AUTH_CONFIG.DATA_TYPES.USER_SETTINGS, merged).catch((error) => {
-              console.error('上传用户设置失败:', error)
-              // 不影响本地保存，错误会被加入离线队列
-            })
-          }
-        })
-        .catch((error) => {
-          console.error('导入 useDataSync 失败:', error)
-        })
+  if (isAuthenticated.value) {
+    uploadData(AUTH_CONFIG.DATA_TYPES.USER_SETTINGS, merged).catch((error) => {
+      console.error('上传用户设置失败:', error)
+      // 不影响本地保存，错误会被加入离线队列
     })
-    .catch((error) => {
-      console.error('导入 useAuth 失败:', error)
-    })
+  }
 }
 
 /**
@@ -69,8 +58,6 @@ const saveSettings = (settings) => {
  */
 export const initializeUserSettings = async () => {
   try {
-    const { useAuth } = await import('../composables/useAuth.js')
-    const { useDataSync } = await import('../composables/useDataSync.js')
     const { isAuthenticated } = useAuth()
     const { downloadData } = useDataSync()
 

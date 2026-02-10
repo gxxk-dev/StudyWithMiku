@@ -113,6 +113,7 @@ import { safeLocalStorageGetJSON } from './utils/storage.js'
 import { onlineServer } from './services/onlineServer.js'
 import { getConfig } from './services/runtimeConfig.js'
 import { usePlaylistManager } from './composables/usePlaylistManager.js'
+import { useAuth } from './composables/useAuth.js'
 import SpotifyPlayer from './components/SpotifyPlayer.vue'
 import OrientationPrompt from './components/OrientationPrompt.vue'
 import Toast from './components/Toast.vue'
@@ -316,7 +317,23 @@ watch(
 
 const loadTimer = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
+  // 处理 OAuth 回调
+  const { handleOAuthCallback, initialize: initAuth } = useAuth()
+  try {
+    const oauthResult = await handleOAuthCallback()
+    if (oauthResult) {
+      console.log('OAuth 登录成功:', oauthResult.username || oauthResult.displayName)
+      showToast(`欢迎，${oauthResult.displayName || oauthResult.username}！`, 'success')
+    }
+  } catch (err) {
+    console.error('OAuth 回调处理失败:', err)
+    showToast(err.message || 'OAuth 登录失败', 'error')
+  }
+
+  // 初始化认证状态
+  initAuth()
+
   // 连接在线计数服务器
   onlineServer.connect()
 

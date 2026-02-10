@@ -200,6 +200,7 @@ export const useDataSync = () => {
       const localVersion = force ? null : getLocalVersion(dataType)
       const response = await dataSyncService.updateData(accessToken, dataType, data, localVersion)
 
+      // 后端返回 { success: true, version, merged }
       if (response.success) {
         // 更新本地版本
         setLocalVersion(dataType, response.version)
@@ -214,7 +215,7 @@ export const useDataSync = () => {
         })
 
         // 从队列中移除相关变更
-        pendingChanges.value = pendingChanges.value.filter((change) => change.dataType !== dataType)
+        pendingChanges.value = pendingChanges.value.filter((change) => change.type !== dataType)
         persistQueue()
 
         return response
@@ -265,7 +266,8 @@ export const useDataSync = () => {
     try {
       const response = await dataSyncService.getData(accessToken, dataType)
 
-      if (response.success && response.data !== null) {
+      // 后端返回 { type, data, version }，不包含 success 字段
+      if (response.data !== null && response.data !== undefined) {
         const localData = getLocalData(dataType)
         const localVersion = getLocalVersion(dataType)
 
@@ -326,9 +328,10 @@ export const useDataSync = () => {
     try {
       const response = await dataSyncService.syncAll(accessToken)
 
-      // 处理每个数据类型
-      for (const [dataType, syncResponse] of Object.entries(response)) {
-        if (syncResponse.success && syncResponse.data !== null) {
+      // 处理每个数据类型 (后端返回 { data: {...}, quota: {...} })
+      const allData = response.data || {}
+      for (const [dataType, syncResponse] of Object.entries(allData)) {
+        if (syncResponse && syncResponse.data !== null) {
           const localData = getLocalData(dataType)
           const localVersion = getLocalVersion(dataType)
 
@@ -404,7 +407,8 @@ export const useDataSync = () => {
 
       const response = await dataSyncService.batchSync(accessToken, syncRequest)
 
-      if (response.success) {
+      // 后端返回 { results }，不包含 success 字段
+      if (response.results) {
         // 处理同步结果
         for (const [dataType, syncResponse] of Object.entries(response.results)) {
           if (syncResponse.success) {
@@ -428,7 +432,7 @@ export const useDataSync = () => {
           (dataType) => response.results[dataType].success
         )
         pendingChanges.value = pendingChanges.value.filter(
-          (change) => !syncedTypes.includes(change.dataType)
+          (change) => !syncedTypes.includes(change.type)
         )
         persistQueue()
 
@@ -478,7 +482,7 @@ export const useDataSync = () => {
   const queueChange = (dataType, data) => {
     const change = {
       id: `${dataType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      dataType,
+      type: dataType,
       data,
       version: getLocalVersion(dataType) + 1,
       timestamp: Date.now(),
@@ -486,7 +490,7 @@ export const useDataSync = () => {
     }
 
     // 移除同类型的旧变更
-    pendingChanges.value = pendingChanges.value.filter((c) => c.dataType !== dataType)
+    pendingChanges.value = pendingChanges.value.filter((c) => c.type !== dataType)
 
     // 添加新变更
     pendingChanges.value.push(change)

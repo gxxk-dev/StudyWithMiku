@@ -13,6 +13,12 @@ const app = new Hono()
 
 const handleOptionsRoute = (c) => handleCorsOptions(c.req.raw)
 
+// 全局错误处理
+app.onError((err, c) => {
+  console.error('Unhandled error:', err.message, err.stack)
+  return c.json({ error: 'Internal Server Error', message: err.message }, 500)
+})
+
 // 全局中间件
 app.use('*', envDefaults()) // 自动检测环境变量
 app.use('*', securityHeaders())

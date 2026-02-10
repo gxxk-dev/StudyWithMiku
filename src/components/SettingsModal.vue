@@ -32,6 +32,7 @@ import { usePWA } from '../composables/usePWA.js'
 import SettingsSidebar from './settings/SettingsSidebar.vue'
 import TabFocus from './settings/tabs/TabFocus.vue'
 import TabMedia from './settings/tabs/TabMedia.vue'
+import TabAccount from './settings/tabs/TabAccount.vue'
 import TabStats from './settings/tabs/TabStats.vue'
 import TabCache from './settings/tabs/TabPWA.vue'
 import TabAbout from './settings/tabs/TabAbout.vue'
@@ -53,6 +54,7 @@ const activeTab = ref('about')
 const tabComponents = {
   focus: TabFocus,
   media: TabMedia,
+  account: TabAccount,
   stats: TabStats,
   cache: TabCache,
   about: TabAbout,

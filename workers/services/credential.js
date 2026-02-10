@@ -74,7 +74,7 @@ export const findCredentialsByUserId = async (d1, userId) => {
 }
 
 /**
- * 更新凭证的签名计数器
+ * 更新凭证的签名计数器和最后使用时间
  * @param {Object} d1 - D1 数据库实例
  * @param {string} credentialId - 凭证 ID
  * @param {number} newCounter - 新的计数器值
@@ -82,7 +82,10 @@ export const findCredentialsByUserId = async (d1, userId) => {
  */
 export const updateCredentialCounter = async (d1, credentialId, newCounter) => {
   const db = createDb(d1)
-  await db.update(credentials).set({ counter: newCounter }).where(eq(credentials.id, credentialId))
+  await db
+    .update(credentials)
+    .set({ counter: newCounter, lastUsedAt: Date.now() })
+    .where(eq(credentials.id, credentialId))
 }
 
 /**
@@ -127,9 +130,11 @@ export const getCredentialCount = async (d1, userId) => {
 export const formatCredentialForResponse = (credential) => {
   return {
     id: credential.id,
+    credentialId: credential.id,
     deviceType: credential.deviceType,
     deviceName: credential.deviceName,
     transports: credential.transports,
-    backedUp: credential.backedUp
+    backedUp: credential.backedUp,
+    lastUsedAt: credential.lastUsedAt || null
   }
 }

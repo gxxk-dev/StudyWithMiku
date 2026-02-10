@@ -55,18 +55,20 @@ const validateState = (state, expectedProvider) => {
  * @param {Object} c - Hono Context
  * @param {Object} tokens - Token 对
  * @param {boolean} isNew - 是否新用户
+ * @param {Object} user - 用户信息
  * @returns {Response}
  */
-const redirectWithTokens = (c, tokens, isNew) => {
+const redirectWithTokens = (c, tokens, isNew, user) => {
   const baseUrl = c.env.OAUTH_CALLBACK_BASE
   const params = new URLSearchParams({
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
     expires_in: String(JWT_CONFIG.ACCESS_TOKEN_TTL),
-    is_new: String(isNew)
+    is_new: String(isNew),
+    user: JSON.stringify(user)
   })
 
-  return c.redirect(`${baseUrl}/auth/callback#${params.toString()}`)
+  return c.redirect(`${baseUrl}/#${params.toString()}`)
 }
 
 /**
@@ -77,7 +79,7 @@ const redirectWithTokens = (c, tokens, isNew) => {
  */
 const redirectWithError = (c, error) => {
   const baseUrl = c.env.OAUTH_CALLBACK_BASE
-  return c.redirect(`${baseUrl}/auth/error?error=${encodeURIComponent(error)}`)
+  return c.redirect(`${baseUrl}/?error=${encodeURIComponent(error)}`)
 }
 
 /**
@@ -103,7 +105,16 @@ const handleOAuthCallback = async (c, oauthUser) => {
     secret: c.env.JWT_SECRET
   })
 
-  return redirectWithTokens(c, tokens, isNew)
+  // 格式化用户信息用于返回
+  const userForResponse = {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    authProvider: user.authProvider
+  }
+
+  return redirectWithTokens(c, tokens, isNew, userForResponse)
 }
 
 // ============================================================
