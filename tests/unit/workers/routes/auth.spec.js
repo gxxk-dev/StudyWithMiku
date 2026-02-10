@@ -182,14 +182,26 @@ describe('auth routes', () => {
       expect(body.error).toBe('Authentication failed')
     })
 
-    it('OAuth 用户不应该通过 WebAuthn 登录', async () => {
+    it('无凭证的 OAuth 用户不应该通过 WebAuthn 登录', async () => {
       const res = await jsonRequest('POST', '/auth/login/options', {
-        username: 'github_user'
+        username: 'google_user'
       })
 
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.authProvider).toBe('github')
+      expect(body.authProvider).toBe('google')
+    })
+
+    it('有凭证的 OAuth 用户应该能获取登录选项', async () => {
+      const res = await jsonRequest('POST', '/auth/login/options', {
+        username: 'github_user'
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.challengeId).toBeDefined()
+      expect(body.options).toBeDefined()
+      expect(body.options.allowCredentials).toBeDefined()
     })
   })
 

@@ -86,6 +86,16 @@ export const sampleCredentials = [
     device_type: 'cross-platform',
     device_name: 'USB Security Key',
     backed_up: 1
+  },
+  {
+    id: 'credential-003',
+    user_id: 'user-002',
+    public_key: new Uint8Array([11, 12, 13, 14, 15]),
+    counter: 0,
+    transports: '["usb"]',
+    device_type: 'cross-platform',
+    device_name: 'USB Security Key',
+    backed_up: 0
   }
 ]
 

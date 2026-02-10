@@ -293,8 +293,9 @@ auth.post('/login/options', authRateLimit, zValidator('json', loginOptionsSchema
     )
   }
 
-  // 检查是否是 WebAuthn 用户
-  if (user.authProvider !== 'webauthn') {
+  // 检查用户是否有 WebAuthn 凭证（支持 OAuth 用户添加安全密钥后通过 WebAuthn 登录）
+  const userCredentials = await findCredentialsByUserId(c.env.DB, user.id)
+  if (userCredentials.length === 0) {
     return c.json(
       {
         error: 'Please login with your OAuth provider',
