@@ -221,14 +221,11 @@ export const updateUserData = async (d1, userId, dataType, data, clientVersion) 
  * @returns {Promise<Array<{type: string, success: boolean, version?: number, conflict?: boolean, serverData?: *, error?: string}>>}
  */
 export const syncUserData = async (d1, userId, changes) => {
-  const results = []
+  const results = {}
 
   for (const change of changes) {
     const result = await updateUserData(d1, userId, change.type, change.data, change.version)
-    results.push({
-      type: change.type,
-      ...result
-    })
+    results[change.type] = result
   }
 
   return results

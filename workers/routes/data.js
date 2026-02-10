@@ -222,13 +222,17 @@ data.put(
 
     if (!result.success) {
       if (result.conflict) {
-        return sendResponse(c, {
-          error: 'Version conflict',
-          code: ERROR_CODES.VERSION_CONFLICT,
-          conflict: true,
-          serverData: result.serverData,
-          serverVersion: result.serverVersion
-        })
+        return sendResponse(
+          c,
+          {
+            error: 'Version conflict',
+            code: ERROR_CODES.VERSION_CONFLICT,
+            conflict: true,
+            serverData: result.serverData,
+            serverVersion: result.serverVersion
+          },
+          409
+        )
       }
       return sendResponse(
         c,
@@ -325,7 +329,7 @@ data.post('/sync', checkBodySize, async (c) => {
 
   const { changes } = parsed.data
   if (!changes || changes.length === 0) {
-    return sendResponse(c, { results: [] })
+    return sendResponse(c, { results: {} })
   }
 
   for (const change of changes) {

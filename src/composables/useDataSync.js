@@ -395,14 +395,8 @@ export const useDataSync = () => {
 
     try {
       // 构建批量同步请求
-      const versions = {}
-      Object.values(AUTH_CONFIG.DATA_TYPES).forEach((dataType) => {
-        versions[dataType] = getLocalVersion(dataType)
-      })
-
       const syncRequest = {
-        changes: pendingChanges.value,
-        versions
+        changes: pendingChanges.value
       }
 
       const response = await dataSyncService.batchSync(accessToken, syncRequest)

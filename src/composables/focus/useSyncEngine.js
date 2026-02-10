@@ -12,6 +12,7 @@ import {
 } from '../../utils/storage.js'
 import { mergeFocusRecords } from '../../utils/syncConflictResolver.js'
 import { useAuth } from '../useAuth.js'
+import * as authStorage from '../../utils/authStorage.js'
 import { AUTH_CONFIG, DATA_API } from '../../config/constants.js'
 import {
   SYNC_PROTOCOL,
@@ -88,10 +89,10 @@ export const generateUUID = () => {
  * @returns {Object}
  */
 const getAuthHeaders = () => {
-  const { accessToken } = useAuth()
+  const accessToken = authStorage.getAccessToken()
   return {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessToken.value}`
+    Authorization: `Bearer ${accessToken}`
   }
 }
 
@@ -197,7 +198,12 @@ const uploadFullData = async (records) => {
 
     if (result.conflict) {
       // 版本冲突，需要合并
-      return { success: false, conflict: true, serverData: result.serverData }
+      return {
+        success: false,
+        conflict: true,
+        serverData: result.serverData,
+        serverVersion: result.serverVersion
+      }
     }
 
     return { success: true, version: result.version }
@@ -364,6 +370,9 @@ const sync = async () => {
 
     // 处理冲突
     if (uploadResult.conflict) {
+      if (uploadResult.serverVersion) {
+        serverVersion.value = uploadResult.serverVersion
+      }
       const remerged = mergeFocusRecords(mergedRecords, uploadResult.serverData)
       saveLocalRecords(remerged)
       // 重试上传

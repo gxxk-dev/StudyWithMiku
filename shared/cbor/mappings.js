@@ -23,7 +23,8 @@ export const FOCUS_RECORD_KEYS = {
   endTime: 4,
   duration: 5,
   elapsed: 6,
-  completionType: 7
+  completionType: 7,
+  updatedAt: 8
 }
 
 /** FocusMode 枚举映射 */

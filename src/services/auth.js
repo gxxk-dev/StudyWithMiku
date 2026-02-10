@@ -260,19 +260,26 @@ export const refreshToken = async (refreshToken) => {
 /**
  * 登出
  * @param {string} accessToken - 访问令牌
+ * @param {string} [refreshToken] - 刷新令牌（可选，用于同时吊销）
  * @returns {Promise<void>}
  */
-export const logout = async (accessToken) => {
+export const logout = async (accessToken, refreshToken = null) => {
   if (!accessToken) {
     throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
   }
 
-  return fetchWithRetry(AUTH_API.LOGOUT, {
+  const options = {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
-  })
+  }
+
+  if (refreshToken) {
+    options.body = JSON.stringify({ refreshToken })
+  }
+
+  return fetchWithRetry(AUTH_API.LOGOUT, options)
 }
 
 /**

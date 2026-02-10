@@ -55,7 +55,7 @@ export const STORAGE_KEYS = {
   // 认证相关
   AUTH_ACCESS_TOKEN: 'swm_access_token',
   AUTH_REFRESH_TOKEN: 'swm_refresh_token',
-  AUTH_USER: 'swm_user',
+  AUTH_USER: 'swm_user_info',
   // 数据同步版本
   SYNC_VERSION_PREFIX: 'swm_sync_version'
 }

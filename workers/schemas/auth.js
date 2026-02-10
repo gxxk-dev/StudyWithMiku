@@ -122,7 +122,8 @@ const focusRecordSchema = z
     endTime: z.number().int().positive(),
     duration: z.number().int().min(0).max(7200),
     elapsed: z.number().int().min(0).max(7200),
-    completionType: z.enum(['completed', 'cancelled', 'skipped', 'interrupted', 'disabled'])
+    completionType: z.enum(['completed', 'cancelled', 'skipped', 'interrupted', 'disabled']),
+    updatedAt: z.number().int().min(0).optional()
   })
   .refine((data) => data.endTime >= data.startTime, {
     message: 'endTime must be >= startTime'
@@ -172,7 +173,7 @@ const playlistSchema = z.object({
   cover: z.string().max(2000).optional().nullable(),
   order: z.number().int().min(0).max(100),
   mode: z.enum(['playlist', 'collection']),
-  source: z.enum(['netease', 'tencent', 'spotify']).optional(),
+  source: z.enum(['netease', 'tencent', 'spotify', 'local']).optional(),
   sourceId: z.string().max(50).optional(),
   songs: z.array(songSchema).max(DATA_CONFIG.MAX_SONGS_PER_PLAYLIST).optional()
 })

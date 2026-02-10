@@ -292,7 +292,8 @@ export const useAuth = () => {
       // 尝试调用服务器登出 API
       if (accessToken) {
         try {
-          await authService.logout(accessToken)
+          const refreshToken = authStorage.getRefreshToken()
+          await authService.logout(accessToken, refreshToken)
         } catch (error) {
           console.warn('服务器登出失败:', error)
           // 不影响本地登出流程

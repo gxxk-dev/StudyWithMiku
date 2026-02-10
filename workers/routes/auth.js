@@ -258,11 +258,7 @@ auth.post(
     })
 
     return c.json({
-      user: formatUserForResponse({
-        ...user,
-        display_name: user.displayName,
-        auth_provider: user.authProvider
-      }),
+      user: formatUserForResponse(user),
       tokens: {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -686,6 +682,7 @@ auth.post(
     return c.json({
       device: {
         id: registrationInfo.credential.id,
+        credentialId: registrationInfo.credential.id,
         deviceType: registrationInfo.credentialDeviceType,
         deviceName: deviceName || generateDeviceName(response.response.transports),
         transports: response.response.transports,

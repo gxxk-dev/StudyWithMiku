@@ -204,7 +204,7 @@ describe('data routes', () => {
         env
       )
 
-      expect(res.status).toBe(200)
+      expect(res.status).toBe(409)
       const body = await res.json()
       expect(body.conflict).toBe(true)
       expect(body.serverVersion).toBe(5)
@@ -296,9 +296,9 @@ describe('data routes', () => {
 
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.results).toHaveLength(2)
-      expect(body.results[0].success).toBe(true)
-      expect(body.results[1].success).toBe(true)
+      expect(Object.keys(body.results)).toHaveLength(2)
+      expect(body.results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
+      expect(body.results[DATA_CONFIG.TYPES.PLAYLISTS].success).toBe(true)
     })
 
     it('空 changes 应该返回空结果', async () => {
@@ -316,7 +316,7 @@ describe('data routes', () => {
 
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.results).toEqual([])
+      expect(body.results).toEqual({})
     })
 
     it('包含无效数据类型应该返回 400', async () => {
@@ -373,8 +373,8 @@ describe('data routes', () => {
 
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.results[0].success).toBe(true)
-      expect(body.results[1].success).toBe(false)
+      expect(body.results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
+      expect(body.results[DATA_CONFIG.TYPES.FOCUS_SETTINGS].success).toBe(false)
     })
 
     it('focus_records 冲突应该自动合并', async () => {
@@ -412,8 +412,8 @@ describe('data routes', () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       // 现在返回冲突，让客户端处理
-      expect(body.results[0].success).toBe(false)
-      expect(body.results[0].conflict).toBe(true)
+      expect(body.results[DATA_CONFIG.TYPES.FOCUS_RECORDS].success).toBe(false)
+      expect(body.results[DATA_CONFIG.TYPES.FOCUS_RECORDS].conflict).toBe(true)
     })
   })
 })

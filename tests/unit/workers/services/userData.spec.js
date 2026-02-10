@@ -319,9 +319,9 @@ describe('userData.js', () => {
 
       const results = await syncUserData(mockDB, 'user-sync-test', changes)
 
-      expect(results).toHaveLength(2)
-      expect(results[0].success).toBe(true)
-      expect(results[1].success).toBe(true)
+      expect(Object.keys(results)).toHaveLength(2)
+      expect(results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
+      expect(results[DATA_CONFIG.TYPES.PLAYLISTS].success).toBe(true)
     })
 
     it('部分失败应该独立返回结果', async () => {
@@ -340,8 +340,8 @@ describe('userData.js', () => {
 
       const results = await syncUserData(mockDB, 'user-sync-test', changes)
 
-      expect(results[0].success).toBe(true)
-      expect(results[1].success).toBe(false)
+      expect(results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
+      expect(results[DATA_CONFIG.TYPES.FOCUS_SETTINGS].success).toBe(false)
     })
   })
 

@@ -44,10 +44,18 @@ export const createCborRequestInit = (dataType, body) => {
     processedBody.data = compressData(dataType, body.data)
   }
   if (Array.isArray(body.changes)) {
-    processedBody.changes = body.changes.map((change) => ({
-      ...change,
-      record: change.record ? compressData(dataType, [change.record])[0] : change.record
-    }))
+    processedBody.changes = body.changes.map((change) => {
+      const compressed = { ...change }
+      // useSyncEngine 格式: { action, record, timestamp }
+      if (change.record) {
+        compressed.record = compressData(dataType, [change.record])[0]
+      }
+      // useDataSync 格式: { type, data, version, operation }
+      if (change.data !== undefined) {
+        compressed.data = compressData(change.type || dataType, change.data)
+      }
+      return compressed
+    })
   }
 
   return {

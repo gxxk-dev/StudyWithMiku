@@ -91,7 +91,7 @@ export const SYNC_THRESHOLD = 100
  */
 export const SYNC_STORAGE_KEYS = {
   QUEUE: 'swm_sync_queue',
-  VERSION: 'swm_sync_version',
+  VERSION: 'swm_sync_version_focus_records',
   PROTOCOL: 'swm_sync_protocol',
   LAST_SYNC: 'swm_sync_last_time'
 }
