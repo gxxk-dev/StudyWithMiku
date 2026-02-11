@@ -164,7 +164,7 @@ describe('credential.js', () => {
         deviceName: 'My Device',
         transports: ['internal'],
         backedUp: true,
-        lastUsed: null
+        lastUsedAt: null
       })
 
       // 确保敏感字段不在响应中

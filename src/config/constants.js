@@ -244,8 +244,6 @@ export const DATA_API = {
   BASE_URL: '/api/data',
   GET_DATA: (type) => `/api/data/${type}`,
   UPDATE_DATA: (type) => `/api/data/${type}`,
-  GET_VERSION: (type) => `/api/data/${type}/version`,
-  APPLY_DELTA: (type) => `/api/data/${type}/delta`,
-  SYNC_ALL: '/api/data',
-  BATCH_SYNC: '/api/data/sync'
+  DELETE_DATA: (type) => `/api/data/${type}`,
+  GET_VERSION: (type) => `/api/data/${type}/version`
 }

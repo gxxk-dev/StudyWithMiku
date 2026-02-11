@@ -14,12 +14,7 @@ import { mergeFocusRecords } from '../../utils/syncConflictResolver.js'
 import { useAuth } from '../useAuth.js'
 import * as authStorage from '../../utils/authStorage.js'
 import { AUTH_CONFIG, DATA_API } from '../../config/constants.js'
-import {
-  SYNC_PROTOCOL,
-  SYNC_THRESHOLD,
-  SYNC_STORAGE_KEYS,
-  FOCUS_STORAGE_KEYS
-} from './constants.js'
+import { SYNC_PROTOCOL, SYNC_STORAGE_KEYS, FOCUS_STORAGE_KEYS } from './constants.js'
 
 // 模块级单例状态
 const syncEnabled = ref(true)
@@ -190,14 +185,10 @@ const uploadFullData = async (records) => {
       })
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-
+    // 解析响应体（包括 409 冲突）
     const result = await response.json()
 
-    if (result.conflict) {
-      // 版本冲突，需要合并
+    if (response.status === 409 || result.conflict) {
       return {
         success: false,
         conflict: true,
@@ -206,37 +197,13 @@ const uploadFullData = async (records) => {
       }
     }
 
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP ${response.status}`)
+    }
+
     return { success: true, version: result.version }
   } catch (error) {
     console.error('上传全量数据失败:', error)
-    return { success: false }
-  }
-}
-
-/**
- * 上传增量数据
- * @param {Array} changes - 变更数组
- * @returns {Promise<{success: boolean, version?: number}>}
- */
-const uploadDelta = async (changes) => {
-  try {
-    const response = await fetch(DATA_API.APPLY_DELTA(AUTH_CONFIG.DATA_TYPES.FOCUS_RECORDS), {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({
-        changes,
-        version: serverVersion.value
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-
-    const result = await response.json()
-    return { success: result.success, version: result.version }
-  } catch (error) {
-    console.error('上传增量数据失败:', error)
     return { success: false }
   }
 }
@@ -345,20 +312,7 @@ const sync = async () => {
     saveLocalRecords(mergedRecords)
 
     // 6. 上传合并后的数据
-    const recordCount = mergedRecords.length
-    let uploadResult
-
-    if (recordCount <= SYNC_THRESHOLD || changeQueue.value.length === 0) {
-      // 全量上传
-      uploadResult = await uploadFullData(mergedRecords)
-    } else {
-      // 增量上传
-      uploadResult = await uploadDelta(changeQueue.value)
-      if (!uploadResult.success) {
-        // 增量失败，回退到全量
-        uploadResult = await uploadFullData(mergedRecords)
-      }
-    }
+    const uploadResult = await uploadFullData(mergedRecords)
 
     if (uploadResult.success) {
       serverVersion.value = uploadResult.version
@@ -480,7 +434,6 @@ export const _internal = {
   fetchServerVersion,
   downloadFullData,
   uploadFullData,
-  uploadDelta,
   getLocalRecords,
   saveLocalRecords,
   resetForTesting

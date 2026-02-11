@@ -8,7 +8,6 @@ import {
   getUserData,
   getAllUserData,
   updateUserData,
-  syncUserData,
   checkUserQuota
 } from '../../../../workers/services/userData.js'
 import { DATA_CONFIG, ERROR_CODES } from '../../../../workers/constants.js'
@@ -299,49 +298,6 @@ describe('userData.js', () => {
 
       expect(result.success).toBe(false)
       expect(result.code).toBe(ERROR_CODES.VALIDATION_FAILED)
-    })
-  })
-
-  describe('syncUserData', () => {
-    it('应该批量处理多个数据类型', async () => {
-      const changes = [
-        {
-          type: DATA_CONFIG.TYPES.USER_SETTINGS,
-          data: createUserSettingsData(),
-          version: 0
-        },
-        {
-          type: DATA_CONFIG.TYPES.PLAYLISTS,
-          data: createPlaylistsData(),
-          version: 0
-        }
-      ]
-
-      const results = await syncUserData(mockDB, 'user-sync-test', changes)
-
-      expect(Object.keys(results)).toHaveLength(2)
-      expect(results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
-      expect(results[DATA_CONFIG.TYPES.PLAYLISTS].success).toBe(true)
-    })
-
-    it('部分失败应该独立返回结果', async () => {
-      const changes = [
-        {
-          type: DATA_CONFIG.TYPES.USER_SETTINGS,
-          data: createUserSettingsData(),
-          version: 0
-        },
-        {
-          type: DATA_CONFIG.TYPES.FOCUS_SETTINGS,
-          data: { invalid: 'data' }, // 无效数据
-          version: 0
-        }
-      ]
-
-      const results = await syncUserData(mockDB, 'user-sync-test', changes)
-
-      expect(results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
-      expect(results[DATA_CONFIG.TYPES.FOCUS_SETTINGS].success).toBe(false)
     })
   })
 

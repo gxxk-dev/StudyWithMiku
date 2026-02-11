@@ -166,22 +166,16 @@ export const loginVerify = async (challengeId, response) => {
  * @param {string} provider - OAuth 提供商 (github|google|microsoft)
  * @param {string} [redirectUri] - 回调 URL（可选，默认使用当前页面）
  */
-export const oauthLogin = (provider, redirectUri = null) => {
+export const oauthLogin = (provider) => {
   if (!AUTH_CONFIG.OAUTH_PROVIDERS.includes(provider)) {
     throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, `不支持的 OAuth 提供商: ${provider}`)
   }
 
-  // 构建回调 URL
-  const callbackUrl = redirectUri || `${window.location.origin}${OAUTH_API.CALLBACK}`
-
   // 保存当前页面 URL，用于登录后跳转
   sessionStorage.setItem('swm_oauth_return_url', window.location.href)
 
-  // 构建 OAuth URL
-  const oauthUrl = `${OAUTH_API[provider.toUpperCase()]}?redirect_uri=${encodeURIComponent(callbackUrl)}`
-
-  // 重定向到 OAuth 页面
-  window.location.href = oauthUrl
+  // 重定向到 OAuth 页面（redirect_uri 由后端环境变量控制）
+  window.location.href = OAUTH_API[provider.toUpperCase()]
 }
 
 /**
@@ -190,7 +184,7 @@ export const oauthLogin = (provider, redirectUri = null) => {
  * @returns {Object|null} 认证响应（包含 tokens 和 user），如果不是回调页面则返回 null
  */
 export const handleOAuthCallback = () => {
-  // 后端使用 URL fragment (#) 传递 token，需要解析 hash
+  // 后端使用 URL fragment (#) 传递 token 和 error
   const hash = window.location.hash.substring(1) // 移除开头的 #
   const urlParams = new URLSearchParams(hash)
 
@@ -198,6 +192,7 @@ export const handleOAuthCallback = () => {
   const accessToken = urlParams.get('access_token')
   const refreshToken = urlParams.get('refresh_token')
   const expiresIn = urlParams.get('expires_in')
+
   const error = urlParams.get('error')
 
   // 如果有错误

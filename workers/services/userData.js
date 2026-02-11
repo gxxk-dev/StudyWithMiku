@@ -192,8 +192,8 @@ export const updateUserData = async (d1, userId, dataType, data, clientVersion) 
     return { success: true, version: 1 }
   }
 
-  // 版本冲突检测 - 返回冲突让客户端处理
-  if (clientVersion !== current.version) {
+  // 版本冲突检测 - clientVersion 为 null 时跳过检查（强制写入）
+  if (clientVersion !== null && clientVersion !== current.version) {
     return {
       success: false,
       conflict: true,
@@ -211,24 +211,6 @@ export const updateUserData = async (d1, userId, dataType, data, clientVersion) 
     .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
 
   return { success: true, version: newVersion }
-}
-
-/**
- * 批量同步用户数据
- * @param {Object} d1 - D1 数据库实例
- * @param {string} userId - 用户 ID
- * @param {Array<{type: string, data: *, version: number}>} changes - 变更列表
- * @returns {Promise<Array<{type: string, success: boolean, version?: number, conflict?: boolean, serverData?: *, error?: string}>>}
- */
-export const syncUserData = async (d1, userId, changes) => {
-  const results = {}
-
-  for (const change of changes) {
-    const result = await updateUserData(d1, userId, change.type, change.data, change.version)
-    results[change.type] = result
-  }
-
-  return results
 }
 
 /**
@@ -251,89 +233,4 @@ export const checkUserQuota = async (d1, userId) => {
     used,
     limit: DATA_CONFIG.USER_QUOTA
   }
-}
-
-/**
- * 应用增量更新
- * @param {Object} d1 - D1 数据库实例
- * @param {string} userId - 用户 ID
- * @param {string} dataType - 数据类型
- * @param {Array} changes - 变更数组 [{action, record}]
- * @param {number} clientVersion - 客户端版本号
- * @returns {Promise<{success: boolean, version?: number, conflict?: boolean, serverVersion?: number}>}
- */
-export const applyDelta = async (d1, userId, dataType, changes, clientVersion) => {
-  const db = createDb(d1)
-
-  // 获取当前数据
-  const current = await getUserData(d1, userId, dataType)
-
-  // 版本检查
-  if (current.version !== 0 && clientVersion !== current.version) {
-    return {
-      success: false,
-      conflict: true,
-      serverVersion: current.version
-    }
-  }
-
-  // 应用变更
-  let records = Array.isArray(current.data) ? [...current.data] : []
-  const recordMap = new Map(records.map((r) => [r.id, r]))
-
-  for (const change of changes) {
-    const { action, record } = change
-    if (!record || !record.id) continue
-
-    switch (action) {
-      case 'add':
-      case 'update':
-        recordMap.set(record.id, record)
-        break
-      case 'delete':
-        recordMap.delete(record.id)
-        break
-    }
-  }
-
-  // 转换回数组并排序
-  records = Array.from(recordMap.values())
-  records.sort((a, b) => (a.startTime || 0) - (b.startTime || 0))
-
-  // 限制记录数量
-  if (records.length > DATA_CONFIG.MAX_FOCUS_RECORDS) {
-    records = records.slice(-DATA_CONFIG.MAX_FOCUS_RECORDS)
-  }
-
-  // 验证数据
-  const validation = validateUserData(dataType, records)
-  if (!validation.valid) {
-    return {
-      success: false,
-      error: validation.error,
-      code: validation.code
-    }
-  }
-
-  // 保存 - 使用 CBOR 格式
-  const newVersion = current.version + 1
-  const cborData = encodeToCbor(dataType, validation.data)
-
-  if (current.version === 0) {
-    await db.insert(userData).values({
-      userId,
-      dataType,
-      data: cborData,
-      dataFormat: 'cbor',
-      version: 1
-    })
-    return { success: true, version: 1 }
-  }
-
-  await db
-    .update(userData)
-    .set({ data: cborData, dataFormat: 'cbor', version: newVersion })
-    .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
-
-  return { success: true, version: newVersion }
 }

@@ -13,12 +13,9 @@ import { requireAuth } from '../middleware/auth.js'
 import { dataTypeParamSchema } from '../schemas/auth.js'
 import {
   getUserData,
-  getAllUserData,
   updateUserData,
-  syncUserData,
   checkUserQuota,
-  getDataVersion,
-  applyDelta
+  getDataVersion
 } from '../services/userData.js'
 import { CBOR_PROTOCOL_VERSION } from '../utils/cborServer.js'
 
@@ -116,25 +113,6 @@ data.use('*', requireAuth())
 data.use('*', dataRateLimit)
 
 /**
- * GET /api/data
- * 获取所有用户数据
- */
-data.get('/', async (c) => {
-  const { id } = c.get('user')
-
-  const allData = await getAllUserData(c.env.DB, id)
-  const quota = await checkUserQuota(c.env.DB, id)
-
-  return sendResponse(c, {
-    data: allData,
-    quota: {
-      used: quota.used,
-      limit: quota.limit
-    }
-  })
-})
-
-/**
  * GET /api/data/:type
  * 获取指定类型的用户数据
  */
@@ -196,11 +174,11 @@ data.put(
       return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
     }
 
-    const { data: reqData, version } = parsed.data
-    if (reqData === undefined || version === undefined) {
+    const { data: reqData, version = null } = parsed.data
+    if (reqData === undefined) {
       return sendResponse(
         c,
-        { error: 'Missing data or version field', code: ERROR_CODES.VALIDATION_FAILED },
+        { error: 'Missing data field', code: ERROR_CODES.VALIDATION_FAILED },
         400
       )
     }
@@ -264,100 +242,6 @@ data.delete('/:type', zValidator('param', z.object({ type: z.string() })), async
 
   await updateUserData(c.env.DB, id, type, null, null)
   return sendResponse(c, { success: true })
-})
-
-/**
- * POST /api/data/:type/delta
- * 增量更新指定类型的用户数据
- */
-data.post(
-  '/:type/delta',
-  checkBodySize,
-  zValidator('param', z.object({ type: z.string() })),
-  async (c) => {
-    const { id } = c.get('user')
-    const { type } = c.req.valid('param')
-
-    const typeValidation = dataTypeParamSchema.safeParse({ type })
-    if (!typeValidation.success) {
-      return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
-    }
-
-    const parsed = await parseRequestBody(c)
-    if (parsed.error) {
-      return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
-    }
-
-    const { changes, version } = parsed.data
-    if (!Array.isArray(changes) || version === undefined) {
-      return sendResponse(
-        c,
-        { error: 'Missing changes or version', code: ERROR_CODES.VALIDATION_FAILED },
-        400
-      )
-    }
-
-    const result = await applyDelta(c.env.DB, id, type, changes, version)
-
-    if (!result.success) {
-      return sendResponse(
-        c,
-        {
-          error: result.error || 'Delta apply failed',
-          code: result.code || ERROR_CODES.VERSION_CONFLICT,
-          serverVersion: result.serverVersion
-        },
-        result.conflict ? 200 : 400
-      )
-    }
-
-    return sendResponse(c, { success: true, version: result.version })
-  }
-)
-
-/**
- * POST /api/data/sync
- * 批量同步用户数据
- */
-data.post('/sync', checkBodySize, async (c) => {
-  const { id } = c.get('user')
-
-  const parsed = await parseRequestBody(c)
-  if (parsed.error) {
-    return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
-  }
-
-  const { changes } = parsed.data
-  if (!changes || changes.length === 0) {
-    return sendResponse(c, { results: {} })
-  }
-
-  for (const change of changes) {
-    const typeValidation = dataTypeParamSchema.safeParse({ type: change.type })
-    if (!typeValidation.success) {
-      return sendResponse(
-        c,
-        { error: `Invalid data type: ${change.type}`, code: ERROR_CODES.INVALID_TYPE },
-        400
-      )
-    }
-  }
-
-  const quota = await checkUserQuota(c.env.DB, id)
-  if (!quota.withinQuota) {
-    return sendResponse(
-      c,
-      {
-        error: 'Storage quota exceeded',
-        code: ERROR_CODES.QUOTA_EXCEEDED,
-        quota: { used: quota.used, limit: quota.limit }
-      },
-      413
-    )
-  }
-
-  const results = await syncUserData(c.env.DB, id, changes)
-  return sendResponse(c, { results })
 })
 
 export default data

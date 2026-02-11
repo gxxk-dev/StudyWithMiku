@@ -79,7 +79,7 @@ const redirectWithTokens = (c, tokens, isNew, user) => {
  */
 const redirectWithError = (c, error) => {
   const baseUrl = c.env.OAUTH_CALLBACK_BASE
-  return c.redirect(`${baseUrl}/?error=${encodeURIComponent(error)}`)
+  return c.redirect(`${baseUrl}/#error=${encodeURIComponent(error)}`)
 }
 
 /**

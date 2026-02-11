@@ -223,15 +223,14 @@ export const useDataSync = () => {
         throw new Error(response.error || '上传失败')
       }
     } catch (error) {
-      // 处理冲突
+      // 处理冲突 — 后端 409 返回 { conflict: true, serverData, serverVersion } 在 error.details 中
       if (error.code === 'CONFLICT_ERROR' && error.details && error.details.conflict) {
-        const conflict = error.details.conflict
         const resolvedData = await resolveConflict(
           dataType,
           data,
-          conflict.serverData,
-          conflict.localVersion,
-          conflict.serverVersion
+          error.details.serverData,
+          getLocalVersion(dataType),
+          error.details.serverVersion
         )
 
         // 使用解决后的数据重新上传
@@ -313,9 +312,13 @@ export const useDataSync = () => {
   }
 
   /**
-   * 全量同步（下载所有数据）
+   * 处理离线队列（逐个上传待同步的变更）
    */
-  const syncAll = async () => {
+  const syncChanges = async () => {
+    if (pendingChanges.value.length === 0) {
+      return
+    }
+
     const accessToken = authStorage.getAccessToken()
 
     if (!accessToken) {
@@ -326,115 +329,20 @@ export const useDataSync = () => {
     clearError()
 
     try {
-      const response = await dataSyncService.syncAll(accessToken)
+      // 逐个上传队列中的变更
+      const changesToProcess = [...pendingChanges.value]
 
-      // 处理每个数据类型 (后端返回 { data: {...}, quota: {...} })
-      const allData = response.data || {}
-      for (const [dataType, syncResponse] of Object.entries(allData)) {
-        if (syncResponse && syncResponse.data !== null) {
-          const localData = getLocalData(dataType)
-          const localVersion = getLocalVersion(dataType)
-
-          // 检查是否需要合并
-          if (localData && syncResponse.version !== localVersion) {
-            const mergedData = conflictResolver.resolveConflict(
-              dataType,
-              localData,
-              syncResponse.data,
-              localVersion,
-              syncResponse.version
-            )
-
-            // 保存合并后的数据
-            saveLocalData(dataType, mergedData)
-          } else {
-            // 直接使用服务器数据
-            saveLocalData(dataType, syncResponse.data)
-          }
-
-          // 更新版本和同步状态
-          setLocalVersion(dataType, syncResponse.version)
-          updateSyncStatus(dataType, {
-            synced: true,
-            version: syncResponse.version,
-            lastSyncTime: Date.now(),
-            error: null,
-            hasLocalChanges: false
-          })
+      for (const change of changesToProcess) {
+        try {
+          await uploadData(change.type, change.data)
+        } catch {
+          // 单个失败不影响其他类型
+          console.error(`同步 ${change.type} 失败`)
         }
       }
 
       lastSyncTime.value = Date.now()
       safeLocalStorageSetJSON('swm_last_sync_time', lastSyncTime.value)
-
-      return response
-    } catch (error) {
-      setError(error)
-      throw error
-    } finally {
-      isSyncing.value = false
-    }
-  }
-
-  /**
-   * 增量同步（上传待同步的变更）
-   */
-  const syncChanges = async () => {
-    if (pendingChanges.value.length === 0) {
-      return // 没有待同步的变更
-    }
-
-    const accessToken = authStorage.getAccessToken()
-
-    if (!accessToken) {
-      throw new Error('未登录')
-    }
-
-    isSyncing.value = true
-    clearError()
-
-    try {
-      // 构建批量同步请求
-      const syncRequest = {
-        changes: pendingChanges.value
-      }
-
-      const response = await dataSyncService.batchSync(accessToken, syncRequest)
-
-      // 后端返回 { results }，不包含 success 字段
-      if (response.results) {
-        // 处理同步结果
-        for (const [dataType, syncResponse] of Object.entries(response.results)) {
-          if (syncResponse.success) {
-            setLocalVersion(dataType, syncResponse.version)
-            updateSyncStatus(dataType, {
-              synced: true,
-              version: syncResponse.version,
-              lastSyncTime: Date.now(),
-              error: null,
-              hasLocalChanges: false
-            })
-          } else {
-            updateSyncStatus(dataType, {
-              error: syncResponse.error || '同步失败'
-            })
-          }
-        }
-
-        // 清空已同步的变更
-        const syncedTypes = Object.keys(response.results).filter(
-          (dataType) => response.results[dataType].success
-        )
-        pendingChanges.value = pendingChanges.value.filter(
-          (change) => !syncedTypes.includes(change.type)
-        )
-        persistQueue()
-
-        lastSyncTime.value = Date.now()
-        safeLocalStorageSetJSON('swm_last_sync_time', lastSyncTime.value)
-      }
-
-      return response
     } catch (error) {
       setError(error)
       throw error
@@ -533,19 +441,14 @@ export const useDataSync = () => {
   }
 
   /**
-   * 手动触发同步
-   * @param {boolean} [fullSync=false] - 是否进行全量同步
+   * 手动触发同步（处理离线队列）
    */
-  const triggerSync = async (fullSync = false) => {
+  const triggerSync = async () => {
     if (!authStorage.hasValidAuth()) {
       throw new Error('未登录')
     }
 
-    if (fullSync) {
-      return syncAll()
-    } else {
-      return processQueue()
-    }
+    return processQueue()
   }
 
   // 计算属性
@@ -570,7 +473,6 @@ export const useDataSync = () => {
     initialize,
     uploadData,
     downloadData,
-    syncAll,
     syncChanges,
     resolveConflict,
     queueChange,

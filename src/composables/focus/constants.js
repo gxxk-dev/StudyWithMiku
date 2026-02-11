@@ -82,11 +82,6 @@ export const SYNC_PROTOCOL = {
 }
 
 /**
- * 同步阈值配置
- */
-export const SYNC_THRESHOLD = 100
-
-/**
  * 同步存储键名
  */
 export const SYNC_STORAGE_KEYS = {

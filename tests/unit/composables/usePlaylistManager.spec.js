@@ -31,7 +31,7 @@ describe('usePlaylistManager.js', () => {
       localStorage.setItem(STORAGE_KEYS.CURRENT_PLAYLIST, JSON.stringify('test-1'))
 
       const manager = await getManager()
-      const result = manager.initialize()
+      const result = await manager.initialize()
 
       expect(result.success).toBe(true)
       expect(manager.playlists.value).toHaveLength(1)
@@ -64,8 +64,8 @@ describe('usePlaylistManager.js', () => {
 
     it('重复初始化应该返回成功但不重新加载', async () => {
       const manager = await getManager()
-      manager.initialize()
-      const result = manager.initialize()
+      await manager.initialize()
+      const result = await manager.initialize()
 
       expect(result.success).toBe(true)
     })

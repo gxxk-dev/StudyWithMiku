@@ -58,7 +58,10 @@ const fetchWithRetry = async (
         throw createSyncError(ERROR_TYPES.TOKEN_EXPIRED, data.error || 'Token 已过期', data)
       }
       if (response.status === 409) {
-        throw createSyncError('CONFLICT_ERROR', data.error || '数据版本冲突', data)
+        throw createSyncError('CONFLICT_ERROR', data.error || '数据版本冲突', {
+          ...data,
+          status: response.status
+        })
       }
       throw createSyncError(
         ERROR_TYPES.AUTH_ERROR,
@@ -151,65 +154,6 @@ export const updateData = async (accessToken, dataType, data, version = null) =>
 }
 
 /**
- * 全量同步所有数据
- * 获取服务器上所有数据类型的最新数据
- * @param {string} accessToken - 访问令牌
- * @returns {Promise<Object<string, import('../types/auth.js').SyncResponse>>} 各数据类型的同步响应
- */
-export const syncAll = async (accessToken) => {
-  if (!accessToken) {
-    throw createSyncError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
-  }
-
-  return fetchWithRetry(
-    DATA_API.SYNC_ALL,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    },
-    null
-  )
-}
-
-/**
- * 批量同步数据变更
- * 一次性上传多个数据类型的变更
- * @param {string} accessToken - 访问令牌
- * @param {import('../types/auth.js').BatchSyncRequest} syncRequest - 批量同步请求
- * @returns {Promise<import('../types/auth.js').BatchSyncResponse>} 批量同步响应
- */
-export const batchSync = async (accessToken, syncRequest) => {
-  if (!accessToken) {
-    throw createSyncError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
-  }
-
-  if (!syncRequest || !syncRequest.changes || !Array.isArray(syncRequest.changes)) {
-    throw createSyncError(ERROR_TYPES.VALIDATION_ERROR, '同步请求格式无效')
-  }
-
-  syncRequest.changes.forEach((change) => {
-    validateDataType(change.type)
-  })
-
-  const cborInit = createCborRequestInit(null, syncRequest)
-
-  return fetchWithRetry(
-    DATA_API.BATCH_SYNC,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        ...cborInit.headers
-      },
-      body: cborInit.body
-    },
-    null
-  )
-}
-
-/**
  * 删除指定类型的数据
  * @param {string} accessToken - 访问令牌
  * @param {string} dataType - 数据类型
@@ -223,7 +167,7 @@ export const deleteData = async (accessToken, dataType) => {
   validateDataType(dataType)
 
   return fetchWithRetry(
-    DATA_API.UPDATE_DATA(dataType),
+    DATA_API.DELETE_DATA(dataType),
     {
       method: 'DELETE',
       headers: {
@@ -243,13 +187,9 @@ export const deleteData = async (accessToken, dataType) => {
 export const hasData = async (accessToken, dataType) => {
   try {
     const response = await getData(accessToken, dataType)
-    // 后端返回 { type, data, version }，不包含 success 字段
+    // 后端返回 { type, data, version }，data 为 null 表示不存在
     return response.data !== null && response.data !== undefined
-  } catch (error) {
-    // 如果是 404 错误，说明数据不存在
-    if (error.details && error.details.status === 404) {
-      return false
-    }
-    throw error
+  } catch {
+    return false
   }
 }

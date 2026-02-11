@@ -36,7 +36,7 @@ import { Icon } from '@iconify/vue'
 import { useDataSync } from '../../../../composables/useDataSync.js'
 import { useToast } from '../../../../composables/useToast.js'
 
-const { syncStatus, lastSyncTime, isSyncing, syncAll, initialize } = useDataSync()
+const { syncStatus, lastSyncTime, isSyncing, triggerSync, initialize } = useDataSync()
 
 const { showToast } = useToast()
 
@@ -89,7 +89,7 @@ const formatTime = (timestamp) => {
 
 const handleSync = async () => {
   try {
-    await syncAll()
+    await triggerSync()
     showToast('success', '同步完成')
   } catch (err) {
     // Error handled by useDataSync

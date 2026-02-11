@@ -10,9 +10,7 @@ import { createMockEnv } from '../../../setup/fixtures/workerMocks.js'
 import {
   sampleUsers,
   sampleUserData,
-  createFocusRecordData,
   createFocusSettingsData,
-  createPlaylistsData,
   createUserSettingsData
 } from '../../../setup/fixtures/authData.js'
 
@@ -49,40 +47,6 @@ describe('data routes', () => {
       'Content-Type': 'application/json'
     }
   }
-
-  describe('GET /api/data', () => {
-    it('应该返回用户的所有数据', async () => {
-      const headers = await getAuthHeaders()
-
-      const res = await app.request(
-        '/api/data',
-        {
-          method: 'GET',
-          headers
-        },
-        env
-      )
-
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body.data).toBeDefined()
-      expect(body.quota).toBeDefined()
-      expect(body.quota.used).toBeGreaterThanOrEqual(0)
-      expect(body.quota.limit).toBe(DATA_CONFIG.USER_QUOTA)
-    })
-
-    it('未认证应该返回 401', async () => {
-      const res = await app.request(
-        '/api/data',
-        {
-          method: 'GET'
-        },
-        env
-      )
-
-      expect(res.status).toBe(401)
-    })
-  })
 
   describe('GET /api/data/:type', () => {
     it('应该返回指定类型的数据', async () => {
@@ -264,156 +228,6 @@ describe('data routes', () => {
       expect(res.status).toBe(400)
       const body = await res.json()
       expect(body.code).toBe(ERROR_CODES.INVALID_TYPE)
-    })
-  })
-
-  describe('POST /api/data/sync', () => {
-    it('应该批量同步多个数据类型', async () => {
-      const headers = await getAuthHeaders('user-sync', 'syncuser')
-
-      const res = await app.request(
-        '/api/data/sync',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            changes: [
-              {
-                type: DATA_CONFIG.TYPES.USER_SETTINGS,
-                data: createUserSettingsData(),
-                version: 0
-              },
-              {
-                type: DATA_CONFIG.TYPES.PLAYLISTS,
-                data: createPlaylistsData(),
-                version: 0
-              }
-            ]
-          })
-        },
-        env
-      )
-
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(Object.keys(body.results)).toHaveLength(2)
-      expect(body.results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
-      expect(body.results[DATA_CONFIG.TYPES.PLAYLISTS].success).toBe(true)
-    })
-
-    it('空 changes 应该返回空结果', async () => {
-      const headers = await getAuthHeaders()
-
-      const res = await app.request(
-        '/api/data/sync',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ changes: [] })
-        },
-        env
-      )
-
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body.results).toEqual({})
-    })
-
-    it('包含无效数据类型应该返回 400', async () => {
-      const headers = await getAuthHeaders()
-
-      const res = await app.request(
-        '/api/data/sync',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            changes: [
-              {
-                type: 'invalid_type',
-                data: {},
-                version: 0
-              }
-            ]
-          })
-        },
-        env
-      )
-
-      expect(res.status).toBe(400)
-      const body = await res.json()
-      expect(body.code).toBe(ERROR_CODES.INVALID_TYPE)
-    })
-
-    it('部分失败应该在结果中标记', async () => {
-      const headers = await getAuthHeaders()
-
-      const res = await app.request(
-        '/api/data/sync',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            changes: [
-              {
-                type: DATA_CONFIG.TYPES.USER_SETTINGS,
-                data: createUserSettingsData(),
-                version: 0
-              },
-              {
-                type: DATA_CONFIG.TYPES.FOCUS_SETTINGS,
-                data: { invalid: 'data' },
-                version: 0
-              }
-            ]
-          })
-        },
-        env
-      )
-
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      expect(body.results[DATA_CONFIG.TYPES.USER_SETTINGS].success).toBe(true)
-      expect(body.results[DATA_CONFIG.TYPES.FOCUS_SETTINGS].success).toBe(false)
-    })
-
-    it('focus_records 冲突应该自动合并', async () => {
-      // 先写入服务端数据
-      const serverRecord = createFocusRecordData({ id: 'server-record-1' })
-      env.DB.__getTables().user_data.push({
-        user_id: 'user-merge',
-        data_type: DATA_CONFIG.TYPES.FOCUS_RECORDS,
-        data: JSON.stringify([serverRecord]),
-        data_format: 'json',
-        version: 1
-      })
-
-      const headers = await getAuthHeaders('user-merge', 'mergeuser')
-      const clientRecord = createFocusRecordData({ id: 'client-record-1' })
-
-      const res = await app.request(
-        '/api/data/sync',
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            changes: [
-              {
-                type: DATA_CONFIG.TYPES.FOCUS_RECORDS,
-                data: [clientRecord],
-                version: 0 // 版本不匹配
-              }
-            ]
-          })
-        },
-        env
-      )
-
-      expect(res.status).toBe(200)
-      const body = await res.json()
-      // 现在返回冲突，让客户端处理
-      expect(body.results[DATA_CONFIG.TYPES.FOCUS_RECORDS].success).toBe(false)
-      expect(body.results[DATA_CONFIG.TYPES.FOCUS_RECORDS].conflict).toBe(true)
     })
   })
 })

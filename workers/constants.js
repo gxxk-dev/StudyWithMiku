@@ -167,8 +167,7 @@ export const ERROR_CODES = {
  * 允许：字母、数字、下划线、连字符、中日韩文字
  * @type {RegExp}
  */
-export const USERNAME_REGEX =
-  /^[\w\u4e00-\u9fff\u3400-\u4dbf\uac00-\ud7af\u3040-\u309f\u30a0-\u30ff-]{2,20}$/u
+export const USERNAME_REGEX = /^[a-zA-Z0-9_]{3,20}$/
 
 /**
  * Token 黑名单清理概率 (每次登录时)

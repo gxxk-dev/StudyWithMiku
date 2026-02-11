@@ -218,19 +218,6 @@ export const dataTypeSchemas = {
 }
 
 /**
- * 同步请求验证
- */
-export const syncRequestSchema = z.object({
-  changes: z.array(
-    z.object({
-      type: z.string(),
-      data: z.unknown(),
-      version: z.number().int().min(0)
-    })
-  )
-})
-
-/**
  * 数据类型路径参数验证
  */
 export const dataTypeParamSchema = z.object({
