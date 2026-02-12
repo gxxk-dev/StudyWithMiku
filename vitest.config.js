@@ -20,6 +20,7 @@ export default defineConfig((configEnv) => {
         environment: 'happy-dom',
         setupFiles: ['./tests/setup/vitest.setup.js'],
         include: ['tests/unit/**/*.spec.js', 'tests/integration/**/*.spec.js'],
+        exclude: ['tests/integration/api/**'],
         globals: true,
         coverage: {
           provider: 'v8',

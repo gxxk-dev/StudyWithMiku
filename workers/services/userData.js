@@ -164,6 +164,14 @@ export const getAllUserData = async (d1, userId) => {
 export const updateUserData = async (d1, userId, dataType, data, clientVersion) => {
   const db = createDb(d1)
 
+  // data 为 null 时执行删除
+  if (data === null) {
+    await db
+      .delete(userData)
+      .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
+    return { success: true }
+  }
+
   // 验证数据
   const validation = validateUserData(dataType, data)
   if (!validation.valid) {

@@ -1,0 +1,174 @@
+/**
+ * @module tests/integration/api/setup
+ * @description API 集成测试的 Worker 生命周期管理、DB 初始化、JWT 生成、fetch 补丁
+ */
+
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { sign } from 'hono/jwt'
+
+const TEST_JWT_SECRET = 'test-jwt-secret-for-integration-tests'
+const TEST_USER_ID = 'test-user-001'
+const TEST_USERNAME = 'testuser'
+
+let worker = null
+let originalFetch = null
+
+/**
+ * 启动 Worker
+ */
+export async function startWorker() {
+  const { unstable_dev } = await import('wrangler')
+
+  worker = await unstable_dev('tests/integration/api/test-worker.js', {
+    experimental: { disableExperimentalWarning: true },
+    local: true,
+    persist: false,
+    vars: { JWT_SECRET: TEST_JWT_SECRET },
+    config: 'wrangler.toml'
+  })
+
+  // 补丁 fetch：将相对路径转为 worker 地址
+  originalFetch = globalThis.fetch
+  globalThis.fetch = (input, init) => {
+    if (typeof input === 'string' && input.startsWith('/')) {
+      input = `http://${worker.address}:${worker.port}${input}`
+    }
+    return originalFetch(input, init)
+  }
+}
+
+/**
+ * 停止 Worker 并恢复 fetch
+ */
+export async function stopWorker() {
+  if (originalFetch) {
+    globalThis.fetch = originalFetch
+    originalFetch = null
+  }
+  if (worker) {
+    await worker.stop()
+    worker = null
+  }
+}
+
+/**
+ * 初始化数据库 schema
+ */
+export async function initDatabase() {
+  const migrationPath = resolve('migrations/0000_daffy_tempest.sql')
+  const sql = readFileSync(migrationPath, 'utf-8')
+
+  // 按 drizzle 的 statement-breakpoint 分割
+  const statements = sql
+    .split('--> statement-breakpoint')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  const res = await workerFetch('/__test/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statements })
+  })
+
+  const data = await res.json()
+  const failed = data.results.filter((r) => !r.success)
+  if (failed.length > 0) {
+    // 忽略 "already exists" 错误（表可能已存在）
+    const realErrors = failed.filter((f) => !f.error?.includes('already exists'))
+    if (realErrors.length > 0) {
+      throw new Error(`DB init failed: ${JSON.stringify(realErrors)}`)
+    }
+  }
+}
+
+/**
+ * 插入测试用户
+ */
+export async function seedTestUser() {
+  const statements = [
+    `INSERT OR IGNORE INTO users (id, username, display_name, auth_provider) VALUES ('${TEST_USER_ID}', '${TEST_USERNAME}', 'Test User', 'webauthn')`
+  ]
+
+  await workerFetch('/__test/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statements })
+  })
+}
+
+/**
+ * 重置数据库（清空所有表数据）
+ */
+export async function resetDatabase() {
+  await workerFetch('/__test/reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+}
+
+/**
+ * 生成有效的 Access Token
+ */
+export async function generateAccessToken(userId = TEST_USER_ID, username = TEST_USERNAME) {
+  const now = Math.floor(Date.now() / 1000)
+  return sign(
+    {
+      sub: userId,
+      username,
+      type: 'access',
+      iat: now,
+      exp: now + 900,
+      jti: crypto.randomUUID()
+    },
+    TEST_JWT_SECRET,
+    'HS256'
+  )
+}
+
+/**
+ * 生成有效的 Refresh Token
+ */
+export async function generateRefreshToken(userId = TEST_USER_ID) {
+  const now = Math.floor(Date.now() / 1000)
+  return sign(
+    {
+      sub: userId,
+      type: 'refresh',
+      iat: now,
+      exp: now + 7 * 24 * 3600,
+      jti: crypto.randomUUID()
+    },
+    TEST_JWT_SECRET,
+    'HS256'
+  )
+}
+
+/**
+ * 生成已过期的 Access Token
+ */
+export async function generateExpiredToken(userId = TEST_USER_ID, username = TEST_USERNAME) {
+  const now = Math.floor(Date.now() / 1000)
+  return sign(
+    {
+      sub: userId,
+      username,
+      type: 'access',
+      iat: now - 1800,
+      exp: now - 900,
+      jti: crypto.randomUUID()
+    },
+    TEST_JWT_SECRET,
+    'HS256'
+  )
+}
+
+/**
+ * 直接向 worker 发送请求（绕过 fetch 补丁）
+ */
+function workerFetch(path, init) {
+  const url = `http://${worker.address}:${worker.port}${path}`
+  return originalFetch(url, init)
+}
+
+export { TEST_USER_ID, TEST_USERNAME, TEST_JWT_SECRET }

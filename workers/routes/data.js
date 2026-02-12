@@ -11,6 +11,7 @@ import { ERROR_CODES } from '../constants.js'
 import { dataRateLimit } from '../middleware/rateLimit.js'
 import { requireAuth } from '../middleware/auth.js'
 import { dataTypeParamSchema } from '../schemas/auth.js'
+import { decompressData } from '../../shared/cbor/index.js'
 import {
   getUserData,
   updateUserData,
@@ -48,13 +49,19 @@ const isCborRequest = (c) => {
 /**
  * 解析请求体（支持 JSON 和 CBOR）
  * @param {Object} c - Hono context
+ * @param {string} dataType - 数据类型（用于 CBOR 解压）
  * @returns {Promise<{data: *, error?: string}>}
  */
-const parseRequestBody = async (c) => {
+const parseRequestBody = async (c, dataType) => {
   try {
     if (isCborRequest(c)) {
       const buffer = await c.req.arrayBuffer()
-      return { data: decode(new Uint8Array(buffer)) }
+      const decoded = decode(new Uint8Array(buffer))
+      // 解压前端压缩的 data 字段（数字键 → 字符串键）
+      if (decoded && decoded.data !== undefined && decoded.data !== null) {
+        decoded.data = decompressData(dataType, decoded.data)
+      }
+      return { data: decoded }
     }
     return { data: await c.req.json() }
   } catch {
@@ -168,8 +175,8 @@ data.put(
       return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
     }
 
-    // 解析请求体（支持 JSON 和 CBOR）
-    const parsed = await parseRequestBody(c)
+    // 解析请求体（支持 JSON 和 CBOR，CBOR 会自动解压 data 字段）
+    const parsed = await parseRequestBody(c, type)
     if (parsed.error) {
       return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
     }
