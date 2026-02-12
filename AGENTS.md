@@ -1,162 +1,48 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-The Vite + Vue 3 frontend lives under `src/`: `components/`, `composables/` (hooks like `useMusic`), `services/`, and `utils/`. Static assets and the icon source stay in `public/`, which feeds `scripts/generate-icons.js`. Cloudflare Worker routing, middleware, and the Durable Object implementation sit in `workers/` with `wrangler.toml`. Production artifacts are written to `dist/`.
+- `src/`: Vue 3 frontend app code (`components/`, `composables/`, `services/`, `utils/`, `player/`, `styles/`).
+- `workers/`: Cloudflare Worker backend (routes, middleware, services, schemas, DB access).
+- `shared/`: Shared logic used by frontend and worker (for example CBOR utilities).
+- `tests/`: Test suites split by scope:
+  - `tests/unit/` for isolated modules/components.
+  - `tests/integration/` for cross-module flows and API integration.
+  - `tests/e2e/` for browser-level Playwright scenarios.
+- `migrations/`: Drizzle/D1 migration files.
+- `public/`: Static assets and icons.
 
 ## Build, Test, and Development Commands
-- `bun install` — install dependencies.
-- `bun run dev` — start the Vite dev server on http://localhost:5173.
-- `bun run generate-icons` — rebuild PWA icons from `public/icon-source.png`.
-- `bun run build` — produce the optimized bundle and copy assets into `dist/`.
-- `bun run preview` — serve the built bundle locally.
-- `bun run dev:worker` — rebuild and run `wrangler dev --local` for the Hono worker and `OnlineCounter`.
-- `bun run deploy:worker` — publish via Wrangler; ensure bindings and secrets are correct.
-- `bun run lint` — run ESLint and auto-fix issues.
-- `bun run format` — format code with Prettier.
-- **Always run `bun run lint` before committing to ensure code quality.**
+- `bun run dev`: Start local Vite dev server.
+- `bun run build`: Generate icons, build frontend, and copy static assets to `dist/`.
+- `bun run preview`: Preview the production build locally.
+- `bun run dev:worker`: Build then run Worker locally with Wrangler.
+- `bun run test`: Run unit + integration (non-API) tests with Vitest.
+- `bun run test:api`: Run API integration tests (`vitest.config.api.js`).
+- `bun run test:e2e`: Run Playwright end-to-end tests.
+- `bun run lint:check` / `bun run format:check`: Validate linting and formatting without edits.
 
 ## Coding Style & Naming Conventions
-Use ES modules with single quotes and two-space indentation. Components stay PascalCase (`PomodoroTimer.vue`) and export default; composables and utilities use camelCase file names. Keep `<script setup>` blocks lean, share helpers through `utils/`, and favor descriptive refs (`currentVideo`, `aplayerInitialized`). Base styles live in `src/style.css`; scope component styles only when needed.
-
-### Icon Usage Guidelines
-**Always use Iconify** (`@iconify/vue`) for icons instead of Unicode emoji or hardcoded SVG. This ensures visual consistency, PWA offline support, and easier maintenance.
-
-- **Import**: Add `import { Icon } from '@iconify/vue'` in `<script setup>`.
-- **Icon sets**: Prefer MDI (`mdi:*`), Lucide (`lucide:*`), or Phosphor (`ph:*`) for consistency.
-- **Example**: `<Icon icon="mdi:play" />` or `<Icon icon="lucide:settings" width="20" height="20" />`.
-- **Never use**: Raw emoji (🎵, ⚙️, 📊) or inline `<svg>` tags for UI icons.
-- **Exception**: Functional SVG components (like progress rings) are allowed if they require dynamic rendering.
-
-When adding new UI elements with icons, choose appropriate Iconify icons that match the existing design language.
-
-### JSDoc Documentation
-**All modules and exports must have JSDoc comments.** Use `@module` for files, `@param`/`@returns` for functions, `@typedef` for complex types.
-
-### Constants Management
-**All constants must be centralized** — never hardcode magic strings or numbers in components or utilities.
-
-| Constant Type | Location | Examples |
-|---------------|----------|----------|
-| Global constants | `src/config/constants.js` | Cache names, API config, localStorage keys, reconnect strategies |
-| Module-specific | Module's `constants.js` | `src/composables/focus/constants.js` (state enums, defaults) |
-
-**Rules:**
-- **No hardcoding**: Import constants from the appropriate constants file
-- **Unified prefix**: localStorage keys use `swm_` prefix, defined in `STORAGE_KEYS`
-- **Naming**: Use UPPER_SNAKE_CASE for all constants
-
-```javascript
-// ❌ Wrong: hardcoded
-localStorage.getItem('pomodoro_duration')
-
-// ✅ Correct: use constants
-import { STORAGE_KEYS } from 'src/config/constants'
-localStorage.getItem(STORAGE_KEYS.POMODORO_DURATION)
-```
-
-### UI Target
-**Desktop landscape only** — no mobile portrait UI support needed. All layouts assume horizontal orientation; no responsive breakpoints for portrait mode.
+- Formatting is enforced by Prettier: 2-space indentation, single quotes, no semicolons, max line length 100.
+- ESLint (`plugin:vue/vue3-recommended`) is required; fix issues with `bun run lint`.
+- Vue components use `PascalCase` file names (for example `SettingsModal.vue`).
+- Composables follow `useXxx.js` naming (for example `useAuth.js`).
+- Keep modules focused and colocate feature-specific helpers under the nearest feature directory.
 
 ## Testing Guidelines
-The project uses **Vitest** for unit/integration tests and **Playwright** for E2E tests.
-
-### Test Commands
-- `bun run test` — run all unit and integration tests.
-- `bun run test:watch` — run tests in watch mode during development.
-- `bun run test:coverage` — generate coverage report (target: 60% lines/functions, 50% branches).
-- `bun run test:e2e` — run Playwright E2E tests.
-- `bun run test:e2e:ui` — run E2E tests with interactive UI.
-- `bun run test:all` — run both unit and E2E tests.
-
-### Test Structure
-```
-tests/
-├── setup/
-│   ├── vitest.setup.js      # Global mocks (localStorage, OPFS, Cache API, etc.)
-│   └── fixtures/            # Test data (songs.js, playlists.js, focusRecords.js)
-├── unit/
-│   ├── services/            # Service layer tests
-│   ├── composables/         # Vue composables tests
-│   │   └── focus/           # Focus module tests (useTimer, useRecords, useSession, useStats)
-│   └── utils/               # Utility function tests
-├── integration/             # Integration tests (playlist flow, cache flow)
-└── e2e/                     # E2E smoke tests
-```
-
-### Writing Tests
-- Use dynamic imports for singleton composables: `const { useMusic } = await import('@/composables/useMusic.js')`
-- Call `vi.resetModules()` in `beforeEach` to reset module state between tests
-- Use `vi.useFakeTimers()` for testing throttled/debounced functions
-- Test files follow the pattern `*.spec.js`
-
-### Before Committing
-Always run `bun run test` to ensure all tests pass before committing.
+- Frameworks: Vitest (`happy-dom`) for unit/integration, Playwright for E2E.
+- Test files must use `*.spec.js` and live under matching `tests/**` folders.
+- Coverage thresholds (Vitest): `lines >= 60`, `functions >= 60`, `branches >= 50` for key frontend modules.
+- Use `bun run test:coverage` before opening large refactors.
 
 ## Commit & Pull Request Guidelines
-Follow Conventional Commits (`feat: add pomodoro presets`, `fix(worker): guard ws cors`) and keep each change scoped. Use GitHub Flow: branch from `main`, push frequently, and open a PR once manual tests pass. PR descriptions should state the motivation, include test evidence (commands and screenshots for UI work), and link related issues or migrations that must run after merge.
+- Use Conventional Commits (validated by commitlint + Husky), e.g. `feat(auth): add WebAuthn login`.
+- Allowed commit types include: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `revert`, `build`.
+- PRs should include:
+  - Clear summary and scope.
+  - Linked issue(s) when applicable.
+  - Screenshots/GIFs for UI changes.
+  - Test evidence (commands run and results).
 
-## Deployment & Configuration Tips
-`wrangler.toml` defines the `OnlineCounter` Durable Object and binds assets through the `ASSETS` namespace. Increment migration tags sequentially and keep prior tags intact. Before deploying, verify `wrangler whoami`, configure secrets outside git, and confirm `dist/` was freshly built because the worker serves those files for unknown routes.
-
-## Focus Module (Pomodoro System)
-
-The `useFocus` composable provides a complete pomodoro timer system with state machine, records storage, statistics, and data export.
-
-### Architecture
-```
-src/composables/
-├── useFocus.js              # Unified entry point (Facade)
-└── focus/
-    ├── constants.js         # Enums, defaults, storage keys
-    ├── useTimer.js          # Pure timer (timestamp-based, handles background throttling)
-    ├── useRecords.js        # CRUD + query methods
-    ├── useSession.js        # State machine + interruption recovery
-    └── useStats.js          # Statistics + heatmap data
-```
-
-### State Machine
-```
-IDLE ──start──▶ RUNNING ──complete──▶ IDLE
-                   │
-                   ├──pause──▶ PAUSED ──resume──▶ RUNNING
-                   ├──cancel──▶ IDLE (cancelled)
-                   └──skip──▶ IDLE (skipped, advances to next phase)
-```
-
-### Basic Usage
-```javascript
-import { useFocus } from '@/composables/useFocus.js'
-
-const {
-  // State
-  state, mode, elapsed, remaining, progress,
-  isRunning, isPaused, isIdle,
-
-  // Actions
-  start, pause, resume, cancel, skip,
-
-  // Settings
-  settings, updateSettings,
-
-  // Statistics
-  todayStats, weekStats, getHeatmapData,
-
-  // Records
-  records, queryRecords, clearRecords,
-
-  // Export
-  exportData
-} = useFocus()
-
-// Start a focus session
-start()
-
-// Export records as JSON
-exportData('json', { includeStats: true })
-```
-
-### Storage Keys
-- `swm_focus_records` - Session records array
-- `swm_focus_settings` - User settings
-- `swm_focus_current` - Runtime state (for interruption recovery)
-
+## Security & Configuration Tips
+- Copy `.env.example` to `.env` (or `.env.local`) and set `VITE_SITE_URL` for deployment context.
+- Use `wrangler.toml.example` as the baseline for Worker/D1 bindings; keep secrets and environment-specific IDs out of version control.
