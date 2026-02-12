@@ -177,6 +177,7 @@ export const useAuth = () => {
    * WebAuthn 注册
    * @param {string} username - 用户名
    * @param {string} [deviceName] - 设备名称
+   * @returns {Promise<import('../types/auth.js').User>} 注册成功的用户信息
    */
   const register = async (username, deviceName) => {
     if (!webauthnHelper.isWebAuthnSupported()) {
@@ -211,6 +212,7 @@ export const useAuth = () => {
   /**
    * WebAuthn 登录
    * @param {string} username - 用户名
+   * @returns {Promise<import('../types/auth.js').User>} 登录成功的用户信息
    */
   const login = async (username) => {
     if (!webauthnHelper.isWebAuthnSupported()) {
@@ -281,6 +283,7 @@ export const useAuth = () => {
 
   /**
    * 登出
+   * @returns {Promise<void>}
    */
   const logout = async () => {
     isLoading.value = true
@@ -313,6 +316,7 @@ export const useAuth = () => {
 
   /**
    * 刷新 Token（如果需要）
+   * @returns {Promise<import('../types/auth.js').AuthTokens|undefined>} 刷新后的令牌信息，无需刷新时返回 undefined
    */
   const refreshTokenIfNeeded = async () => {
     const refreshToken = authStorage.getRefreshToken()
@@ -349,6 +353,7 @@ export const useAuth = () => {
 
   /**
    * 获取设备列表
+   * @returns {Promise<Array>} 设备列表
    */
   const getDevices = async () => {
     const accessToken = authStorage.getAccessToken()
@@ -375,6 +380,7 @@ export const useAuth = () => {
   /**
    * 添加新设备
    * @param {string} [deviceName] - 设备名称
+   * @returns {Promise<Object>} 新添加的设备信息
    */
   const addDevice = async (deviceName) => {
     if (!webauthnHelper.isWebAuthnSupported()) {
@@ -419,6 +425,7 @@ export const useAuth = () => {
 
   /**
    * 获取认证配置
+   * @returns {Promise<Object|undefined>} 认证配置，获取失败时返回 undefined
    */
   const fetchConfig = async () => {
     try {
@@ -434,6 +441,7 @@ export const useAuth = () => {
   /**
    * 删除设备
    * @param {string} credentialId - 凭据 ID
+   * @returns {Promise<void>}
    */
   const removeDevice = async (credentialId) => {
     const accessToken = authStorage.getAccessToken()

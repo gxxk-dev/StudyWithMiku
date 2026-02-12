@@ -18,6 +18,9 @@ const TARGET_FILES = {
   focus: 'src/composables/useFocus.js',
   toast: 'src/composables/useToast.js',
   exportUtils: 'src/utils/exportUtils.js',
+  auth: 'src/composables/useAuth.js',
+  sync: 'src/composables/useDataSync.js',
+  authStorage: 'src/utils/authStorage.js',
   server: 'src/services/onlineServer.js',
   config: 'src/services/runtimeConfig.js'
 }

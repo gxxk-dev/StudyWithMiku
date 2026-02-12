@@ -183,6 +183,7 @@ export const useDataSync = () => {
    * @param {string} dataType - 数据类型
    * @param {any} data - 数据内容
    * @param {boolean} [force=false] - 是否强制上传（忽略版本检查）
+   * @returns {Promise<Object|undefined>} 上传成功的响应，未登录时加入队列返回 undefined
    */
   const uploadData = async (dataType, data, force = false) => {
     const accessToken = authStorage.getAccessToken()
@@ -251,6 +252,7 @@ export const useDataSync = () => {
   /**
    * 下载单个数据类型
    * @param {string} dataType - 数据类型
+   * @returns {Promise<any>} 下载的数据内容
    */
   const downloadData = async (dataType) => {
     const accessToken = authStorage.getAccessToken()
@@ -313,6 +315,7 @@ export const useDataSync = () => {
 
   /**
    * 处理离线队列（逐个上传待同步的变更）
+   * @returns {Promise<void>}
    */
   const syncChanges = async () => {
     if (pendingChanges.value.length === 0) {
@@ -409,6 +412,7 @@ export const useDataSync = () => {
 
   /**
    * 处理离线队列
+   * @returns {Promise<void>}
    */
   const processQueue = async () => {
     if (pendingChanges.value.length === 0) {
@@ -442,6 +446,7 @@ export const useDataSync = () => {
 
   /**
    * 手动触发同步（处理离线队列）
+   * @returns {Promise<void>}
    */
   const triggerSync = async () => {
     if (!authStorage.hasValidAuth()) {

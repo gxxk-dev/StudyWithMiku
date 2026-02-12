@@ -14,9 +14,12 @@ import { useMusic } from '../composables/useMusic.js'
 import { usePlayer } from '../composables/usePlayer.js'
 import { useFocus } from '../composables/useFocus.js'
 import { useToast } from '../composables/useToast.js'
+import { useAuth } from '../composables/useAuth.js'
+import { useDataSync } from '../composables/useDataSync.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
 import * as exportUtils from '../utils/exportUtils.js'
+import * as authStorage from '../utils/authStorage.js'
 import { onlineServer } from '../services/onlineServer.js'
 import { runtimeConfigService } from '../services/runtimeConfig.js'
 import { createHelpSystem } from './help/index.js'
@@ -40,6 +43,9 @@ const swm_dev = {
   focus: useFocus(),
   toast: toastApi,
   exportUtils,
+  auth: useAuth(),
+  sync: useDataSync(),
+  authStorage,
   server: onlineServer,
   config: runtimeConfigService
 }
