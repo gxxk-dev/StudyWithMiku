@@ -221,7 +221,6 @@ export const handleOAuthCallback = () => {
   }
 
   // 清理 URL（移除 hash fragment）
-  const returnUrl = sessionStorage.getItem('swm_oauth_return_url') || '/'
   sessionStorage.removeItem('swm_oauth_return_url')
   window.history.replaceState({}, document.title, window.location.pathname)
 

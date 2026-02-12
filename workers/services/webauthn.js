@@ -199,10 +199,10 @@ export const getDeviceType = (authenticatorData) => {
 /**
  * 生成设备默认名称
  * @param {string[]} transports - 传输方式
- * @param {string} [deviceType] - 设备类型 (singleDevice/multiDevice)
+ * @param {string} [_deviceType] - 设备类型 (singleDevice/multiDevice)
  * @returns {string}
  */
-export const generateDeviceName = (transports = [], deviceType) => {
+export const generateDeviceName = (transports = [], _deviceType) => {
   // 优先判断 internal（平台认证器，如指纹、面部识别）
   if (transports.includes('internal')) {
     return '内置认证器'

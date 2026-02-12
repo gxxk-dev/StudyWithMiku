@@ -38,6 +38,7 @@ const goBack = () => {
     </button>
 
     <!-- Changelog 内容 -->
+    <!-- eslint-disable-next-line vue/no-v-html -->
     <div class="changelog-content" v-html="htmlContent"></div>
   </div>
 </template>

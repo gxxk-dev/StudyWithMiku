@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { nextTick } from 'vue'
 import { usePlayer } from '../../../src/composables/usePlayer.js'
-import { PlaybackState, PlayerEvent, RepeatMode } from '../../../src/player/constants.js'
+import { PlaybackState, PlayerEvent } from '../../../src/player/constants.js'
 
 // 创建模拟适配器
 function createMockAdapter() {

@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { SpotifyAdapter } from '../../../src/player/adapters/SpotifyAdapter.js'
-import { PlaybackState, PlayerEvent, AdapterType } from '../../../src/player/constants.js'
+import { PlayerEvent, AdapterType } from '../../../src/player/constants.js'
 
 describe('SpotifyAdapter', () => {
   let adapter
