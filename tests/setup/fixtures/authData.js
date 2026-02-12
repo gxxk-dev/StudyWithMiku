@@ -287,3 +287,15 @@ export const createUserSettingsData = (overrides = {}) => ({
   music: { currentSongIndex: 0 },
   ...overrides
 })
+
+/**
+ * 创建分享卡片配置数据
+ * @param {Object} overrides - 覆盖默认值
+ * @returns {Object}
+ */
+export const createShareConfigData = (overrides = {}) => ({
+  theme: 'default',
+  showStats: true,
+  showStreak: true,
+  ...overrides
+})
