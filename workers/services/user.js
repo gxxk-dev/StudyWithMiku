@@ -3,9 +3,9 @@
  * @description 用户 CRUD 服务
  */
 
-import { eq, and } from 'drizzle-orm'
-import { createDb, users } from '../db/index.js'
-import { AUTH_PROVIDER, USERNAME_REGEX } from '../constants.js'
+import { eq, count } from 'drizzle-orm'
+import { createDb, users, credentials, oauthAccounts } from '../db/index.js'
+import { USERNAME_REGEX } from '../constants.js'
 
 /**
  * 生成用户 ID
@@ -40,22 +40,6 @@ export const findUserById = async (d1, userId) => {
 }
 
 /**
- * 通过 OAuth Provider ID 查找用户
- * @param {Object} d1 - D1 数据库实例
- * @param {string} provider - OAuth provider (github/google/microsoft)
- * @param {string} providerId - Provider 用户 ID
- * @returns {Promise<Object|null>}
- */
-export const findUserByProvider = async (d1, provider, providerId) => {
-  const db = createDb(d1)
-  return db
-    .select()
-    .from(users)
-    .where(and(eq(users.authProvider, provider), eq(users.providerId, providerId)))
-    .get()
-}
-
-/**
  * 检查用户名是否已存在
  * @param {Object} d1 - D1 数据库实例
  * @param {string} username - 用户名
@@ -81,7 +65,35 @@ export const isValidUsername = (username) => {
 }
 
 /**
- * 创建 WebAuthn 用户
+ * 创建用户
+ * @param {Object} d1 - D1 数据库实例
+ * @param {Object} params
+ * @param {string} params.username - 用户名
+ * @param {string} [params.displayName] - 显示名称
+ * @param {string} [params.avatarUrl] - 头像 URL
+ * @returns {Promise<Object>}
+ */
+export const createUser = async (d1, { username, displayName, avatarUrl }) => {
+  const db = createDb(d1)
+  const userId = generateUserId()
+
+  await db.insert(users).values({
+    id: userId,
+    username,
+    displayName: displayName || username,
+    avatarUrl: avatarUrl || null
+  })
+
+  return {
+    id: userId,
+    username,
+    displayName: displayName || username,
+    avatarUrl: avatarUrl || null
+  }
+}
+
+/**
+ * 创建 WebAuthn 用户 (便捷方法)
  * @param {Object} d1 - D1 数据库实例
  * @param {Object} params
  * @param {string} params.username - 用户名
@@ -89,77 +101,24 @@ export const isValidUsername = (username) => {
  * @returns {Promise<Object>}
  */
 export const createWebAuthnUser = async (d1, { username, displayName }) => {
-  const db = createDb(d1)
-  const userId = generateUserId()
-
-  await db.insert(users).values({
-    id: userId,
-    username,
-    displayName: displayName || username,
-    authProvider: AUTH_PROVIDER.WEBAUTHN
-  })
-
-  return {
-    id: userId,
-    username,
-    displayName: displayName || username,
-    authProvider: AUTH_PROVIDER.WEBAUTHN
-  }
+  return createUser(d1, { username, displayName })
 }
 
 /**
- * 创建或获取 OAuth 用户
+ * 获取用户总认证方式数量 (WebAuthn 凭证 + OAuth 账号)
  * @param {Object} d1 - D1 数据库实例
- * @param {Object} params
- * @param {string} params.provider - OAuth provider
- * @param {string} params.providerId - Provider 用户 ID
- * @param {string} params.preferredUsername - 首选用户名
- * @param {string} [params.displayName] - 显示名称
- * @param {string} [params.avatarUrl] - 头像 URL
- * @returns {Promise<{user: Object, isNew: boolean}>}
+ * @param {string} userId - 用户 ID
+ * @returns {Promise<number>}
  */
-export const createOrGetOAuthUser = async (
-  d1,
-  { provider, providerId, preferredUsername, displayName, avatarUrl }
-) => {
+export const getTotalAuthMethodCount = async (d1, userId) => {
   const db = createDb(d1)
 
-  // 检查是否已存在
-  const existingUser = await findUserByProvider(d1, provider, providerId)
-  if (existingUser) {
-    return { user: existingUser, isNew: false }
-  }
+  const [credentialResult, oauthResult] = await Promise.all([
+    db.select({ count: count() }).from(credentials).where(eq(credentials.userId, userId)).get(),
+    db.select({ count: count() }).from(oauthAccounts).where(eq(oauthAccounts.userId, userId)).get()
+  ])
 
-  // 生成唯一用户名
-  let username = sanitizeUsername(preferredUsername)
-  let suffix = 0
-
-  while (await usernameExists(d1, username)) {
-    suffix++
-    username = `${sanitizeUsername(preferredUsername)}${suffix}`
-  }
-
-  const userId = generateUserId()
-
-  await db.insert(users).values({
-    id: userId,
-    username,
-    displayName: displayName || username,
-    avatarUrl: avatarUrl || null,
-    authProvider: provider,
-    providerId
-  })
-
-  const user = {
-    id: userId,
-    username,
-    displayName: displayName || username,
-    avatarUrl,
-    authProvider: provider,
-    providerId
-  }
-
-  return { user, isNew: true }
+  return (credentialResult?.count || 0) + (oauthResult?.count || 0)
 }
 
 /**
@@ -227,7 +186,8 @@ export const formatUserForResponse = (user) => {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    authProvider: user.authProvider
+    avatarUrl: user.avatarUrl
   }
 }
+
+export { sanitizeUsername }

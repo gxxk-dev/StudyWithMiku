@@ -11,25 +11,19 @@ export const sampleUsers = [
     id: 'user-001',
     username: 'testuser',
     display_name: 'Test User',
-    avatar_url: null,
-    auth_provider: 'webauthn',
-    provider_id: null
+    avatar_url: null
   },
   {
     id: 'user-002',
     username: 'github_user',
     display_name: 'GitHub User',
-    avatar_url: 'https://github.com/avatar.png',
-    auth_provider: 'github',
-    provider_id: '12345678'
+    avatar_url: 'https://github.com/avatar.png'
   },
   {
     id: 'user-003',
     username: 'google_user',
     display_name: 'Google User',
-    avatar_url: 'https://google.com/avatar.png',
-    auth_provider: 'google',
-    provider_id: 'google-id-123'
+    avatar_url: 'https://google.com/avatar.png'
   }
 ]
 
@@ -41,25 +35,19 @@ export const sampleUsersCamelCase = [
     id: 'user-001',
     username: 'testuser',
     displayName: 'Test User',
-    avatarUrl: null,
-    authProvider: 'webauthn',
-    providerId: null
+    avatarUrl: null
   },
   {
     id: 'user-002',
     username: 'github_user',
     displayName: 'GitHub User',
-    avatarUrl: 'https://github.com/avatar.png',
-    authProvider: 'github',
-    providerId: '12345678'
+    avatarUrl: 'https://github.com/avatar.png'
   },
   {
     id: 'user-003',
     username: 'google_user',
     displayName: 'Google User',
-    avatarUrl: 'https://google.com/avatar.png',
-    authProvider: 'google',
-    providerId: 'google-id-123'
+    avatarUrl: 'https://google.com/avatar.png'
   }
 ]
 
@@ -163,8 +151,6 @@ export const createUser = (overrides = {}) => ({
   username: `user_${Math.random().toString(36).slice(2, 10)}`,
   display_name: 'Test User',
   avatar_url: null,
-  auth_provider: 'webauthn',
-  provider_id: null,
   ...overrides
 })
 

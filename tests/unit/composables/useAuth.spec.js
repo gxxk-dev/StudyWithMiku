@@ -15,7 +15,11 @@ vi.mock('@/services/auth.js', () => ({
   addDeviceOptions: vi.fn(),
   addDeviceVerify: vi.fn(),
   deleteDevice: vi.fn(),
-  getAuthConfig: vi.fn()
+  getAuthConfig: vi.fn(),
+  getAuthMethods: vi.fn(),
+  linkOAuthProvider: vi.fn(),
+  unlinkOAuthAccount: vi.fn(),
+  handleOAuthLinkCallback: vi.fn()
 }))
 
 vi.mock('@/utils/webauthnHelper.js', () => ({

@@ -380,3 +380,81 @@ export const deleteDevice = async (accessToken, credentialId) => {
     }
   })
 }
+
+/**
+ * 获取统一认证方法列表
+ * @param {string} accessToken - 访问令牌
+ * @returns {Promise<Object>} { methods: Array }
+ */
+export const getAuthMethods = async (accessToken) => {
+  if (!accessToken) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
+  }
+
+  return fetchWithRetry(AUTH_API.AUTH_METHODS, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  })
+}
+
+/**
+ * 发起 OAuth 关联
+ * @param {string} accessToken - 访问令牌
+ * @param {string} provider - OAuth 提供商
+ * @returns {Promise<Object>} { authUrl: string }
+ */
+export const linkOAuthProvider = async (accessToken, provider) => {
+  if (!accessToken) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
+  }
+
+  return fetchWithRetry(OAUTH_API.LINK(provider), {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  })
+}
+
+/**
+ * 解绑 OAuth 账号
+ * @param {string} accessToken - 访问令牌
+ * @param {string} accountId - OAuth 账号 ID
+ * @returns {Promise<Object>}
+ */
+export const unlinkOAuthAccount = async (accessToken, accountId) => {
+  if (!accessToken || !accountId) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌和账号 ID 不能为空')
+  }
+
+  return fetchWithRetry(AUTH_API.UNLINK_OAUTH(accountId), {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  })
+}
+
+/**
+ * 处理 OAuth 关联回调
+ * 从 URL fragment 提取 link_result
+ * @returns {Object|null} 关联结果，如果不是关联回调则返回 null
+ */
+export const handleOAuthLinkCallback = () => {
+  const hash = window.location.hash.substring(1)
+  const urlParams = new URLSearchParams(hash)
+
+  const linkResultStr = urlParams.get('link_result')
+  if (!linkResultStr) return null
+
+  // 清理 URL
+  window.history.replaceState({}, document.title, window.location.pathname)
+
+  try {
+    return JSON.parse(linkResultStr)
+  } catch {
+    return { success: false, error: '解析关联结果失败' }
+  }
+}

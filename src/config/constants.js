@@ -224,7 +224,9 @@ export const AUTH_API = {
   DEVICES: '/auth/devices',
   ADD_DEVICE_OPTIONS: '/auth/devices/add/options',
   ADD_DEVICE_VERIFY: '/auth/devices/add/verify',
-  DELETE_DEVICE: (id) => `/auth/devices/${id}`
+  DELETE_DEVICE: (id) => `/auth/devices/${id}`,
+  AUTH_METHODS: '/auth/methods',
+  UNLINK_OAUTH: (id) => `/auth/methods/oauth/${id}`
 }
 
 /**
@@ -234,7 +236,8 @@ export const OAUTH_API = {
   GITHUB: '/oauth/github',
   GOOGLE: '/oauth/google',
   MICROSOFT: '/oauth/microsoft',
-  CALLBACK: '/oauth/callback'
+  CALLBACK: '/oauth/callback',
+  LINK: (provider) => `/oauth/link/${provider}`
 }
 
 /**

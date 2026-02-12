@@ -6,8 +6,16 @@
 import { Hono } from 'hono'
 import { ERROR_CODES, JWT_CONFIG } from '../constants.js'
 import { authRateLimit } from '../middleware/rateLimit.js'
-import { createOrGetOAuthUser } from '../services/user.js'
+import { requireAuth } from '../middleware/auth.js'
+import {
+  createUser,
+  usernameExists,
+  sanitizeUsername,
+  findUserById,
+  formatUserForResponse
+} from '../services/user.js'
 import { generateTokenPair } from '../services/jwt.js'
+import { findOAuthAccount, linkOAuthAccount } from '../services/oauthAccount.js'
 import {
   generateOAuthState,
   buildGitHubAuthUrl,
@@ -25,7 +33,7 @@ const oauth = new Hono()
 
 /**
  * OAuth state 存储 (使用内存，每个 Worker 实例独立)
- * @type {Map<string, {createdAt: number, provider: string}>}
+ * @type {Map<string, {createdAt: number, provider: string, linkUserId?: string}>}
  */
 const oauthStates = new Map()
 
@@ -33,30 +41,25 @@ const oauthStates = new Map()
 const OAUTH_STATE_TTL = 10 * 60 * 1000
 
 /**
- * 验证并消费 OAuth state
+ * 验证并消费 OAuth state，返回完整 state 记录
  * @param {string} state
  * @param {string} expectedProvider
- * @returns {boolean}
+ * @returns {Object|null} state 记录或 null
  */
 const validateState = (state, expectedProvider) => {
   const record = oauthStates.get(state)
-  if (!record) return false
+  if (!record) return null
 
   oauthStates.delete(state)
 
-  if (Date.now() - record.createdAt > OAUTH_STATE_TTL) return false
-  if (record.provider !== expectedProvider) return false
+  if (Date.now() - record.createdAt > OAUTH_STATE_TTL) return null
+  if (record.provider !== expectedProvider) return null
 
-  return true
+  return record
 }
 
 /**
  * 生成带 Token 的重定向响应 (前端使用 fragment 接收)
- * @param {Object} c - Hono Context
- * @param {Object} tokens - Token 对
- * @param {boolean} isNew - 是否新用户
- * @param {Object} user - 用户信息
- * @returns {Response}
  */
 const redirectWithTokens = (c, tokens, isNew, user) => {
   const baseUrl = c.env.OAUTH_CALLBACK_BASE
@@ -73,9 +76,6 @@ const redirectWithTokens = (c, tokens, isNew, user) => {
 
 /**
  * 生成错误重定向
- * @param {Object} c - Hono Context
- * @param {string} error - 错误消息
- * @returns {Response}
  */
 const redirectWithError = (c, error) => {
   const baseUrl = c.env.OAUTH_CALLBACK_BASE
@@ -83,20 +83,55 @@ const redirectWithError = (c, error) => {
 }
 
 /**
- * 通用 OAuth 回调处理
- * @param {Object} c - Hono Context
- * @param {Object} oauthUser - OAuth 用户信息
- * @returns {Promise<Response>}
+ * 生成 OAuth link 结果重定向
+ */
+const redirectWithLinkResult = (c, result) => {
+  const baseUrl = c.env.OAUTH_CALLBACK_BASE
+  return c.redirect(`${baseUrl}/#link_result=${encodeURIComponent(JSON.stringify(result))}`)
+}
+
+/**
+ * 通用 OAuth 回调处理 — 使用 oauth_accounts 表
  */
 const handleOAuthCallback = async (c, oauthUser) => {
-  // 创建或获取用户
-  const { user, isNew } = await createOrGetOAuthUser(c.env.DB, {
-    provider: oauthUser.provider,
-    providerId: oauthUser.providerId,
-    preferredUsername: oauthUser.username,
-    displayName: oauthUser.displayName,
-    avatarUrl: oauthUser.avatarUrl
-  })
+  // 查找已关联的 OAuth 账号
+  const existingAccount = await findOAuthAccount(c.env.DB, oauthUser.provider, oauthUser.providerId)
+
+  let user
+  let isNew = false
+
+  if (existingAccount) {
+    // 已关联，直接获取用户
+    user = await findUserById(c.env.DB, existingAccount.userId)
+    if (!user) {
+      return redirectWithError(c, 'User not found')
+    }
+  } else {
+    // 新用户：创建用户 + 关联 OAuth 账号
+    let username = sanitizeUsername(oauthUser.username)
+    let suffix = 0
+    while (await usernameExists(c.env.DB, username)) {
+      suffix++
+      username = `${sanitizeUsername(oauthUser.username)}${suffix}`
+    }
+
+    user = await createUser(c.env.DB, {
+      username,
+      displayName: oauthUser.displayName,
+      avatarUrl: oauthUser.avatarUrl
+    })
+
+    await linkOAuthAccount(c.env.DB, {
+      userId: user.id,
+      provider: oauthUser.provider,
+      providerId: oauthUser.providerId,
+      displayName: oauthUser.displayName,
+      avatarUrl: oauthUser.avatarUrl,
+      email: oauthUser.email
+    })
+
+    isNew = true
+  }
 
   // 生成 Token
   const tokens = await generateTokenPair({
@@ -105,16 +140,7 @@ const handleOAuthCallback = async (c, oauthUser) => {
     secret: c.env.JWT_SECRET
   })
 
-  // 格式化用户信息用于返回
-  const userForResponse = {
-    id: user.id,
-    username: user.username,
-    displayName: user.displayName,
-    avatarUrl: user.avatarUrl,
-    authProvider: user.authProvider
-  }
-
-  return redirectWithTokens(c, tokens, isNew, userForResponse)
+  return redirectWithTokens(c, tokens, isNew, formatUserForResponse(user))
 }
 
 // ============================================================
@@ -166,7 +192,8 @@ oauth.get('/github/callback', authRateLimit, async (c) => {
     return redirectWithError(c, 'Missing authorization parameters')
   }
 
-  if (!validateState(state, 'github')) {
+  const stateRecord = validateState(state, 'github')
+  if (!stateRecord) {
     return redirectWithError(c, 'Invalid or expired state')
   }
 
@@ -243,7 +270,8 @@ oauth.get('/google/callback', authRateLimit, async (c) => {
     return redirectWithError(c, 'Missing authorization parameters')
   }
 
-  if (!validateState(state, 'google')) {
+  const stateRecord = validateState(state, 'google')
+  if (!stateRecord) {
     return redirectWithError(c, 'Invalid or expired state')
   }
 
@@ -320,7 +348,8 @@ oauth.get('/microsoft/callback', authRateLimit, async (c) => {
     return redirectWithError(c, 'Missing authorization parameters')
   }
 
-  if (!validateState(state, 'microsoft')) {
+  const stateRecord = validateState(state, 'microsoft')
+  if (!stateRecord) {
     return redirectWithError(c, 'Invalid or expired state')
   }
 
@@ -346,6 +375,179 @@ oauth.get('/microsoft/callback', authRateLimit, async (c) => {
   }
 
   return handleOAuthCallback(c, userResult.user)
+})
+
+// ============================================================
+// OAuth Link (关联已有账号)
+// ============================================================
+
+/** Provider 配置映射 */
+const providerConfig = {
+  github: {
+    envCheck: (env) => env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET,
+    buildAuthUrl: (env, state, redirectUri) =>
+      buildGitHubAuthUrl({
+        clientId: env.GITHUB_CLIENT_ID,
+        redirectUri,
+        state
+      }),
+    exchangeCode: (env, code, redirectUri) =>
+      exchangeGitHubCode({
+        code,
+        clientId: env.GITHUB_CLIENT_ID,
+        clientSecret: env.GITHUB_CLIENT_SECRET,
+        redirectUri
+      }),
+    getUser: (accessToken) => getGitHubUser(accessToken)
+  },
+  google: {
+    envCheck: (env) => env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET,
+    buildAuthUrl: (env, state, redirectUri) =>
+      buildGoogleAuthUrl({
+        clientId: env.GOOGLE_CLIENT_ID,
+        redirectUri,
+        state
+      }),
+    exchangeCode: (env, code, redirectUri) =>
+      exchangeGoogleCode({
+        code,
+        clientId: env.GOOGLE_CLIENT_ID,
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+        redirectUri
+      }),
+    getUser: (accessToken) => getGoogleUser(accessToken)
+  },
+  microsoft: {
+    envCheck: (env) => env.MICROSOFT_CLIENT_ID && env.MICROSOFT_CLIENT_SECRET,
+    buildAuthUrl: (env, state, redirectUri) => {
+      const tenantId = env.MICROSOFT_TENANT_ID || 'common'
+      return buildMicrosoftAuthUrl({
+        clientId: env.MICROSOFT_CLIENT_ID,
+        tenantId,
+        redirectUri,
+        state
+      })
+    },
+    exchangeCode: (env, code, redirectUri) => {
+      const tenantId = env.MICROSOFT_TENANT_ID || 'common'
+      return exchangeMicrosoftCode({
+        code,
+        clientId: env.MICROSOFT_CLIENT_ID,
+        clientSecret: env.MICROSOFT_CLIENT_SECRET,
+        tenantId,
+        redirectUri
+      })
+    },
+    getUser: (accessToken) => getMicrosoftUser(accessToken)
+  }
+}
+
+/**
+ * POST /oauth/link/:provider
+ * 发起 OAuth 关联（需要登录）
+ */
+oauth.post('/link/:provider', requireAuth(), authRateLimit, (c) => {
+  const provider = c.req.param('provider')
+  const config = providerConfig[provider]
+
+  if (!config) {
+    return c.json({ error: 'Unsupported provider', code: ERROR_CODES.VALIDATION_FAILED }, 400)
+  }
+
+  if (!config.envCheck(c.env)) {
+    return c.json(
+      { error: `${provider} OAuth not configured`, code: ERROR_CODES.NOT_IMPLEMENTED },
+      501
+    )
+  }
+
+  const userId = c.get('user').id
+  const state = generateOAuthState()
+  oauthStates.set(state, { createdAt: Date.now(), provider, linkUserId: userId })
+
+  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/link/${provider}/callback`
+  const authUrl = config.buildAuthUrl(c.env, state, redirectUri)
+
+  return c.json({ authUrl })
+})
+
+/**
+ * GET /oauth/link/:provider/callback
+ * OAuth 关联回调
+ */
+oauth.get('/link/:provider/callback', authRateLimit, async (c) => {
+  const provider = c.req.param('provider')
+  const config = providerConfig[provider]
+
+  if (!config) {
+    return redirectWithLinkResult(c, { success: false, error: 'Unsupported provider' })
+  }
+
+  const code = c.req.query('code')
+  const state = c.req.query('state')
+  const error = c.req.query('error')
+
+  if (error) {
+    return redirectWithLinkResult(c, { success: false, error: 'OAuth authorization failed' })
+  }
+
+  if (!code || !state) {
+    return redirectWithLinkResult(c, { success: false, error: 'Missing authorization parameters' })
+  }
+
+  const stateRecord = validateState(state, provider)
+  if (!stateRecord || !stateRecord.linkUserId) {
+    return redirectWithLinkResult(c, { success: false, error: 'Invalid or expired state' })
+  }
+
+  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/link/${provider}/callback`
+
+  // 交换授权码
+  const tokenResult = await config.exchangeCode(c.env, code, redirectUri)
+  if (tokenResult.error) {
+    console.error(`${provider} link token exchange error:`, tokenResult.error)
+    return redirectWithLinkResult(c, {
+      success: false,
+      error: 'Failed to exchange authorization code'
+    })
+  }
+
+  // 获取用户信息
+  const userResult = await config.getUser(tokenResult.accessToken)
+  if (userResult.error) {
+    console.error(`${provider} link user fetch error:`, userResult.error)
+    return redirectWithLinkResult(c, {
+      success: false,
+      error: 'Failed to fetch user information'
+    })
+  }
+
+  // 检查该 OAuth 账号是否已关联其他用户
+  const existingAccount = await findOAuthAccount(
+    c.env.DB,
+    userResult.user.provider,
+    userResult.user.providerId
+  )
+
+  if (existingAccount) {
+    return redirectWithLinkResult(c, {
+      success: false,
+      error: 'This account is already linked to another user',
+      code: ERROR_CODES.OAUTH_ALREADY_LINKED
+    })
+  }
+
+  // 创建关联
+  await linkOAuthAccount(c.env.DB, {
+    userId: stateRecord.linkUserId,
+    provider: userResult.user.provider,
+    providerId: userResult.user.providerId,
+    displayName: userResult.user.displayName,
+    avatarUrl: userResult.user.avatarUrl,
+    email: userResult.user.email
+  })
+
+  return redirectWithLinkResult(c, { success: true })
 })
 
 export default oauth

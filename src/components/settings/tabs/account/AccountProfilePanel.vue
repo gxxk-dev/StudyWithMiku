@@ -28,37 +28,50 @@ import { Icon } from '@iconify/vue'
 import { useAuth } from '../../../../composables/useAuth.js'
 import { useToast } from '../../../../composables/useToast.js'
 
-const { user, logout, isLoading } = useAuth()
+const { user, authMethods, logout, isLoading } = useAuth()
 const { showToast } = useToast()
 
+const primaryAuthMethod = computed(() => {
+  const methods = authMethods.value
+  if (!methods || methods.length === 0) return null
+  // 优先显示 OAuth，否则显示 WebAuthn
+  return methods.find((m) => m.type === 'oauth') || methods[0]
+})
+
 const providerIcon = computed(() => {
-  switch (user.value?.authProvider) {
-    case 'github':
-      return 'mdi:github'
-    case 'google':
-      return 'flat-color-icons:google'
-    case 'microsoft':
-      return 'mdi:microsoft-windows'
-    case 'webauthn':
-      return 'mdi:fingerprint'
-    default:
-      return 'mdi:account'
+  const method = primaryAuthMethod.value
+  if (!method) return 'mdi:account'
+  if (method.type === 'oauth') {
+    switch (method.provider) {
+      case 'github':
+        return 'mdi:github'
+      case 'google':
+        return 'flat-color-icons:google'
+      case 'microsoft':
+        return 'mdi:microsoft-windows'
+      default:
+        return 'mdi:account'
+    }
   }
+  return 'mdi:fingerprint'
 })
 
 const providerLabel = computed(() => {
-  switch (user.value?.authProvider) {
-    case 'github':
-      return 'GitHub 登录'
-    case 'google':
-      return 'Google 登录'
-    case 'microsoft':
-      return 'Microsoft 登录'
-    case 'webauthn':
-      return 'WebAuthn 登录'
-    default:
-      return '未知方式登录'
+  const method = primaryAuthMethod.value
+  if (!method) return '已登录'
+  if (method.type === 'oauth') {
+    switch (method.provider) {
+      case 'github':
+        return 'GitHub 登录'
+      case 'google':
+        return 'Google 登录'
+      case 'microsoft':
+        return 'Microsoft 登录'
+      default:
+        return '第三方登录'
+    }
   }
+  return 'WebAuthn 登录'
 })
 
 const handleLogout = async () => {

@@ -189,7 +189,7 @@ describe('auth routes', () => {
 
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.authProvider).toBe('google')
+      expect(body.code).toBe(ERROR_CODES.INVALID_CREDENTIALS)
     })
 
     it('有凭证的 OAuth 用户应该能获取登录选项', async () => {
@@ -344,7 +344,7 @@ describe('auth routes', () => {
 
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.code).toBe(ERROR_CODES.LAST_CREDENTIAL)
+      expect(body.code).toBe(ERROR_CODES.LAST_AUTH_METHOD)
     })
 
     it('可以删除非最后一个凭证', async () => {

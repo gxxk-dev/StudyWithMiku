@@ -1,19 +1,30 @@
 <template>
   <div class="device-list-panel">
     <div class="header">
-      <h3>已登录设备</h3>
-      <button
-        v-if="!showAddInput"
-        class="add-btn"
-        :disabled="isLoading || !isWebAuthnSupported"
-        @click="showAddInput = true"
-      >
-        <Icon icon="lucide:plus" width="16" height="16" />
-        添加设备
-      </button>
+      <h3>凭证管理</h3>
+      <div class="header-actions">
+        <button
+          v-if="!showAddInput && !showLinkOptions"
+          class="add-btn"
+          :disabled="isLoading || !isWebAuthnSupported"
+          @click="showAddInput = true"
+        >
+          <Icon icon="lucide:plus" width="16" height="16" />
+          添加安全密钥
+        </button>
+        <button
+          v-if="!showAddInput && !showLinkOptions && unlinkedProviders.length > 0"
+          class="add-btn link-btn"
+          :disabled="isLoading"
+          @click="showLinkOptions = true"
+        >
+          <Icon icon="lucide:link" width="16" height="16" />
+          关联第三方账号
+        </button>
+      </div>
     </div>
 
-    <!-- 添加设备输入框 -->
+    <!-- 添加安全密钥输入框 -->
     <div v-if="showAddInput" class="add-device-form">
       <input
         v-model="newDeviceName"
@@ -31,99 +42,168 @@
       </div>
     </div>
 
-    <div v-if="loadingDevices" class="loading">
+    <!-- 关联第三方账号选择 -->
+    <div v-if="showLinkOptions" class="link-options">
+      <p class="link-hint">选择要关联的第三方账号</p>
+      <div class="oauth-buttons">
+        <OAuthButton
+          v-for="provider in unlinkedProviders"
+          :key="provider"
+          :provider="provider"
+          @click="handleLinkOAuth(provider)"
+        />
+      </div>
+      <button class="btn-cancel" :disabled="isLoading" @click="showLinkOptions = false">
+        取消
+      </button>
+    </div>
+
+    <div v-if="loadingMethods" class="loading">
       <Icon icon="eos-icons:loading" width="24" height="24" />
     </div>
 
     <div v-else class="list">
-      <div v-for="device in devices" :key="device.id" class="device-item">
+      <div v-for="method in authMethods" :key="method.id" class="device-item">
         <div class="device-icon">
-          <Icon :icon="getDeviceIcon(device)" width="24" height="24" />
+          <Icon :icon="getMethodIcon(method)" width="24" height="24" />
         </div>
         <div class="device-info">
           <div class="device-name">
-            {{ device.deviceName || '未命名设备' }}
-            <span v-if="isCurrentDevice(device)" class="current-badge">当前设备</span>
+            {{ getMethodName(method) }}
           </div>
           <div class="device-meta">
-            {{ formatDate(device.lastUsedAt) }} · {{ device.transports?.join(', ') || 'unknown' }}
+            {{ getMethodMeta(method) }}
           </div>
         </div>
-        <button class="delete-btn" :disabled="isLoading" @click="confirmDelete(device)">
+        <button
+          class="delete-btn"
+          :disabled="isLoading || authMethods.length <= 1"
+          :title="authMethods.length <= 1 ? '至少保留一个认证方式' : '删除'"
+          @click="confirmDelete(method)"
+        >
           <Icon icon="lucide:trash-2" width="16" height="16" />
         </button>
       </div>
 
-      <div v-if="devices.length === 0" class="empty-state">无已登录设备</div>
+      <div v-if="authMethods.length === 0" class="empty-state">暂无已注册凭证</div>
     </div>
 
     <AccountDeleteConfirm
       :is-open="showDeleteConfirm"
-      :device-name="deviceToDelete?.deviceName"
+      :device-name="methodToDelete ? getMethodName(methodToDelete) : ''"
       :is-loading="isLoading"
       @close="showDeleteConfirm = false"
-      @confirm="handleDeleteDevice"
+      @confirm="handleDeleteMethod"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '../../../../composables/useAuth.js'
 import { useToast } from '../../../../composables/useToast.js'
 import AccountDeleteConfirm from './AccountDeleteConfirm.vue'
+import OAuthButton from './OAuthButton.vue'
 
-const { devices, getDevices, addDevice, removeDevice, isLoading, isWebAuthnSupported } = useAuth()
+const {
+  authMethods,
+  getAuthMethods,
+  addDevice,
+  removeDevice,
+  linkOAuthProvider,
+  unlinkOAuthAccount,
+  isLoading,
+  isWebAuthnSupported,
+  availableProviders
+} = useAuth()
 
 const { showToast } = useToast()
 
-const loadingDevices = ref(false)
+const loadingMethods = ref(false)
 const showDeleteConfirm = ref(false)
-const deviceToDelete = ref(null)
+const methodToDelete = ref(null)
 const showAddInput = ref(false)
+const showLinkOptions = ref(false)
 const newDeviceName = ref('')
 
+const linkedOAuthProviders = computed(() =>
+  authMethods.value.filter((m) => m.type === 'oauth').map((m) => m.provider)
+)
+
+const unlinkedProviders = computed(() => {
+  const all = ['github', 'google', 'microsoft']
+  return all.filter(
+    (p) => availableProviders.value?.oauth?.[p] && !linkedOAuthProviders.value.includes(p)
+  )
+})
+
 onMounted(async () => {
-  loadingDevices.value = true
+  loadingMethods.value = true
   try {
-    await getDevices()
-  } catch (err) {
+    await getAuthMethods()
+  } catch {
     // Error handled by useAuth
   } finally {
-    loadingDevices.value = false
+    loadingMethods.value = false
   }
 })
 
-const getDeviceIcon = (device) => {
-  // Simple heuristic based on UA or device type if available
-  // Since we don't store full UA, we might just return a generic icon or guess based on name
-  const name = (device.deviceName || '').toLowerCase()
+const getMethodIcon = (method) => {
+  if (method.type === 'oauth') {
+    switch (method.provider) {
+      case 'github':
+        return 'mdi:github'
+      case 'google':
+        return 'flat-color-icons:google'
+      case 'microsoft':
+        return 'mdi:microsoft-windows'
+      default:
+        return 'mdi:account'
+    }
+  }
+  const name = (method.deviceName || '').toLowerCase()
   if (name.includes('phone') || name.includes('mobile')) return 'lucide:smartphone'
   if (name.includes('mac') || name.includes('windows') || name.includes('linux'))
     return 'lucide:laptop'
-  return 'lucide:monitor'
+  return 'lucide:shield-check'
 }
 
-const isCurrentDevice = (_device) => {
-  // We don't have a reliable way to know if it's strictly the current device without checking credential ID
-  // But we can't easily access the current credential ID from here without storing it on login.
-  // For now, we'll skip this or implement a basic check if we store current credential ID in session.
-  return false
+const getMethodName = (method) => {
+  if (method.type === 'oauth') {
+    const providerNames = { github: 'GitHub', google: 'Google', microsoft: 'Microsoft' }
+    const name = providerNames[method.provider] || method.provider
+    return method.displayName ? `${name} · ${method.displayName}` : name
+  }
+  return method.deviceName || '未命名安全密钥'
 }
 
-const formatDate = (dateStr) => {
-  if (!dateStr) return '未知时间'
-  return new Date(dateStr).toLocaleDateString()
+const getMethodMeta = (method) => {
+  if (method.type === 'oauth') {
+    const parts = []
+    if (method.email) parts.push(method.email)
+    if (method.linkedAt) parts.push(`关联于 ${formatDate(method.linkedAt)}`)
+    return parts.join(' · ') || '第三方账号'
+  }
+  const parts = []
+  if (method.lastUsedAt) parts.push(formatDate(method.lastUsedAt))
+  if (method.transports?.length) parts.push(method.transports.join(', '))
+  return parts.join(' · ') || '安全密钥'
+}
+
+const formatDate = (ts) => {
+  if (!ts) return '未知时间'
+  return new Date(ts).toLocaleDateString()
 }
 
 const handleAddDevice = async () => {
   try {
     await addDevice(newDeviceName.value || undefined)
-    showToast('success', '设备添加成功')
+    showToast('success', '安全密钥添加成功')
     showAddInput.value = false
     newDeviceName.value = ''
-  } catch (err) {
+    await getAuthMethods()
+  } catch {
     // Error handled by useAuth
   }
 }
@@ -133,20 +213,33 @@ const cancelAdd = () => {
   newDeviceName.value = ''
 }
 
-const confirmDelete = (device) => {
-  deviceToDelete.value = device
+const handleLinkOAuth = async (provider) => {
+  try {
+    await linkOAuthProvider(provider)
+  } catch {
+    // Error handled by useAuth
+  }
+}
+
+const confirmDelete = (method) => {
+  methodToDelete.value = method
   showDeleteConfirm.value = true
 }
 
-const handleDeleteDevice = async () => {
-  if (!deviceToDelete.value) return
+const handleDeleteMethod = async () => {
+  if (!methodToDelete.value) return
 
   try {
-    await removeDevice(deviceToDelete.value.credentialId)
-    showToast('success', '设备已删除')
+    if (methodToDelete.value.type === 'webauthn') {
+      await removeDevice(methodToDelete.value.id)
+      showToast('success', '安全密钥已删除')
+    } else {
+      await unlinkOAuthAccount(methodToDelete.value.id)
+      showToast('success', '第三方账号已解绑')
+    }
     showDeleteConfirm.value = false
-    deviceToDelete.value = null
-  } catch (err) {
+    methodToDelete.value = null
+  } catch {
     // Error handled by useAuth
   }
 }
@@ -163,6 +256,13 @@ const handleDeleteDevice = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 h3 {
@@ -259,6 +359,28 @@ h3 {
   background: rgba(255, 255, 255, 0.2);
 }
 
+.link-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(57, 197, 187, 0.05);
+  border: 1px solid rgba(57, 197, 187, 0.2);
+  border-radius: 8px;
+}
+
+.link-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .loading {
   display: flex;
   justify-content: center;
@@ -306,14 +428,6 @@ h3 {
   gap: 8px;
 }
 
-.current-badge {
-  font-size: 0.7rem;
-  background: rgba(57, 197, 187, 0.2);
-  color: #39c5bb;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
 .device-meta {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.5);
@@ -332,6 +446,11 @@ h3 {
 .delete-btn:hover:not(:disabled) {
   background: rgba(231, 76, 60, 0.1);
   color: #e74c3c;
+}
+
+.delete-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .empty-state {

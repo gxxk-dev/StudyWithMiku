@@ -15,13 +15,32 @@ export const users = sqliteTable(
     id: text('id').primaryKey(),
     username: text('username').notNull().unique(),
     displayName: text('display_name'),
+    avatarUrl: text('avatar_url')
+  },
+  (table) => [index('idx_users_username').on(table.username)]
+)
+
+/**
+ * OAuth 账号表
+ * @description 多对一关联用户，支持一个用户绑定多个 OAuth 账号
+ */
+export const oauthAccounts = sqliteTable(
+  'oauth_accounts',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    providerId: text('provider_id').notNull(),
+    displayName: text('display_name'),
     avatarUrl: text('avatar_url'),
-    authProvider: text('auth_provider').notNull().default('webauthn'),
-    providerId: text('provider_id')
+    email: text('email'),
+    linkedAt: integer('linked_at').notNull()
   },
   (table) => [
-    index('idx_users_username').on(table.username),
-    index('idx_users_provider').on(table.authProvider, table.providerId)
+    index('idx_oauth_accounts_user_id').on(table.userId),
+    index('idx_oauth_accounts_provider').on(table.provider, table.providerId)
   ]
 )
 

@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import oauthRoutes from '../../../../workers/routes/oauth.js'
 import * as oauthService from '../../../../workers/services/oauth.js'
 import * as userService from '../../../../workers/services/user.js'
+import * as oauthAccountService from '../../../../workers/services/oauthAccount.js'
 import * as jwtService from '../../../../workers/services/jwt.js'
 
 vi.mock('../../../../workers/services/oauth.js', () => ({
@@ -21,7 +22,21 @@ vi.mock('../../../../workers/services/oauth.js', () => ({
 }))
 
 vi.mock('../../../../workers/services/user.js', () => ({
-  createOrGetOAuthUser: vi.fn()
+  createUser: vi.fn(),
+  usernameExists: vi.fn(),
+  sanitizeUsername: vi.fn((input) => input.replace(/[^a-zA-Z0-9_]/g, '')),
+  findUserById: vi.fn(),
+  formatUserForResponse: vi.fn((user) => ({
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl
+  }))
+}))
+
+vi.mock('../../../../workers/services/oauthAccount.js', () => ({
+  findOAuthAccount: vi.fn(),
+  linkOAuthAccount: vi.fn()
 }))
 
 vi.mock('../../../../workers/services/jwt.js', () => ({
@@ -30,6 +45,10 @@ vi.mock('../../../../workers/services/jwt.js', () => ({
 
 vi.mock('../../../../workers/middleware/rateLimit.js', () => ({
   authRateLimit: vi.fn(async (_c, next) => next())
+}))
+
+vi.mock('../../../../workers/middleware/auth.js', () => ({
+  requireAuth: vi.fn(() => async (_c, next) => next())
 }))
 
 // 创建测试 app
@@ -105,15 +124,18 @@ describe('workers/routes/oauth', () => {
             avatarUrl: null
           }
         })
-        userService.createOrGetOAuthUser.mockResolvedValue({
-          user: {
-            id: 'user-001',
-            username: 'octocat',
-            displayName: 'Octocat',
-            avatarUrl: null,
-            authProvider: 'github'
-          },
-          isNew: false
+        // 已存在的 OAuth 账号
+        oauthAccountService.findOAuthAccount.mockResolvedValue({
+          id: 'oauth-001',
+          userId: 'user-001',
+          provider: 'github',
+          providerId: '123'
+        })
+        userService.findUserById.mockResolvedValue({
+          id: 'user-001',
+          username: 'octocat',
+          displayName: 'Octocat',
+          avatarUrl: null
         })
         jwtService.generateTokenPair.mockResolvedValue({
           accessToken: 'jwt-access',
@@ -215,16 +237,16 @@ describe('workers/routes/oauth', () => {
             avatarUrl: null
           }
         })
-        userService.createOrGetOAuthUser.mockResolvedValue({
-          user: {
-            id: 'user-002',
-            username: 'user',
-            displayName: 'User',
-            avatarUrl: null,
-            authProvider: 'google'
-          },
-          isNew: true
+        // 新用户
+        oauthAccountService.findOAuthAccount.mockResolvedValue(null)
+        userService.usernameExists.mockResolvedValue(false)
+        userService.createUser.mockResolvedValue({
+          id: 'user-002',
+          username: 'user',
+          displayName: 'User',
+          avatarUrl: null
         })
+        oauthAccountService.linkOAuthAccount.mockResolvedValue({})
         jwtService.generateTokenPair.mockResolvedValue({
           accessToken: 'jwt-a',
           refreshToken: 'jwt-r'
@@ -282,15 +304,18 @@ describe('workers/routes/oauth', () => {
             avatarUrl: null
           }
         })
-        userService.createOrGetOAuthUser.mockResolvedValue({
-          user: {
-            id: 'user-003',
-            username: 'msuser',
-            displayName: 'MS User',
-            avatarUrl: null,
-            authProvider: 'microsoft'
-          },
-          isNew: false
+        // 已存在的 OAuth 账号
+        oauthAccountService.findOAuthAccount.mockResolvedValue({
+          id: 'oauth-003',
+          userId: 'user-003',
+          provider: 'microsoft',
+          providerId: 'msid'
+        })
+        userService.findUserById.mockResolvedValue({
+          id: 'user-003',
+          username: 'msuser',
+          displayName: 'MS User',
+          avatarUrl: null
         })
         jwtService.generateTokenPair.mockResolvedValue({
           accessToken: 'jwt-a',

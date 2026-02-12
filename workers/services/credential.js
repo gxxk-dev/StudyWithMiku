@@ -33,7 +33,8 @@ export const saveCredential = async (
     transports: transports ? JSON.stringify(transports) : null,
     deviceType: deviceType || null,
     deviceName: deviceName || null,
-    backedUp: backedUp ? 1 : 0
+    backedUp: backedUp ? 1 : 0,
+    lastUsedAt: Date.now()
   })
 }
 
@@ -131,6 +132,23 @@ export const formatCredentialForResponse = (credential) => {
   return {
     id: credential.id,
     credentialId: credential.id,
+    deviceType: credential.deviceType,
+    deviceName: credential.deviceName,
+    transports: credential.transports,
+    backedUp: credential.backedUp,
+    lastUsedAt: credential.lastUsedAt || null
+  }
+}
+
+/**
+ * 格式化凭证为统一认证方法格式
+ * @param {Object} credential - 数据库凭证记录
+ * @returns {Object}
+ */
+export const formatCredentialAsAuthMethod = (credential) => {
+  return {
+    id: credential.id,
+    type: 'webauthn',
     deviceType: credential.deviceType,
     deviceName: credential.deviceName,
     transports: credential.transports,

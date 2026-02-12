@@ -18,6 +18,7 @@ const isAuthenticated = ref(false)
 const isLoading = ref(false)
 const error = ref(null)
 const devices = ref([])
+const authMethods = ref([])
 const availableProviders = ref({
   webauthn: true,
   oauth: {
@@ -60,6 +61,7 @@ const clearAuthState = () => {
   user.value = null
   isAuthenticated.value = false
   devices.value = []
+  authMethods.value = []
   authStorage.clearAllAuthData()
 
   // 清除 Token 刷新定时器
@@ -458,6 +460,105 @@ export const useAuth = () => {
 
       // 从设备列表中移除
       devices.value = devices.value.filter((device) => device.credentialId !== credentialId)
+      // 同步更新 authMethods
+      authMethods.value = authMethods.value.filter((m) => m.id !== credentialId)
+    } catch (error) {
+      setError(error)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * 获取统一认证方法列表
+   * @returns {Promise<Array>}
+   */
+  const getAuthMethods = async () => {
+    const accessToken = authStorage.getAccessToken()
+
+    if (!accessToken) {
+      throw new Error('未登录')
+    }
+
+    isLoading.value = true
+    clearError()
+
+    try {
+      const response = await authService.getAuthMethods(accessToken)
+      authMethods.value = response.methods
+      return response.methods
+    } catch (error) {
+      setError(error)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
+   * 发起 OAuth 关联
+   * @param {string} provider - OAuth 提供商
+   */
+  const linkOAuthProvider = async (provider) => {
+    const accessToken = authStorage.getAccessToken()
+
+    if (!accessToken) {
+      throw new Error('未登录')
+    }
+
+    clearError()
+
+    try {
+      const { authUrl } = await authService.linkOAuthProvider(accessToken, provider)
+      window.location.href = authUrl
+    } catch (error) {
+      setError(error)
+      throw error
+    }
+  }
+
+  /**
+   * 处理 OAuth 关联回调
+   * @returns {Promise<Object|null>} 关联结果
+   */
+  const handleOAuthLinkCallback = async () => {
+    try {
+      const result = authService.handleOAuthLinkCallback()
+
+      if (result) {
+        if (result.success) {
+          // 刷新认证方法列表
+          await getAuthMethods()
+        }
+        return result
+      }
+
+      return null
+    } catch (error) {
+      setError(error)
+      throw error
+    }
+  }
+
+  /**
+   * 解绑 OAuth 账号
+   * @param {string} accountId - OAuth 账号 ID
+   * @returns {Promise<void>}
+   */
+  const unlinkOAuthAccount = async (accountId) => {
+    const accessToken = authStorage.getAccessToken()
+
+    if (!accessToken) {
+      throw new Error('未登录')
+    }
+
+    isLoading.value = true
+    clearError()
+
+    try {
+      await authService.unlinkOAuthAccount(accessToken, accountId)
+      authMethods.value = authMethods.value.filter((m) => m.id !== accountId)
     } catch (error) {
       setError(error)
       throw error
@@ -477,6 +578,7 @@ export const useAuth = () => {
     isLoading: readonly(isLoading),
     error: readonly(error),
     devices: readonly(devices),
+    authMethods: readonly(authMethods),
     availableProviders: readonly(availableProviders),
 
     // 计算属性
@@ -490,11 +592,15 @@ export const useAuth = () => {
     login,
     loginWithOAuth,
     handleOAuthCallback,
+    handleOAuthLinkCallback,
     logout,
     refreshTokenIfNeeded,
     getDevices,
     addDevice,
     removeDevice,
+    getAuthMethods,
+    linkOAuthProvider,
+    unlinkOAuthAccount,
     clearError
   }
 }

@@ -22,16 +22,22 @@ import {
   usernameExists,
   isValidUsername,
   createWebAuthnUser,
-  formatUserForResponse
+  formatUserForResponse,
+  getTotalAuthMethodCount
 } from '../services/user.js'
 import {
   saveCredential,
   findCredentialsByUserId,
   updateCredentialCounter,
   deleteCredential,
-  getCredentialCount,
-  formatCredentialForResponse
+  formatCredentialForResponse,
+  formatCredentialAsAuthMethod
 } from '../services/credential.js'
+import {
+  findOAuthAccountsByUserId,
+  unlinkOAuthAccount,
+  formatOAuthAccountForResponse
+} from '../services/oauthAccount.js'
 import {
   createRegistrationOptions,
   verifyRegistration,
@@ -293,14 +299,13 @@ auth.post('/login/options', authRateLimit, zValidator('json', loginOptionsSchema
     )
   }
 
-  // 检查用户是否有 WebAuthn 凭证（支持 OAuth 用户添加安全密钥后通过 WebAuthn 登录）
+  // 检查用户是否有 WebAuthn 凭证
   const userCredentials = await findCredentialsByUserId(c.env.DB, user.id)
   if (userCredentials.length === 0) {
     return c.json(
       {
-        error: 'Please login with your OAuth provider',
-        code: ERROR_CODES.INVALID_CREDENTIALS,
-        authProvider: user.authProvider
+        error: 'No WebAuthn credentials found, please login with your OAuth provider',
+        code: ERROR_CODES.INVALID_CREDENTIALS
       },
       400
     )
@@ -701,13 +706,13 @@ auth.delete('/devices/:id', requireAuth(), async (c) => {
   const userId = c.get('user').id
   const credentialId = c.req.param('id')
 
-  // 检查是否是最后一个凭证
-  const count = await getCredentialCount(c.env.DB, userId)
-  if (count <= 1) {
+  // 检查是否是最后一个认证方式
+  const totalCount = await getTotalAuthMethodCount(c.env.DB, userId)
+  if (totalCount <= 1) {
     return c.json(
       {
-        error: 'Cannot delete the last credential',
-        code: ERROR_CODES.LAST_CREDENTIAL
+        error: 'Cannot delete the last auth method',
+        code: ERROR_CODES.LAST_AUTH_METHOD
       },
       400
     )
@@ -721,6 +726,65 @@ auth.delete('/devices/:id', requireAuth(), async (c) => {
       {
         error: 'Device not found',
         code: ERROR_CODES.USER_NOT_FOUND
+      },
+      404
+    )
+  }
+
+  return c.json({ ok: true })
+})
+
+// ============================================================
+// 统一认证方法管理
+// ============================================================
+
+/**
+ * GET /auth/methods
+ * 获取当前用户所有认证方式
+ */
+auth.get('/methods', requireAuth(), async (c) => {
+  const { id } = c.get('user')
+
+  const [creds, oauthAccounts] = await Promise.all([
+    findCredentialsByUserId(c.env.DB, id),
+    findOAuthAccountsByUserId(c.env.DB, id)
+  ])
+
+  const methods = [
+    ...creds.map(formatCredentialAsAuthMethod),
+    ...oauthAccounts.map(formatOAuthAccountForResponse)
+  ]
+
+  return c.json({ methods })
+})
+
+/**
+ * DELETE /auth/methods/oauth/:id
+ * 解绑 OAuth 账号
+ */
+auth.delete('/methods/oauth/:id', requireAuth(), async (c) => {
+  const userId = c.get('user').id
+  const accountId = c.req.param('id')
+
+  // 检查是否是最后一个认证方式
+  const totalCount = await getTotalAuthMethodCount(c.env.DB, userId)
+  if (totalCount <= 1) {
+    return c.json(
+      {
+        error: 'Cannot remove the last auth method',
+        code: ERROR_CODES.LAST_AUTH_METHOD
+      },
+      400
+    )
+  }
+
+  const deleted = await unlinkOAuthAccount(c.env.DB, accountId, userId)
+
+  if (!deleted) {
+    return c.json(
+      {
+        error: 'OAuth account not found',
+        code: ERROR_CODES.OAUTH_ACCOUNT_NOT_FOUND
       },
       404
     )

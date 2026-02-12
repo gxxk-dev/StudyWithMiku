@@ -319,7 +319,7 @@ const loadTimer = ref(null)
 
 onMounted(async () => {
   // 处理 OAuth 回调
-  const { handleOAuthCallback, initialize: initAuth } = useAuth()
+  const { handleOAuthCallback, handleOAuthLinkCallback, initialize: initAuth } = useAuth()
   try {
     const oauthResult = await handleOAuthCallback()
     if (oauthResult) {
@@ -329,6 +329,21 @@ onMounted(async () => {
   } catch (err) {
     console.error('OAuth 回调处理失败:', err)
     showToast(err.message || 'OAuth 登录失败', 'error')
+  }
+
+  // 处理 OAuth 关联回调
+  try {
+    const linkResult = await handleOAuthLinkCallback()
+    if (linkResult) {
+      if (linkResult.success) {
+        showToast('第三方账号关联成功', 'success')
+      } else {
+        showToast(linkResult.error || '关联失败', 'error')
+      }
+    }
+  } catch (err) {
+    console.error('OAuth 关联回调处理失败:', err)
+    showToast(err.message || '关联处理失败', 'error')
   }
 
   // 初始化认证状态
