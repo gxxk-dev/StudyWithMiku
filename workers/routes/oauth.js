@@ -279,89 +279,10 @@ oauth.post('/link/:provider', requireAuth(), authRateLimit, (c) => {
   const state = generateOAuthState()
   oauthStates.set(state, { createdAt: Date.now(), provider, linkUserId: userId })
 
-  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/link/${provider}/callback`
+  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/${provider}/callback`
   const authUrl = config.buildAuthUrl(c.env, state, redirectUri)
 
   return c.json({ authUrl })
-})
-
-/**
- * GET /oauth/link/:provider/callback
- * OAuth 关联回调
- */
-oauth.get('/link/:provider/callback', authRateLimit, async (c) => {
-  const provider = c.req.param('provider')
-  const config = providerConfig[provider]
-
-  if (!config) {
-    return redirectWithLinkResult(c, { success: false, error: 'Unsupported provider' })
-  }
-
-  const code = c.req.query('code')
-  const state = c.req.query('state')
-  const error = c.req.query('error')
-
-  if (error) {
-    return redirectWithLinkResult(c, { success: false, error: 'OAuth authorization failed' })
-  }
-
-  if (!code || !state) {
-    return redirectWithLinkResult(c, { success: false, error: 'Missing authorization parameters' })
-  }
-
-  const stateRecord = validateState(state, provider)
-  if (!stateRecord || !stateRecord.linkUserId) {
-    return redirectWithLinkResult(c, { success: false, error: 'Invalid or expired state' })
-  }
-
-  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/link/${provider}/callback`
-
-  // 交换授权码
-  const tokenResult = await config.exchangeCode(c.env, code, redirectUri)
-  if (tokenResult.error) {
-    console.error(`${provider} link token exchange error:`, tokenResult.error)
-    return redirectWithLinkResult(c, {
-      success: false,
-      error: 'Failed to exchange authorization code'
-    })
-  }
-
-  // 获取用户信息
-  const userResult = await config.getUser(tokenResult.accessToken)
-  if (userResult.error) {
-    console.error(`${provider} link user fetch error:`, userResult.error)
-    return redirectWithLinkResult(c, {
-      success: false,
-      error: 'Failed to fetch user information'
-    })
-  }
-
-  // 检查该 OAuth 账号是否已关联其他用户
-  const existingAccount = await findOAuthAccount(
-    c.env.DB,
-    userResult.user.provider,
-    userResult.user.providerId
-  )
-
-  if (existingAccount) {
-    return redirectWithLinkResult(c, {
-      success: false,
-      error: 'This account is already linked to another user',
-      code: ERROR_CODES.OAUTH_ALREADY_LINKED
-    })
-  }
-
-  // 创建关联
-  await linkOAuthAccount(c.env.DB, {
-    userId: stateRecord.linkUserId,
-    provider: userResult.user.provider,
-    providerId: userResult.user.providerId,
-    displayName: userResult.user.displayName,
-    avatarUrl: userResult.user.avatarUrl,
-    email: userResult.user.email
-  })
-
-  return redirectWithLinkResult(c, { success: true })
 })
 
 // ============================================================
@@ -426,22 +347,56 @@ oauth.get('/:provider/callback', authRateLimit, async (c) => {
     return redirectWithError(c, 'Invalid or expired state')
   }
 
+  const isLink = !!stateRecord.linkUserId
+  const withError = isLink
+    ? (msg) => redirectWithLinkResult(c, { success: false, error: msg })
+    : (msg) => redirectWithError(c, msg)
+
   const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/${provider}/callback`
 
   // 交换授权码
   const tokenResult = await config.exchangeCode(c.env, code, redirectUri)
   if (tokenResult.error) {
     console.error(`${provider} token exchange error:`, tokenResult.error)
-    return redirectWithError(c, 'Failed to exchange authorization code')
+    return withError('Failed to exchange authorization code')
   }
 
   // 获取用户信息
   const userResult = await config.getUser(tokenResult.accessToken)
   if (userResult.error) {
     console.error(`${provider} user fetch error:`, userResult.error)
-    return redirectWithError(c, 'Failed to fetch user information')
+    return withError('Failed to fetch user information')
   }
 
+  // 关联账号流程
+  if (isLink) {
+    const existingAccount = await findOAuthAccount(
+      c.env.DB,
+      userResult.user.provider,
+      userResult.user.providerId
+    )
+
+    if (existingAccount) {
+      return redirectWithLinkResult(c, {
+        success: false,
+        error: 'This account is already linked to another user',
+        code: ERROR_CODES.OAUTH_ALREADY_LINKED
+      })
+    }
+
+    await linkOAuthAccount(c.env.DB, {
+      userId: stateRecord.linkUserId,
+      provider: userResult.user.provider,
+      providerId: userResult.user.providerId,
+      displayName: userResult.user.displayName,
+      avatarUrl: userResult.user.avatarUrl,
+      email: userResult.user.email
+    })
+
+    return redirectWithLinkResult(c, { success: true })
+  }
+
+  // 登录/注册流程
   return handleOAuthCallback(c, userResult.user)
 })
 
