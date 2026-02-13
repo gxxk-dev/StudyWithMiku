@@ -15,7 +15,9 @@ export const users = sqliteTable(
     id: text('id').primaryKey(),
     username: text('username').notNull().unique(),
     displayName: text('display_name'),
-    avatarUrl: text('avatar_url')
+    avatarUrl: text('avatar_url'),
+    email: text('email'),
+    qqNumber: text('qq_number')
   },
   (table) => [index('idx_users_username').on(table.username)]
 )

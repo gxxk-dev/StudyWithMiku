@@ -12,10 +12,16 @@ import {
   usernameExists,
   sanitizeUsername,
   findUserById,
+  updateUser,
   formatUserForResponse
 } from '../services/user.js'
 import { generateTokenPair } from '../services/jwt.js'
-import { findOAuthAccount, linkOAuthAccount } from '../services/oauthAccount.js'
+import {
+  findOAuthAccount,
+  linkOAuthAccount,
+  findOAuthAccountsByUserId
+} from '../services/oauthAccount.js'
+import { resolveAvatars } from '../utils/avatar.js'
 import {
   generateOAuthState,
   buildGitHubAuthUrl,
@@ -106,6 +112,12 @@ const handleOAuthCallback = async (c, oauthUser) => {
     if (!user) {
       return redirectWithError(c, 'User not found')
     }
+
+    // 自动回填 email（用户无 email 但 OAuth 有）
+    if (!user.email && oauthUser.email) {
+      await updateUser(c.env.DB, user.id, { email: oauthUser.email })
+      user = await findUserById(c.env.DB, user.id)
+    }
   } else {
     // 新用户：创建用户 + 关联 OAuth 账号
     let username = sanitizeUsername(oauthUser.username)
@@ -118,7 +130,8 @@ const handleOAuthCallback = async (c, oauthUser) => {
     user = await createUser(c.env.DB, {
       username,
       displayName: oauthUser.displayName,
-      avatarUrl: oauthUser.avatarUrl
+      avatarUrl: oauthUser.avatarUrl,
+      email: oauthUser.email
     })
 
     await linkOAuthAccount(c.env.DB, {
@@ -133,6 +146,15 @@ const handleOAuthCallback = async (c, oauthUser) => {
     isNew = true
   }
 
+  // 查询 OAuth 账号并计算头像
+  const oauthAccts = await findOAuthAccountsByUserId(c.env.DB, user.id)
+  const emailForAvatar = user.email || oauthAccts.find((a) => a.email)?.email || null
+  const avatars = await resolveAvatars({
+    email: emailForAvatar,
+    qqNumber: user.qqNumber,
+    oauthAccounts: oauthAccts
+  })
+
   // 生成 Token
   const tokens = await generateTokenPair({
     userId: user.id,
@@ -140,7 +162,7 @@ const handleOAuthCallback = async (c, oauthUser) => {
     secret: c.env.JWT_SECRET
   })
 
-  return redirectWithTokens(c, tokens, isNew, formatUserForResponse(user))
+  return redirectWithTokens(c, tokens, isNew, formatUserForResponse(user, { avatars }))
 }
 
 // ============================================================

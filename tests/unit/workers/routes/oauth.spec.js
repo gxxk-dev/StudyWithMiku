@@ -26,21 +26,29 @@ vi.mock('../../../../workers/services/user.js', () => ({
   usernameExists: vi.fn(),
   sanitizeUsername: vi.fn((input) => input.replace(/[^a-zA-Z0-9_]/g, '')),
   findUserById: vi.fn(),
+  updateUser: vi.fn(),
   formatUserForResponse: vi.fn((user) => ({
     id: user.id,
     username: user.username,
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl
+    avatarUrl: user.avatarUrl,
+    email: user.email || null,
+    qqNumber: user.qqNumber || null
   }))
 }))
 
 vi.mock('../../../../workers/services/oauthAccount.js', () => ({
   findOAuthAccount: vi.fn(),
-  linkOAuthAccount: vi.fn()
+  linkOAuthAccount: vi.fn(),
+  findOAuthAccountsByUserId: vi.fn(() => [])
 }))
 
 vi.mock('../../../../workers/services/jwt.js', () => ({
   generateTokenPair: vi.fn()
+}))
+
+vi.mock('../../../../workers/utils/avatar.js', () => ({
+  resolveAvatars: vi.fn(() => ({ gravatar: null, libravatar: null, qq: null, oauth: null }))
 }))
 
 vi.mock('../../../../workers/middleware/rateLimit.js', () => ({

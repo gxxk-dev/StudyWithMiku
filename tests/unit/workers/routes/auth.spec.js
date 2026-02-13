@@ -269,7 +269,7 @@ describe('auth routes', () => {
   })
 
   describe('GET /auth/me', () => {
-    it('应该返回当前用户信息', async () => {
+    it('应该返回当前用户信息（含 avatars）', async () => {
       const headers = await getAuthHeaders()
 
       const res = await app.request(
@@ -286,6 +286,13 @@ describe('auth routes', () => {
       expect(body.user).toBeDefined()
       expect(body.user.username).toBe('testuser')
       expect(body.user.id).toBe('user-001')
+      expect(body.user.email).toBeDefined()
+      expect(body.user.qqNumber).toBeDefined()
+      expect(body.user.avatars).toBeDefined()
+      expect(body.user.avatars).toHaveProperty('gravatar')
+      expect(body.user.avatars).toHaveProperty('libravatar')
+      expect(body.user.avatars).toHaveProperty('qq')
+      expect(body.user.avatars).toHaveProperty('oauth')
     })
 
     it('未认证应该返回 401', async () => {
@@ -296,6 +303,53 @@ describe('auth routes', () => {
         },
         env
       )
+
+      expect(res.status).toBe(401)
+    })
+  })
+
+  describe('PATCH /auth/me', () => {
+    it('应该更新用户 email', async () => {
+      const headers = await getAuthHeaders()
+
+      const res = await jsonRequest('PATCH', '/auth/me', { email: 'new@example.com' }, headers)
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.user.email).toBe('new@example.com')
+      expect(body.user.avatars).toBeDefined()
+      expect(body.user.avatars.gravatar).toBeTruthy()
+    })
+
+    it('应该更新用户 qqNumber', async () => {
+      const headers = await getAuthHeaders()
+
+      const res = await jsonRequest('PATCH', '/auth/me', { qqNumber: '12345' }, headers)
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.user.qqNumber).toBe('12345')
+      expect(body.user.avatars.qq).toBeTruthy()
+    })
+
+    it('无效 email 应该返回 400', async () => {
+      const headers = await getAuthHeaders()
+
+      const res = await jsonRequest('PATCH', '/auth/me', { email: 'not-an-email' }, headers)
+
+      expect(res.status).toBe(400)
+    })
+
+    it('无效 QQ 号应该返回 400', async () => {
+      const headers = await getAuthHeaders()
+
+      const res = await jsonRequest('PATCH', '/auth/me', { qqNumber: '123' }, headers)
+
+      expect(res.status).toBe(400)
+    })
+
+    it('未认证应该返回 401', async () => {
+      const res = await jsonRequest('PATCH', '/auth/me', { email: 'test@example.com' })
 
       expect(res.status).toBe(401)
     })

@@ -135,6 +135,27 @@ describe('user.js', () => {
       expect(user.avatarUrl).toBe('https://new-avatar.png')
     })
 
+    it('应该更新用户的 email', async () => {
+      await updateUser(mockDB, 'user-001', { email: 'test@example.com' })
+
+      const user = await findUserById(mockDB, 'user-001')
+      expect(user.email).toBe('test@example.com')
+    })
+
+    it('应该更新用户的 qqNumber', async () => {
+      await updateUser(mockDB, 'user-001', { qqNumber: '12345' })
+
+      const user = await findUserById(mockDB, 'user-001')
+      expect(user.qqNumber).toBe('12345')
+    })
+
+    it('应该能将 email 置空', async () => {
+      await updateUser(mockDB, 'user-002', { email: null })
+
+      const user = await findUserById(mockDB, 'user-002')
+      expect(user.email).toBeNull()
+    })
+
     it('不允许的字段应该被忽略', async () => {
       await updateUser(mockDB, 'user-001', {
         username: 'hacked_username',
@@ -164,7 +185,9 @@ describe('user.js', () => {
         id: 'user-001',
         username: 'testuser',
         displayName: 'Test User',
-        avatarUrl: null
+        avatarUrl: null,
+        email: null,
+        qqNumber: null
       })
     })
 
@@ -172,7 +195,25 @@ describe('user.js', () => {
       const formatted = formatUserForResponse(sampleUsersCamelCase[1])
 
       expect(formatted.avatarUrl).toBe('https://github.com/avatar.png')
-      expect(formatted.authProvider).toBeUndefined()
+      expect(formatted.email).toBe('github@example.com')
+    })
+
+    it('应该包含 avatars 对象（如果提供）', () => {
+      const avatars = {
+        gravatar: 'https://gravatar.com/avatar/abc',
+        libravatar: null,
+        qq: null,
+        oauth: 'https://github.com/avatar.png'
+      }
+      const formatted = formatUserForResponse(sampleUsersCamelCase[0], { avatars })
+
+      expect(formatted.avatars).toEqual(avatars)
+    })
+
+    it('不提供 avatars 时不应包含 avatars 字段', () => {
+      const formatted = formatUserForResponse(sampleUsersCamelCase[0])
+
+      expect(formatted.avatars).toBeUndefined()
     })
   })
 })

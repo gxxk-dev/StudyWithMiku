@@ -3,6 +3,7 @@ import {
   usernameSchema,
   registerOptionsSchema,
   loginOptionsSchema,
+  updateProfileSchema,
   focusRecordsSchema,
   focusSettingsSchema,
   playlistsDataSchema,
@@ -82,6 +83,71 @@ describe('workers/schemas/auth', () => {
     it('拒绝无效用户名', () => {
       const result = loginOptionsSchema.safeParse({ username: '' })
       expect(result.success).toBe(false)
+    })
+  })
+
+  describe('updateProfileSchema', () => {
+    it('接受有效的 email', () => {
+      expect(updateProfileSchema.safeParse({ email: 'test@example.com' }).success).toBe(true)
+    })
+
+    it('接受 null email（清除）', () => {
+      expect(updateProfileSchema.safeParse({ email: null }).success).toBe(true)
+    })
+
+    it('拒绝无效的 email', () => {
+      expect(updateProfileSchema.safeParse({ email: 'not-an-email' }).success).toBe(false)
+    })
+
+    it('拒绝过长的 email', () => {
+      expect(updateProfileSchema.safeParse({ email: 'a'.repeat(250) + '@b.c' }).success).toBe(false)
+    })
+
+    it('接受有效的 QQ 号（5-11 位数字）', () => {
+      expect(updateProfileSchema.safeParse({ qqNumber: '12345' }).success).toBe(true)
+      expect(updateProfileSchema.safeParse({ qqNumber: '12345678901' }).success).toBe(true)
+    })
+
+    it('拒绝无效的 QQ 号', () => {
+      expect(updateProfileSchema.safeParse({ qqNumber: '1234' }).success).toBe(false)
+      expect(updateProfileSchema.safeParse({ qqNumber: '123456789012' }).success).toBe(false)
+      expect(updateProfileSchema.safeParse({ qqNumber: 'abcde' }).success).toBe(false)
+    })
+
+    it('接受 null qqNumber（清除）', () => {
+      expect(updateProfileSchema.safeParse({ qqNumber: null }).success).toBe(true)
+    })
+
+    it('接受有效的 avatarUrl', () => {
+      expect(
+        updateProfileSchema.safeParse({ avatarUrl: 'https://example.com/avatar.png' }).success
+      ).toBe(true)
+    })
+
+    it('拒绝无效的 avatarUrl', () => {
+      expect(updateProfileSchema.safeParse({ avatarUrl: 'not-a-url' }).success).toBe(false)
+    })
+
+    it('接受有效的 displayName', () => {
+      expect(updateProfileSchema.safeParse({ displayName: 'New Name' }).success).toBe(true)
+    })
+
+    it('拒绝过长的 displayName', () => {
+      expect(updateProfileSchema.safeParse({ displayName: 'a'.repeat(51) }).success).toBe(false)
+    })
+
+    it('接受空对象', () => {
+      expect(updateProfileSchema.safeParse({}).success).toBe(true)
+    })
+
+    it('接受多个字段同时更新', () => {
+      const result = updateProfileSchema.safeParse({
+        email: 'test@example.com',
+        qqNumber: '12345',
+        avatarUrl: 'https://example.com/avatar.png',
+        displayName: 'Test'
+      })
+      expect(result.success).toBe(true)
     })
   })
 

@@ -542,6 +542,34 @@ export const useAuth = () => {
   }
 
   /**
+   * 更新用户资料
+   * @param {Object} updates - { email, qqNumber, avatarUrl, displayName }
+   * @returns {Promise<Object>} 更新后的用户信息
+   */
+  const updateProfile = async (updates) => {
+    const accessToken = authStorage.getAccessToken()
+
+    if (!accessToken) {
+      throw new Error('未登录')
+    }
+
+    isLoading.value = true
+    clearError()
+
+    try {
+      const response = await authService.updateProfile(accessToken, updates)
+      user.value = response.user
+      authStorage.saveUser(response.user)
+      return response.user
+    } catch (error) {
+      setError(error)
+      throw error
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * 解绑 OAuth 账号
    * @param {string} accountId - OAuth 账号 ID
    * @returns {Promise<void>}
@@ -601,6 +629,7 @@ export const useAuth = () => {
     getAuthMethods,
     linkOAuthProvider,
     unlinkOAuthAccount,
+    updateProfile,
     clearError
   }
 }

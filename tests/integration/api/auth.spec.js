@@ -24,7 +24,8 @@ import {
   getCurrentUser,
   refreshToken as refreshTokenFn,
   logout,
-  getAuthConfig
+  getAuthConfig,
+  updateProfile
 } from '../../../src/services/auth.js'
 
 describe('认证 API 集成测试', () => {
@@ -67,11 +68,16 @@ describe('认证 API 集成测试', () => {
   // ============================================================
 
   describe('getCurrentUser', () => {
-    it('有效 token 返回用户信息', async () => {
+    it('有效 token 返回用户信息（含 avatars）', async () => {
       const result = await getCurrentUser(accessToken)
       expect(result.user).toBeDefined()
       expect(result.user.id).toBe(TEST_USER_ID)
       expect(result.user.username).toBe(TEST_USERNAME)
+      expect(result.user.avatars).toBeDefined()
+      expect(result.user.avatars).toHaveProperty('gravatar')
+      expect(result.user.avatars).toHaveProperty('libravatar')
+      expect(result.user.avatars).toHaveProperty('qq')
+      expect(result.user.avatars).toHaveProperty('oauth')
     })
 
     it('过期 token 抛出 TOKEN_EXPIRED', async () => {
@@ -108,6 +114,38 @@ describe('认证 API 集成测试', () => {
       await expect(refreshTokenFn(refreshTokenStr)).rejects.toMatchObject({
         type: 'TOKEN_EXPIRED'
       })
+    })
+  })
+
+  // ============================================================
+  // updateProfile (PATCH /auth/me)
+  // ============================================================
+
+  describe('updateProfile', () => {
+    it('更新 email 后 avatars 包含 gravatar', async () => {
+      const result = await updateProfile(accessToken, { email: 'test@example.com' })
+      expect(result.user.email).toBe('test@example.com')
+      expect(result.user.avatars.gravatar).toBeTruthy()
+      expect(result.user.avatars.libravatar).toBeTruthy()
+    })
+
+    it('更新 qqNumber 后 avatars 包含 qq', async () => {
+      const result = await updateProfile(accessToken, { qqNumber: '12345' })
+      expect(result.user.qqNumber).toBe('12345')
+      expect(result.user.avatars.qq).toBeTruthy()
+    })
+
+    it('更新持久化 — 再次 GET 能看到新值', async () => {
+      await updateProfile(accessToken, { email: 'persist@example.com' })
+      const result = await getCurrentUser(accessToken)
+      expect(result.user.email).toBe('persist@example.com')
+    })
+
+    it('清除字段 — 传 null 置空', async () => {
+      await updateProfile(accessToken, { email: 'temp@example.com' })
+      const result = await updateProfile(accessToken, { email: null })
+      expect(result.user.email).toBeNull()
+      expect(result.user.avatars.gravatar).toBeNull()
     })
   })
 

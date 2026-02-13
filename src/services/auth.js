@@ -438,6 +438,26 @@ export const unlinkOAuthAccount = async (accessToken, accountId) => {
 }
 
 /**
+ * 更新用户资料
+ * @param {string} accessToken - 访问令牌
+ * @param {Object} updates - 更新字段 { email, qqNumber, avatarUrl, displayName }
+ * @returns {Promise<Object>} 更新后的用户信息
+ */
+export const updateProfile = async (accessToken, updates) => {
+  if (!accessToken) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
+  }
+
+  return fetchWithRetry(AUTH_API.ME, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: JSON.stringify(updates)
+  })
+}
+
+/**
  * 处理 OAuth 关联回调
  * 从 URL fragment 提取 link_result
  * @returns {Object|null} 关联结果，如果不是关联回调则返回 null

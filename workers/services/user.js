@@ -73,7 +73,7 @@ export const isValidUsername = (username) => {
  * @param {string} [params.avatarUrl] - 头像 URL
  * @returns {Promise<Object>}
  */
-export const createUser = async (d1, { username, displayName, avatarUrl }) => {
+export const createUser = async (d1, { username, displayName, avatarUrl, email }) => {
   const db = createDb(d1)
   const userId = generateUserId()
 
@@ -81,14 +81,17 @@ export const createUser = async (d1, { username, displayName, avatarUrl }) => {
     id: userId,
     username,
     displayName: displayName || username,
-    avatarUrl: avatarUrl || null
+    avatarUrl: avatarUrl || null,
+    email: email || null
   })
 
   return {
     id: userId,
     username,
     displayName: displayName || username,
-    avatarUrl: avatarUrl || null
+    avatarUrl: avatarUrl || null,
+    email: email || null,
+    qqNumber: null
   }
 }
 
@@ -130,7 +133,7 @@ export const getTotalAuthMethodCount = async (d1, userId) => {
  */
 export const updateUser = async (d1, userId, updates) => {
   const db = createDb(d1)
-  const allowedFields = ['displayName', 'avatarUrl']
+  const allowedFields = ['displayName', 'avatarUrl', 'email', 'qqNumber']
   const fieldsToUpdate = {}
 
   for (const key of allowedFields) {
@@ -181,13 +184,19 @@ const sanitizeUsername = (input) => {
  * @param {Object} user - 数据库用户记录
  * @returns {Object}
  */
-export const formatUserForResponse = (user) => {
-  return {
+export const formatUserForResponse = (user, { avatars } = {}) => {
+  const result = {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl
+    avatarUrl: user.avatarUrl,
+    email: user.email || null,
+    qqNumber: user.qqNumber || null
   }
+  if (avatars) {
+    result.avatars = avatars
+  }
+  return result
 }
 
 export { sanitizeUsername }

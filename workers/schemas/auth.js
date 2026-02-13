@@ -107,6 +107,20 @@ export const addDeviceVerifySchema = z.object({
   deviceName: z.string().max(50).optional()
 })
 
+/**
+ * 用户资料更新
+ */
+export const updateProfileSchema = z.object({
+  email: z.string().email().max(254).optional().nullable(),
+  qqNumber: z
+    .string()
+    .regex(/^\d{5,11}$/)
+    .optional()
+    .nullable(),
+  avatarUrl: z.string().url().max(2000).optional().nullable(),
+  displayName: z.string().max(50).optional()
+})
+
 // ============================================================
 // 数据同步相关 Schema
 // ============================================================

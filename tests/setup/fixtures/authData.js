@@ -11,19 +11,25 @@ export const sampleUsers = [
     id: 'user-001',
     username: 'testuser',
     display_name: 'Test User',
-    avatar_url: null
+    avatar_url: null,
+    email: null,
+    qq_number: null
   },
   {
     id: 'user-002',
     username: 'github_user',
     display_name: 'GitHub User',
-    avatar_url: 'https://github.com/avatar.png'
+    avatar_url: 'https://github.com/avatar.png',
+    email: 'github@example.com',
+    qq_number: null
   },
   {
     id: 'user-003',
     username: 'google_user',
     display_name: 'Google User',
-    avatar_url: 'https://google.com/avatar.png'
+    avatar_url: 'https://google.com/avatar.png',
+    email: 'google@example.com',
+    qq_number: null
   }
 ]
 
@@ -35,19 +41,25 @@ export const sampleUsersCamelCase = [
     id: 'user-001',
     username: 'testuser',
     displayName: 'Test User',
-    avatarUrl: null
+    avatarUrl: null,
+    email: null,
+    qqNumber: null
   },
   {
     id: 'user-002',
     username: 'github_user',
     displayName: 'GitHub User',
-    avatarUrl: 'https://github.com/avatar.png'
+    avatarUrl: 'https://github.com/avatar.png',
+    email: 'github@example.com',
+    qqNumber: null
   },
   {
     id: 'user-003',
     username: 'google_user',
     displayName: 'Google User',
-    avatarUrl: 'https://google.com/avatar.png'
+    avatarUrl: 'https://google.com/avatar.png',
+    email: 'google@example.com',
+    qqNumber: null
   }
 ]
 
@@ -151,6 +163,8 @@ export const createUser = (overrides = {}) => ({
   username: `user_${Math.random().toString(36).slice(2, 10)}`,
   display_name: 'Test User',
   avatar_url: null,
+  email: null,
+  qq_number: null,
   ...overrides
 })
 

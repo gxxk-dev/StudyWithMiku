@@ -14,7 +14,8 @@ import {
   loginOptionsSchema,
   loginVerifySchema,
   refreshTokenSchema,
-  addDeviceVerifySchema
+  addDeviceVerifySchema,
+  updateProfileSchema
 } from '../schemas/auth.js'
 import {
   findUserByUsername,
@@ -22,6 +23,7 @@ import {
   usernameExists,
   isValidUsername,
   createWebAuthnUser,
+  updateUser,
   formatUserForResponse,
   getTotalAuthMethodCount
 } from '../services/user.js'
@@ -38,6 +40,7 @@ import {
   unlinkOAuthAccount,
   formatOAuthAccountForResponse
 } from '../services/oauthAccount.js'
+import { resolveAvatars } from '../utils/avatar.js'
 import {
   createRegistrationOptions,
   verifyRegistration,
@@ -529,12 +532,16 @@ auth.post('/logout', requireAuth(), async (c) => {
 
 /**
  * GET /auth/me
- * 获取当前用户信息
+ * 获取当前用户信息（含头像源）
  */
 auth.get('/me', requireAuth(), async (c) => {
   const { id } = c.get('user')
 
-  const user = await findUserById(c.env.DB, id)
+  const [user, oauthAccts] = await Promise.all([
+    findUserById(c.env.DB, id),
+    findOAuthAccountsByUserId(c.env.DB, id)
+  ])
+
   if (!user) {
     return c.json(
       {
@@ -545,8 +552,42 @@ auth.get('/me', requireAuth(), async (c) => {
     )
   }
 
+  const emailForAvatar = user.email || oauthAccts.find((a) => a.email)?.email || null
+  const avatars = await resolveAvatars({
+    email: emailForAvatar,
+    qqNumber: user.qqNumber,
+    oauthAccounts: oauthAccts
+  })
+
   return c.json({
-    user: formatUserForResponse(user)
+    user: formatUserForResponse(user, { avatars })
+  })
+})
+
+/**
+ * PATCH /auth/me
+ * 更新当前用户资料
+ */
+auth.patch('/me', requireAuth(), zValidator('json', updateProfileSchema), async (c) => {
+  const { id } = c.get('user')
+  const updates = c.req.valid('json')
+
+  await updateUser(c.env.DB, id, updates)
+
+  const [user, oauthAccts] = await Promise.all([
+    findUserById(c.env.DB, id),
+    findOAuthAccountsByUserId(c.env.DB, id)
+  ])
+
+  const emailForAvatar = user.email || oauthAccts.find((a) => a.email)?.email || null
+  const avatars = await resolveAvatars({
+    email: emailForAvatar,
+    qqNumber: user.qqNumber,
+    oauthAccounts: oauthAccts
+  })
+
+  return c.json({
+    user: formatUserForResponse(user, { avatars })
   })
 })
 

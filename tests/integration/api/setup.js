@@ -87,7 +87,7 @@ export async function initDatabase() {
  */
 export async function seedTestUser() {
   const statements = [
-    `INSERT OR IGNORE INTO users (id, username, display_name, auth_provider) VALUES ('${TEST_USER_ID}', '${TEST_USERNAME}', 'Test User', 'webauthn')`
+    `INSERT OR IGNORE INTO users (id, username, display_name) VALUES ('${TEST_USER_ID}', '${TEST_USERNAME}', 'Test User')`
   ]
 
   await workerFetch('/__test/seed', {
