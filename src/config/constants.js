@@ -182,6 +182,8 @@ export const PLAYER_CONFIG = {
   }
 }
 
+import { OAUTH_PROVIDER_KEYS } from './oauthProviders.js'
+
 /**
  * 认证配置常量
  */
@@ -204,8 +206,8 @@ export const AUTH_CONFIG = {
     USER_SETTINGS: 'user_settings',
     SHARE_CONFIG: 'share_config'
   },
-  // 支持的 OAuth Provider
-  OAUTH_PROVIDERS: ['github', 'google', 'microsoft']
+  // 支持的 OAuth Provider（从注册表导入）
+  OAUTH_PROVIDERS: OAUTH_PROVIDER_KEYS
 }
 
 /**
@@ -233,10 +235,7 @@ export const AUTH_API = {
  * OAuth API 端点
  */
 export const OAUTH_API = {
-  GITHUB: '/oauth/github',
-  GOOGLE: '/oauth/google',
-  MICROSOFT: '/oauth/microsoft',
-  CALLBACK: '/oauth/callback',
+  LOGIN: (provider) => `/oauth/${provider}`,
   LINK: (provider) => `/oauth/link/${provider}`
 }
 

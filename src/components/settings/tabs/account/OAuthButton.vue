@@ -1,49 +1,26 @@
 <template>
-  <button class="oauth-btn" :class="provider" @click="$emit('click')">
-    <Icon :icon="icon" width="20" height="20" />
-    <span>{{ label }}</span>
+  <button
+    class="oauth-btn"
+    :style="{ '--hover-bg': meta.hoverBg, '--hover-color': meta.hoverColor }"
+    @click="$emit('click')"
+  >
+    <Icon :icon="meta.icon" width="20" height="20" />
+    <span>{{ meta.label }}</span>
   </button>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
+import { getProviderMeta } from '../../../../config/oauthProviders.js'
 
 const props = defineProps({
-  provider: {
-    type: String,
-    required: true,
-    validator: (value) => ['github', 'google', 'microsoft'].includes(value)
-  }
+  provider: { type: String, required: true }
 })
 
 defineEmits(['click'])
 
-const icon = computed(() => {
-  switch (props.provider) {
-    case 'github':
-      return 'mdi:github'
-    case 'google':
-      return 'flat-color-icons:google'
-    case 'microsoft':
-      return 'mdi:microsoft-windows'
-    default:
-      return 'mdi:help'
-  }
-})
-
-const label = computed(() => {
-  switch (props.provider) {
-    case 'github':
-      return 'GitHub'
-    case 'google':
-      return 'Google'
-    case 'microsoft':
-      return 'Microsoft'
-    default:
-      return props.provider
-  }
-})
+const meta = computed(() => getProviderMeta(props.provider))
 </script>
 
 <style scoped>
@@ -64,24 +41,12 @@ const label = computed(() => {
 }
 
 .oauth-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+  color: var(--hover-color, white);
   transform: translateY(-1px);
 }
 
 .oauth-btn:active {
   transform: translateY(0);
-}
-
-.oauth-btn.github:hover {
-  background: rgba(36, 41, 46, 0.8);
-}
-
-.oauth-btn.google:hover {
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-}
-
-.oauth-btn.microsoft:hover {
-  background: rgba(0, 164, 239, 0.8);
 }
 </style>

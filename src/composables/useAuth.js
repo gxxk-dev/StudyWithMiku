@@ -21,11 +21,7 @@ const devices = ref([])
 const authMethods = ref([])
 const availableProviders = ref({
   webauthn: true,
-  oauth: {
-    github: false,
-    google: false,
-    microsoft: false
-  }
+  oauth: {}
 })
 
 // Token 刷新定时器

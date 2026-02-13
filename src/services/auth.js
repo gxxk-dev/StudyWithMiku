@@ -175,7 +175,7 @@ export const oauthLogin = (provider) => {
   sessionStorage.setItem('swm_oauth_return_url', window.location.href)
 
   // 重定向到 OAuth 页面（redirect_uri 由后端环境变量控制）
-  window.location.href = OAUTH_API[provider.toUpperCase()]
+  window.location.href = OAUTH_API.LOGIN(provider)
 }
 
 /**

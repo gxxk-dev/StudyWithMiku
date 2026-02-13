@@ -54,19 +54,10 @@
     <div class="section oauth-section">
       <div class="oauth-grid">
         <OAuthButton
-          v-if="availableProviders.oauth.github"
-          provider="github"
-          @click="handleOAuthLogin('github')"
-        />
-        <OAuthButton
-          v-if="availableProviders.oauth.google"
-          provider="google"
-          @click="handleOAuthLogin('google')"
-        />
-        <OAuthButton
-          v-if="availableProviders.oauth.microsoft"
-          provider="microsoft"
-          @click="handleOAuthLogin('microsoft')"
+          v-for="provider in availableOAuthProviders"
+          :key="provider"
+          :provider="provider"
+          @click="handleOAuthLogin(provider)"
         />
 
         <div v-if="!hasOAuthProviders" class="no-providers">暂无可用第三方登录</div>
@@ -101,10 +92,13 @@ const username = ref('')
 const deviceName = ref('')
 const showDeviceNameInput = ref(false)
 
-const hasOAuthProviders = computed(() => {
+const availableOAuthProviders = computed(() => {
   const oauth = availableProviders.value?.oauth
-  return oauth && (oauth.github || oauth.google || oauth.microsoft)
+  if (!oauth) return []
+  return Object.keys(oauth).filter((p) => oauth[p])
 })
+
+const hasOAuthProviders = computed(() => availableOAuthProviders.value.length > 0)
 
 const handleLogin = async () => {
   if (!username.value) return

@@ -4,12 +4,15 @@ import {
   buildGitHubAuthUrl,
   buildGoogleAuthUrl,
   buildMicrosoftAuthUrl,
+  buildLinuxDoAuthUrl,
   exchangeGitHubCode,
   exchangeGoogleCode,
   exchangeMicrosoftCode,
+  exchangeLinuxDoCode,
   getGitHubUser,
   getGoogleUser,
-  getMicrosoftUser
+  getMicrosoftUser,
+  getLinuxDoUser
 } from '../../../../workers/services/oauth.js'
 
 beforeEach(() => {
@@ -342,6 +345,164 @@ describe('workers/services/oauth', () => {
       globalThis.fetch.mockResolvedValue({ ok: false })
 
       const result = await getMicrosoftUser('bad-token')
+      expect(result.error).toBeDefined()
+    })
+  })
+
+  describe('buildLinuxDoAuthUrl', () => {
+    it('构建正确的 LINUX DO 授权 URL', () => {
+      const url = buildLinuxDoAuthUrl({
+        clientId: 'linuxdo-client-id',
+        redirectUri: 'http://localhost/callback',
+        state: 'test-state'
+      })
+
+      expect(url).toContain('https://connect.linux.do/oauth2/authorize')
+      expect(url).toContain('client_id=linuxdo-client-id')
+      expect(url).toContain('response_type=code')
+      expect(url).toContain('scope=user')
+      expect(url).toContain('state=test-state')
+    })
+
+    it('正确编码 redirectUri 参数', () => {
+      const url = buildLinuxDoAuthUrl({
+        clientId: 'id',
+        redirectUri: 'http://localhost:3000/oauth/linuxdo/callback',
+        state: 'state'
+      })
+
+      const parsed = new URL(url)
+      expect(parsed.searchParams.get('redirect_uri')).toBe(
+        'http://localhost:3000/oauth/linuxdo/callback'
+      )
+    })
+  })
+
+  describe('exchangeLinuxDoCode', () => {
+    it('正常交换授权码获取 token', async () => {
+      globalThis.fetch.mockResolvedValue({
+        json: vi.fn().mockResolvedValue({ access_token: 'linuxdo-token-123' })
+      })
+
+      const result = await exchangeLinuxDoCode({
+        code: 'auth-code',
+        clientId: 'id',
+        clientSecret: 'secret',
+        redirectUri: 'http://localhost/callback'
+      })
+
+      expect(result.accessToken).toBe('linuxdo-token-123')
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('connect.linux.do'),
+        expect.objectContaining({ method: 'POST' })
+      )
+    })
+
+    it('API 返回错误时返回 error', async () => {
+      globalThis.fetch.mockResolvedValue({
+        json: vi.fn().mockResolvedValue({
+          error: 'invalid_grant',
+          error_description: 'The authorization code has expired'
+        })
+      })
+
+      const result = await exchangeLinuxDoCode({
+        code: 'bad-code',
+        clientId: 'id',
+        clientSecret: 'secret',
+        redirectUri: 'http://localhost/callback'
+      })
+
+      expect(result.error).toBeDefined()
+    })
+
+    it('网络错误时返回 error', async () => {
+      globalThis.fetch.mockRejectedValue(new Error('Network failure'))
+
+      const result = await exchangeLinuxDoCode({
+        code: 'code',
+        clientId: 'id',
+        clientSecret: 'secret',
+        redirectUri: 'http://localhost/callback'
+      })
+
+      expect(result.error).toBe('Network failure')
+    })
+  })
+
+  describe('getLinuxDoUser', () => {
+    it('正常返回用户信息', async () => {
+      globalThis.fetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          id: 12345,
+          username: 'linuxdoer',
+          name: 'Linux Do User',
+          avatar_template: 'https://cdn.linux.do/avatar/12345/{size}.png',
+          active: true,
+          trust_level: 2,
+          silenced: false
+        })
+      })
+
+      const result = await getLinuxDoUser('linuxdo-token')
+
+      expect(result.user).toEqual({
+        provider: 'linuxdo',
+        providerId: '12345',
+        username: 'linuxdoer',
+        displayName: 'Linux Do User',
+        avatarUrl: 'https://cdn.linux.do/avatar/12345/240.png',
+        email: null
+      })
+    })
+
+    it('name 缺失时回退到 username', async () => {
+      globalThis.fetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          id: 123,
+          username: 'user',
+          name: null,
+          avatar_template: null,
+          active: true,
+          trust_level: 1,
+          silenced: false
+        })
+      })
+
+      const result = await getLinuxDoUser('token')
+      expect(result.user.displayName).toBe('user')
+      expect(result.user.avatarUrl).toBeNull()
+    })
+
+    it('avatar_template 相对路径拼接完整 URL', async () => {
+      globalThis.fetch.mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({
+          id: 456,
+          username: 'user2',
+          name: 'User Two',
+          avatar_template: '/user_avatar/linux.do/user2/{size}/12345_2.png',
+          active: true,
+          trust_level: 1,
+          silenced: false
+        })
+      })
+
+      const result = await getLinuxDoUser('token')
+      expect(result.user.avatarUrl).toBe(
+        'https://linux.do/user_avatar/linux.do/user2/240/12345_2.png'
+      )
+    })
+
+    it('API 错误时返回 error', async () => {
+      globalThis.fetch.mockResolvedValue({
+        ok: false,
+        status: 401
+      })
+
+      const result = await getLinuxDoUser('bad-token')
       expect(result.error).toBeDefined()
     })
   })

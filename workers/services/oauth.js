@@ -5,6 +5,8 @@
 
 import { OAUTH_CONFIG, AUTH_PROVIDER } from '../constants.js'
 
+const LINUXDO_AVATAR_BASE = 'https://linux.do'
+
 /**
  * 生成 OAuth state 参数
  * @returns {string}
@@ -293,6 +295,101 @@ export const getMicrosoftUser = async (accessToken) => {
         displayName: data.displayName,
         avatarUrl: null, // Microsoft Graph 需要额外请求获取头像
         email: data.mail || data.userPrincipalName
+      }
+    }
+  } catch (error) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * 构建 LINUX DO OAuth 授权 URL
+ * @param {Object} params
+ * @param {string} params.clientId - LINUX DO Client ID
+ * @param {string} params.redirectUri - 回调 URL
+ * @param {string} params.state - CSRF state
+ * @returns {string}
+ */
+export const buildLinuxDoAuthUrl = ({ clientId, redirectUri, state }) => {
+  const url = new URL(OAUTH_CONFIG.LINUXDO.AUTHORIZE_URL)
+  url.searchParams.set('client_id', clientId)
+  url.searchParams.set('redirect_uri', redirectUri)
+  url.searchParams.set('response_type', 'code')
+  url.searchParams.set('scope', OAUTH_CONFIG.LINUXDO.SCOPE)
+  url.searchParams.set('state', state)
+  return url.toString()
+}
+
+/**
+ * 交换 LINUX DO 授权码获取 Token
+ * @param {Object} params
+ * @param {string} params.code - 授权码
+ * @param {string} params.clientId - LINUX DO Client ID
+ * @param {string} params.clientSecret - LINUX DO Client Secret
+ * @param {string} params.redirectUri - 回调 URL
+ * @returns {Promise<{accessToken?: string, error?: string}>}
+ */
+export const exchangeLinuxDoCode = async ({ code, clientId, clientSecret, redirectUri }) => {
+  try {
+    const response = await fetch(OAUTH_CONFIG.LINUXDO.TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirectUri
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.error) {
+      return { error: data.error_description || data.error }
+    }
+
+    return { accessToken: data.access_token }
+  } catch (error) {
+    return { error: error.message }
+  }
+}
+
+/**
+ * 获取 LINUX DO 用户信息
+ * @param {string} accessToken - LINUX DO Access Token
+ * @returns {Promise<{user?: Object, error?: string}>}
+ */
+export const getLinuxDoUser = async (accessToken) => {
+  try {
+    const response = await fetch(OAUTH_CONFIG.LINUXDO.USER_URL, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    })
+
+    if (!response.ok) {
+      return { error: `LINUX DO API error: ${response.status}` }
+    }
+
+    const data = await response.json()
+
+    // avatar_template 可能是相对路径如 "/user_avatar/linux.do/..."
+    let avatarUrl = null
+    if (data.avatar_template) {
+      const tpl = data.avatar_template.replace('{size}', '240')
+      avatarUrl = tpl.startsWith('http') ? tpl : `${LINUXDO_AVATAR_BASE}${tpl}`
+    }
+
+    return {
+      user: {
+        provider: AUTH_PROVIDER.LINUXDO,
+        providerId: String(data.id),
+        username: data.username,
+        displayName: data.name || data.username,
+        avatarUrl,
+        email: null // LINUX DO Connect 不提供 email
       }
     }
   } catch (error) {

@@ -84,7 +84,8 @@ auth.get('/config', (c) => {
     oauth: {
       github: !!c.env.GITHUB_CLIENT_ID && !!c.env.GITHUB_CLIENT_SECRET,
       google: !!c.env.GOOGLE_CLIENT_ID && !!c.env.GOOGLE_CLIENT_SECRET,
-      microsoft: !!c.env.MICROSOFT_CLIENT_ID && !!c.env.MICROSOFT_CLIENT_SECRET
+      microsoft: !!c.env.MICROSOFT_CLIENT_ID && !!c.env.MICROSOFT_CLIENT_SECRET,
+      linuxdo: !!c.env.LINUXDO_CLIENT_ID && !!c.env.LINUXDO_CLIENT_SECRET
     }
   })
 })

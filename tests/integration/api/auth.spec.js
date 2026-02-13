@@ -60,6 +60,7 @@ describe('认证 API 集成测试', () => {
       expect(config.oauth).toHaveProperty('github')
       expect(config.oauth).toHaveProperty('google')
       expect(config.oauth).toHaveProperty('microsoft')
+      expect(config.oauth).toHaveProperty('linuxdo')
     })
   })
 

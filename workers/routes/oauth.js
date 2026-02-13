@@ -1,6 +1,8 @@
 /**
  * @module workers/routes/oauth
- * @description OAuth 认证路由 (GitHub/Google/Microsoft)
+ * @description OAuth 认证路由 (GitHub/Google/Microsoft/LINUX DO)
+ *
+ * 使用 providerConfig 注册表驱动，新增 provider 只需添加一个配置条目。
  */
 
 import { Hono } from 'hono'
@@ -32,7 +34,10 @@ import {
   getGoogleUser,
   buildMicrosoftAuthUrl,
   exchangeMicrosoftCode,
-  getMicrosoftUser
+  getMicrosoftUser,
+  buildLinuxDoAuthUrl,
+  exchangeLinuxDoCode,
+  getLinuxDoUser
 } from '../services/oauth.js'
 
 const oauth = new Hono()
@@ -166,241 +171,7 @@ const handleOAuthCallback = async (c, oauthUser) => {
 }
 
 // ============================================================
-// GitHub OAuth
-// ============================================================
-
-/**
- * GET /oauth/github
- * 发起 GitHub OAuth 授权
- */
-oauth.get('/github', authRateLimit, (c) => {
-  if (!c.env.GITHUB_CLIENT_ID || !c.env.GITHUB_CLIENT_SECRET) {
-    return c.json(
-      {
-        error: 'GitHub OAuth not configured',
-        code: ERROR_CODES.NOT_IMPLEMENTED
-      },
-      501
-    )
-  }
-
-  const state = generateOAuthState()
-  oauthStates.set(state, { createdAt: Date.now(), provider: 'github' })
-
-  const authUrl = buildGitHubAuthUrl({
-    clientId: c.env.GITHUB_CLIENT_ID,
-    redirectUri: `${c.env.OAUTH_CALLBACK_BASE}/oauth/github/callback`,
-    state
-  })
-
-  return c.redirect(authUrl)
-})
-
-/**
- * GET /oauth/github/callback
- * GitHub OAuth 回调
- */
-oauth.get('/github/callback', authRateLimit, async (c) => {
-  const code = c.req.query('code')
-  const state = c.req.query('state')
-  const error = c.req.query('error')
-
-  if (error) {
-    console.error('GitHub OAuth error:', error)
-    return redirectWithError(c, 'OAuth authorization failed')
-  }
-
-  if (!code || !state) {
-    return redirectWithError(c, 'Missing authorization parameters')
-  }
-
-  const stateRecord = validateState(state, 'github')
-  if (!stateRecord) {
-    return redirectWithError(c, 'Invalid or expired state')
-  }
-
-  // 交换授权码
-  const tokenResult = await exchangeGitHubCode({
-    code,
-    clientId: c.env.GITHUB_CLIENT_ID,
-    clientSecret: c.env.GITHUB_CLIENT_SECRET,
-    redirectUri: `${c.env.OAUTH_CALLBACK_BASE}/oauth/github/callback`
-  })
-
-  if (tokenResult.error) {
-    console.error('GitHub token exchange error:', tokenResult.error)
-    return redirectWithError(c, 'Failed to exchange authorization code')
-  }
-
-  // 获取用户信息
-  const userResult = await getGitHubUser(tokenResult.accessToken)
-
-  if (userResult.error) {
-    console.error('GitHub user fetch error:', userResult.error)
-    return redirectWithError(c, 'Failed to fetch user information')
-  }
-
-  return handleOAuthCallback(c, userResult.user)
-})
-
-// ============================================================
-// Google OAuth
-// ============================================================
-
-/**
- * GET /oauth/google
- * 发起 Google OAuth 授权
- */
-oauth.get('/google', authRateLimit, (c) => {
-  if (!c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) {
-    return c.json(
-      {
-        error: 'Google OAuth not configured',
-        code: ERROR_CODES.NOT_IMPLEMENTED
-      },
-      501
-    )
-  }
-
-  const state = generateOAuthState()
-  oauthStates.set(state, { createdAt: Date.now(), provider: 'google' })
-
-  const authUrl = buildGoogleAuthUrl({
-    clientId: c.env.GOOGLE_CLIENT_ID,
-    redirectUri: `${c.env.OAUTH_CALLBACK_BASE}/oauth/google/callback`,
-    state
-  })
-
-  return c.redirect(authUrl)
-})
-
-/**
- * GET /oauth/google/callback
- * Google OAuth 回调
- */
-oauth.get('/google/callback', authRateLimit, async (c) => {
-  const code = c.req.query('code')
-  const state = c.req.query('state')
-  const error = c.req.query('error')
-
-  if (error) {
-    console.error('Google OAuth error:', error)
-    return redirectWithError(c, 'OAuth authorization failed')
-  }
-
-  if (!code || !state) {
-    return redirectWithError(c, 'Missing authorization parameters')
-  }
-
-  const stateRecord = validateState(state, 'google')
-  if (!stateRecord) {
-    return redirectWithError(c, 'Invalid or expired state')
-  }
-
-  const tokenResult = await exchangeGoogleCode({
-    code,
-    clientId: c.env.GOOGLE_CLIENT_ID,
-    clientSecret: c.env.GOOGLE_CLIENT_SECRET,
-    redirectUri: `${c.env.OAUTH_CALLBACK_BASE}/oauth/google/callback`
-  })
-
-  if (tokenResult.error) {
-    console.error('Google token exchange error:', tokenResult.error)
-    return redirectWithError(c, 'Failed to exchange authorization code')
-  }
-
-  const userResult = await getGoogleUser(tokenResult.accessToken)
-
-  if (userResult.error) {
-    console.error('Google user fetch error:', userResult.error)
-    return redirectWithError(c, 'Failed to fetch user information')
-  }
-
-  return handleOAuthCallback(c, userResult.user)
-})
-
-// ============================================================
-// Microsoft OAuth
-// ============================================================
-
-/**
- * GET /oauth/microsoft
- * 发起 Microsoft OAuth 授权
- */
-oauth.get('/microsoft', authRateLimit, (c) => {
-  if (!c.env.MICROSOFT_CLIENT_ID || !c.env.MICROSOFT_CLIENT_SECRET) {
-    return c.json(
-      {
-        error: 'Microsoft OAuth not configured',
-        code: ERROR_CODES.NOT_IMPLEMENTED
-      },
-      501
-    )
-  }
-
-  const state = generateOAuthState()
-  oauthStates.set(state, { createdAt: Date.now(), provider: 'microsoft' })
-
-  const tenantId = c.env.MICROSOFT_TENANT_ID || 'common'
-  const authUrl = buildMicrosoftAuthUrl({
-    clientId: c.env.MICROSOFT_CLIENT_ID,
-    tenantId,
-    redirectUri: `${c.env.OAUTH_CALLBACK_BASE}/oauth/microsoft/callback`,
-    state
-  })
-
-  return c.redirect(authUrl)
-})
-
-/**
- * GET /oauth/microsoft/callback
- * Microsoft OAuth 回调
- */
-oauth.get('/microsoft/callback', authRateLimit, async (c) => {
-  const code = c.req.query('code')
-  const state = c.req.query('state')
-  const error = c.req.query('error')
-
-  if (error) {
-    console.error('Microsoft OAuth error:', error, c.req.query('error_description'))
-    return redirectWithError(c, 'OAuth authorization failed')
-  }
-
-  if (!code || !state) {
-    return redirectWithError(c, 'Missing authorization parameters')
-  }
-
-  const stateRecord = validateState(state, 'microsoft')
-  if (!stateRecord) {
-    return redirectWithError(c, 'Invalid or expired state')
-  }
-
-  const tenantId = c.env.MICROSOFT_TENANT_ID || 'common'
-  const tokenResult = await exchangeMicrosoftCode({
-    code,
-    clientId: c.env.MICROSOFT_CLIENT_ID,
-    clientSecret: c.env.MICROSOFT_CLIENT_SECRET,
-    tenantId,
-    redirectUri: `${c.env.OAUTH_CALLBACK_BASE}/oauth/microsoft/callback`
-  })
-
-  if (tokenResult.error) {
-    console.error('Microsoft token exchange error:', tokenResult.error)
-    return redirectWithError(c, 'Failed to exchange authorization code')
-  }
-
-  const userResult = await getMicrosoftUser(tokenResult.accessToken)
-
-  if (userResult.error) {
-    console.error('Microsoft user fetch error:', userResult.error)
-    return redirectWithError(c, 'Failed to fetch user information')
-  }
-
-  return handleOAuthCallback(c, userResult.user)
-})
-
-// ============================================================
-// OAuth Link (关联已有账号)
+// Provider 配置注册表
 // ============================================================
 
 /** Provider 配置映射 */
@@ -461,8 +232,29 @@ const providerConfig = {
       })
     },
     getUser: (accessToken) => getMicrosoftUser(accessToken)
+  },
+  linuxdo: {
+    envCheck: (env) => env.LINUXDO_CLIENT_ID && env.LINUXDO_CLIENT_SECRET,
+    buildAuthUrl: (env, state, redirectUri) =>
+      buildLinuxDoAuthUrl({
+        clientId: env.LINUXDO_CLIENT_ID,
+        redirectUri,
+        state
+      }),
+    exchangeCode: (env, code, redirectUri) =>
+      exchangeLinuxDoCode({
+        code,
+        clientId: env.LINUXDO_CLIENT_ID,
+        clientSecret: env.LINUXDO_CLIENT_SECRET,
+        redirectUri
+      }),
+    getUser: (accessToken) => getLinuxDoUser(accessToken)
   }
 }
+
+// ============================================================
+// OAuth Link (关联已有账号) — 必须在通用路由之前注册
+// ============================================================
 
 /**
  * POST /oauth/link/:provider
@@ -570,6 +362,87 @@ oauth.get('/link/:provider/callback', authRateLimit, async (c) => {
   })
 
   return redirectWithLinkResult(c, { success: true })
+})
+
+// ============================================================
+// 通用 OAuth 登录路由
+// ============================================================
+
+/**
+ * GET /oauth/:provider
+ * 发起 OAuth 授权（通用）
+ */
+oauth.get('/:provider', authRateLimit, (c) => {
+  const provider = c.req.param('provider')
+  const config = providerConfig[provider]
+
+  if (!config) {
+    return c.json({ error: 'Unsupported provider', code: ERROR_CODES.VALIDATION_FAILED }, 400)
+  }
+
+  if (!config.envCheck(c.env)) {
+    return c.json(
+      { error: `${provider} OAuth not configured`, code: ERROR_CODES.NOT_IMPLEMENTED },
+      501
+    )
+  }
+
+  const state = generateOAuthState()
+  oauthStates.set(state, { createdAt: Date.now(), provider })
+
+  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/${provider}/callback`
+  const authUrl = config.buildAuthUrl(c.env, state, redirectUri)
+
+  return c.redirect(authUrl)
+})
+
+/**
+ * GET /oauth/:provider/callback
+ * OAuth 回调（通用）
+ */
+oauth.get('/:provider/callback', authRateLimit, async (c) => {
+  const provider = c.req.param('provider')
+  const config = providerConfig[provider]
+
+  if (!config) {
+    return redirectWithError(c, 'Unsupported provider')
+  }
+
+  const code = c.req.query('code')
+  const state = c.req.query('state')
+  const error = c.req.query('error')
+
+  if (error) {
+    console.error(`${provider} OAuth error:`, error)
+    return redirectWithError(c, 'OAuth authorization failed')
+  }
+
+  if (!code || !state) {
+    return redirectWithError(c, 'Missing authorization parameters')
+  }
+
+  const stateRecord = validateState(state, provider)
+  if (!stateRecord) {
+    return redirectWithError(c, 'Invalid or expired state')
+  }
+
+  const redirectUri = `${c.env.OAUTH_CALLBACK_BASE}/oauth/${provider}/callback`
+
+  // 交换授权码
+  const tokenResult = await config.exchangeCode(c.env, code, redirectUri)
+  if (tokenResult.error) {
+    console.error(`${provider} token exchange error:`, tokenResult.error)
+    return redirectWithError(c, 'Failed to exchange authorization code')
+  }
+
+  // 获取用户信息
+  const userResult = await config.getUser(tokenResult.accessToken)
+  if (userResult.error) {
+    console.error(`${provider} user fetch error:`, userResult.error)
+    return redirectWithError(c, 'Failed to fetch user information')
+  }
+
+  return handleOAuthCallback(c, userResult.user)
 })
 
 export default oauth

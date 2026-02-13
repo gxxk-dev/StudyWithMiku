@@ -63,7 +63,8 @@ export const mockAuthConfig = async (page) => {
         oauth: {
           github: true,
           google: true,
-          microsoft: true
+          microsoft: true,
+          linuxdo: true
         }
       })
     })

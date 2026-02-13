@@ -60,6 +60,7 @@ import { Icon } from '@iconify/vue'
 import UserAvatar from '../../../common/UserAvatar.vue'
 import { useAuth } from '../../../../composables/useAuth.js'
 import { useToast } from '../../../../composables/useToast.js'
+import { getProviderMeta } from '../../../../config/oauthProviders.js'
 
 const { user, authMethods, logout, updateProfile, isLoading } = useAuth()
 const { showToast } = useToast()
@@ -87,36 +88,14 @@ const primaryAuthMethod = computed(() => {
 const providerIcon = computed(() => {
   const method = primaryAuthMethod.value
   if (!method) return 'mdi:account'
-  if (method.type === 'oauth') {
-    switch (method.provider) {
-      case 'github':
-        return 'mdi:github'
-      case 'google':
-        return 'flat-color-icons:google'
-      case 'microsoft':
-        return 'mdi:microsoft-windows'
-      default:
-        return 'mdi:account'
-    }
-  }
+  if (method.type === 'oauth') return getProviderMeta(method.provider).icon
   return 'mdi:fingerprint'
 })
 
 const providerLabel = computed(() => {
   const method = primaryAuthMethod.value
   if (!method) return '已登录'
-  if (method.type === 'oauth') {
-    switch (method.provider) {
-      case 'github':
-        return 'GitHub 登录'
-      case 'google':
-        return 'Google 登录'
-      case 'microsoft':
-        return 'Microsoft 登录'
-      default:
-        return '第三方登录'
-    }
-  }
+  if (method.type === 'oauth') return `${getProviderMeta(method.provider).label} 登录`
   return 'WebAuthn 登录'
 })
 

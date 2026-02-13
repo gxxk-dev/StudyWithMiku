@@ -60,6 +60,12 @@ export const OAUTH_CONFIG = {
     TOKEN_URL: 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token',
     USER_URL: 'https://graph.microsoft.com/v1.0/me',
     SCOPE: 'openid email profile User.Read'
+  },
+  LINUXDO: {
+    AUTHORIZE_URL: 'https://connect.linux.do/oauth2/authorize',
+    TOKEN_URL: 'https://connect.linux.do/oauth2/token',
+    USER_URL: 'https://connect.linux.do/api/user',
+    SCOPE: 'user'
   }
 }
 
@@ -124,7 +130,8 @@ export const AUTH_PROVIDER = {
   WEBAUTHN: 'webauthn',
   GITHUB: 'github',
   GOOGLE: 'google',
-  MICROSOFT: 'microsoft'
+  MICROSOFT: 'microsoft',
+  LINUXDO: 'linuxdo'
 }
 
 /**

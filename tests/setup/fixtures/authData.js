@@ -216,6 +216,14 @@ export const createOAuthUser = (provider, overrides = {}) => {
       displayName: 'Microsoft Test User',
       avatarUrl: null,
       email: 'test@outlook.com'
+    },
+    linuxdo: {
+      provider: 'linuxdo',
+      providerId: `linuxdo-${Date.now()}`,
+      username: 'linuxdo_test_user',
+      displayName: 'LINUX DO Test User',
+      avatarUrl: 'https://linux.do/user_avatar/linux.do/test/240/12345.png',
+      email: null
     }
   }
 

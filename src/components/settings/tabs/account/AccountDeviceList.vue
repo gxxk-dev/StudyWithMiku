@@ -103,6 +103,7 @@ import { ref, computed, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useAuth } from '../../../../composables/useAuth.js'
 import { useToast } from '../../../../composables/useToast.js'
+import { OAUTH_PROVIDER_KEYS, getProviderMeta } from '../../../../config/oauthProviders.js'
 import AccountDeleteConfirm from './AccountDeleteConfirm.vue'
 import OAuthButton from './OAuthButton.vue'
 
@@ -132,8 +133,7 @@ const linkedOAuthProviders = computed(() =>
 )
 
 const unlinkedProviders = computed(() => {
-  const all = ['github', 'google', 'microsoft']
-  return all.filter(
+  return OAUTH_PROVIDER_KEYS.filter(
     (p) => availableProviders.value?.oauth?.[p] && !linkedOAuthProviders.value.includes(p)
   )
 })
@@ -150,18 +150,7 @@ onMounted(async () => {
 })
 
 const getMethodIcon = (method) => {
-  if (method.type === 'oauth') {
-    switch (method.provider) {
-      case 'github':
-        return 'mdi:github'
-      case 'google':
-        return 'flat-color-icons:google'
-      case 'microsoft':
-        return 'mdi:microsoft-windows'
-      default:
-        return 'mdi:account'
-    }
-  }
+  if (method.type === 'oauth') return getProviderMeta(method.provider).icon
   const name = (method.deviceName || '').toLowerCase()
   if (name.includes('phone') || name.includes('mobile')) return 'lucide:smartphone'
   if (name.includes('mac') || name.includes('windows') || name.includes('linux'))
@@ -171,8 +160,7 @@ const getMethodIcon = (method) => {
 
 const getMethodName = (method) => {
   if (method.type === 'oauth') {
-    const providerNames = { github: 'GitHub', google: 'Google', microsoft: 'Microsoft' }
-    const name = providerNames[method.provider] || method.provider
+    const name = getProviderMeta(method.provider).label
     return method.displayName ? `${name} · ${method.displayName}` : name
   }
   return method.deviceName || '未命名安全密钥'
