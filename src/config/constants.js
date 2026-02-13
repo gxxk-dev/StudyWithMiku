@@ -228,7 +228,8 @@ export const AUTH_API = {
   ADD_DEVICE_VERIFY: '/auth/devices/add/verify',
   DELETE_DEVICE: (id) => `/auth/devices/${id}`,
   AUTH_METHODS: '/auth/methods',
-  UNLINK_OAUTH: (id) => `/auth/methods/oauth/${id}`
+  UNLINK_OAUTH: (id) => `/auth/methods/oauth/${id}`,
+  MERGE_DEVICE: '/auth/devices/merge'
 }
 
 /**
@@ -236,7 +237,8 @@ export const AUTH_API = {
  */
 export const OAUTH_API = {
   LOGIN: (provider) => `/oauth/${provider}`,
-  LINK: (provider) => `/oauth/link/${provider}`
+  LINK: (provider) => `/oauth/link/${provider}`,
+  MERGE: '/oauth/merge'
 }
 
 /**

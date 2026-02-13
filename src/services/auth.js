@@ -13,6 +13,20 @@
 import { AUTH_API, OAUTH_API, AUTH_CONFIG } from '../config/constants.js'
 
 /**
+ * 创建带认证头的 fetch 选项
+ * @param {string} accessToken
+ * @param {Object} [extra]
+ * @returns {Object}
+ */
+const authHeaders = (accessToken, extra = {}) => ({
+  ...extra,
+  headers: {
+    Authorization: `Bearer ${accessToken}`,
+    ...extra.headers
+  }
+})
+
+/**
  * 错误类型枚举
  */
 export const ERROR_TYPES = {
@@ -477,4 +491,42 @@ export const handleOAuthLinkCallback = () => {
   } catch {
     return { success: false, error: '解析关联结果失败' }
   }
+}
+
+/**
+ * 合并 OAuth 账号
+ * @param {string} accessToken - 访问令牌
+ * @param {string} mergeToken - 合并令牌
+ * @param {Object} dataChoices - 数据选择 { records, settings, playlists }
+ * @returns {Promise<Object>}
+ */
+export const mergeOAuthAccount = async (accessToken, mergeToken, dataChoices) => {
+  if (!accessToken || !mergeToken) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌和合并令牌不能为空')
+  }
+
+  return fetchWithRetry(OAUTH_API.MERGE, {
+    method: 'POST',
+    ...authHeaders(accessToken),
+    body: JSON.stringify({ mergeToken, dataChoices })
+  })
+}
+
+/**
+ * 合并 WebAuthn 凭证
+ * @param {string} accessToken - 访问令牌
+ * @param {string} mergeToken - 合并令牌
+ * @param {Object} dataChoices - 数据选择 { records, settings, playlists }
+ * @returns {Promise<Object>}
+ */
+export const mergeWebAuthnAccount = async (accessToken, mergeToken, dataChoices) => {
+  if (!accessToken || !mergeToken) {
+    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌和合并令牌不能为空')
+  }
+
+  return fetchWithRetry(AUTH_API.MERGE_DEVICE, {
+    method: 'POST',
+    ...authHeaders(accessToken),
+    body: JSON.stringify({ mergeToken, dataChoices })
+  })
 }

@@ -107,6 +107,8 @@ import { OAUTH_PROVIDER_KEYS, getProviderMeta } from '../../../../config/oauthPr
 import AccountDeleteConfirm from './AccountDeleteConfirm.vue'
 import OAuthButton from './OAuthButton.vue'
 
+const emit = defineEmits(['request-merge'])
+
 const {
   authMethods,
   getAuthMethods,
@@ -191,8 +193,22 @@ const handleAddDevice = async () => {
     showAddInput.value = false
     newDeviceName.value = ''
     await getAuthMethods()
-  } catch {
-    // Error handled by useAuth
+  } catch (err) {
+    const details = err?.details
+    if (details?.code === 'CREDENTIAL_EXISTS' && details?.mergeToken) {
+      // 凭据属于其他用户，触发合并流程
+      emit('request-merge', {
+        mergeToken: details.mergeToken,
+        mergeType: 'webauthn',
+        hasData: !!details.hasData
+      })
+      showAddInput.value = false
+      newDeviceName.value = ''
+    } else if (details?.code === 'CREDENTIAL_EXISTS') {
+      showToast('warning', '该安全密钥已注册')
+    } else {
+      showToast('error', details?.error || err?.message || '添加安全密钥失败')
+    }
   }
 }
 

@@ -15,7 +15,8 @@ import {
   loginVerifySchema,
   refreshTokenSchema,
   addDeviceVerifySchema,
-  updateProfileSchema
+  updateProfileSchema,
+  mergeRequestSchema
 } from '../schemas/auth.js'
 import {
   findUserByUsername,
@@ -29,11 +30,13 @@ import {
 } from '../services/user.js'
 import {
   saveCredential,
+  findCredentialById,
   findCredentialsByUserId,
   updateCredentialCounter,
   deleteCredential,
   formatCredentialForResponse,
-  formatCredentialAsAuthMethod
+  formatCredentialAsAuthMethod,
+  transferCredential
 } from '../services/credential.js'
 import {
   findOAuthAccountsByUserId,
@@ -54,8 +57,18 @@ import {
   blacklistToken,
   isTokenBlacklisted
 } from '../services/jwt.js'
+import { hasUserData } from '../services/userData.js'
+import { mergeUserData, cleanupSourceUser } from '../services/merge.js'
+import { generateOAuthState } from '../services/oauth.js'
 
 const auth = new Hono()
+
+/**
+ * 合并 token 存储 (内存，10 分钟 TTL)
+ * @type {Map<string, {createdAt: number, sourceUserId: string, targetUserId: string, credentialId: string}>}
+ */
+const mergeTokens = new Map()
+const MERGE_TOKEN_TTL = 10 * 60 * 1000
 
 /**
  * 获取 AuthChallenge Durable Object 实例
@@ -242,6 +255,15 @@ auth.post(
     }
 
     const { registrationInfo } = verification
+
+    // Defense-in-depth: 检查凭据是否已存在
+    const existingCred = await findCredentialById(c.env.DB, registrationInfo.credential.id)
+    if (existingCred) {
+      return c.json(
+        { error: 'This credential is already registered', code: ERROR_CODES.CREDENTIAL_EXISTS },
+        409
+      )
+    }
 
     // 使用事务创建用户和凭证
     const user = await createWebAuthnUser(c.env.DB, {
@@ -715,6 +737,38 @@ auth.post(
 
     const { registrationInfo } = verification
 
+    // 检查凭据是否已存在（属于其他用户）
+    const existingCred = await findCredentialById(c.env.DB, registrationInfo.credential.id)
+    if (existingCred) {
+      if (existingCred.userId === id) {
+        return c.json(
+          {
+            error: 'This credential is already registered to your account',
+            code: ERROR_CODES.CREDENTIAL_EXISTS
+          },
+          409
+        )
+      }
+      // 属于其他用户 — 生成 mergeToken
+      const otherHasData = await hasUserData(c.env.DB, existingCred.userId)
+      const mergeToken = generateOAuthState()
+      mergeTokens.set(mergeToken, {
+        createdAt: Date.now(),
+        sourceUserId: existingCred.userId,
+        targetUserId: id,
+        credentialId: existingCred.id
+      })
+      return c.json(
+        {
+          error: 'This credential is already registered to another user',
+          code: ERROR_CODES.CREDENTIAL_EXISTS,
+          hasData: otherHasData,
+          mergeToken
+        },
+        409
+      )
+    }
+
     // 保存新凭证
     await saveCredential(c.env.DB, {
       credentialId: registrationInfo.credential.id,
@@ -739,6 +793,47 @@ auth.post(
     })
   }
 )
+
+/**
+ * POST /auth/devices/merge
+ * 合并 WebAuthn 凭证（将其他用户的凭证转移到当前用户）
+ */
+auth.post('/devices/merge', requireAuth(), zValidator('json', mergeRequestSchema), async (c) => {
+  const { id: currentUserId } = c.get('user')
+  const { mergeToken, dataChoices } = c.req.valid('json')
+
+  // 验证 mergeToken
+  const tokenRecord = mergeTokens.get(mergeToken)
+  if (!tokenRecord) {
+    return c.json({ error: 'Invalid or expired merge token', code: ERROR_CODES.INVALID_TOKEN }, 400)
+  }
+
+  mergeTokens.delete(mergeToken)
+
+  // 检查 TTL
+  if (Date.now() - tokenRecord.createdAt > MERGE_TOKEN_TTL) {
+    return c.json({ error: 'Merge token expired', code: ERROR_CODES.INVALID_TOKEN }, 400)
+  }
+
+  // 验证当前用户是目标用户
+  if (tokenRecord.targetUserId !== currentUserId) {
+    return c.json(
+      { error: 'Token does not belong to current user', code: ERROR_CODES.INVALID_TOKEN },
+      403
+    )
+  }
+
+  // 转移凭证
+  await transferCredential(c.env.DB, tokenRecord.credentialId, currentUserId)
+
+  // 合并数据
+  await mergeUserData(c.env.DB, currentUserId, tokenRecord.sourceUserId, dataChoices)
+
+  // 清理源用户
+  await cleanupSourceUser(c.env.DB, tokenRecord.sourceUserId)
+
+  return c.json({ success: true })
+})
 
 /**
  * DELETE /auth/devices/:id

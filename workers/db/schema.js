@@ -3,7 +3,15 @@
  * @description Drizzle ORM 表结构定义
  */
 
-import { sqliteTable, text, integer, blob, primaryKey, index } from 'drizzle-orm/sqlite-core'
+import {
+  sqliteTable,
+  text,
+  integer,
+  blob,
+  primaryKey,
+  index,
+  uniqueIndex
+} from 'drizzle-orm/sqlite-core'
 
 /**
  * 用户表
@@ -42,7 +50,7 @@ export const oauthAccounts = sqliteTable(
   },
   (table) => [
     index('idx_oauth_accounts_user_id').on(table.userId),
-    index('idx_oauth_accounts_provider').on(table.provider, table.providerId)
+    uniqueIndex('idx_oauth_accounts_provider').on(table.provider, table.providerId)
   ]
 )
 

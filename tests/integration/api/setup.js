@@ -56,19 +56,26 @@ export async function stopWorker() {
  * 初始化数据库 schema
  */
 export async function initDatabase() {
-  const migrationPath = resolve('migrations/0000_daffy_tempest.sql')
-  const sql = readFileSync(migrationPath, 'utf-8')
+  const migrationFiles = [
+    'migrations/0000_busy_galactus.sql',
+    'migrations/0001_awesome_susan_delgado.sql'
+  ]
 
-  // 按 drizzle 的 statement-breakpoint 分割
-  const statements = sql
-    .split('--> statement-breakpoint')
-    .map((s) => s.trim())
-    .filter(Boolean)
+  const statements = migrationFiles.flatMap((file) => {
+    const sql = readFileSync(resolve(file), 'utf-8')
+    return sql
+      .split('--> statement-breakpoint')
+      .map((s) => s.trim())
+      .filter(Boolean)
+  })
+
+  // 对于全新数据库，DROP INDEX 会失败，过滤掉
+  const filtered = statements.filter((s) => !s.startsWith('DROP INDEX'))
 
   const res = await workerFetch('/__test/seed', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ statements })
+    body: JSON.stringify({ statements: filtered })
   })
 
   const data = await res.json()

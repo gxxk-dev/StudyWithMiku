@@ -3,7 +3,7 @@
  * @description 用户数据同步服务
  */
 
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, sql, count } from 'drizzle-orm'
 import { createDb, userData } from '../db/index.js'
 import { DATA_CONFIG, ERROR_CODES } from '../constants.js'
 import { dataTypeSchemas } from '../schemas/auth.js'
@@ -241,4 +241,20 @@ export const checkUserQuota = async (d1, userId) => {
     used,
     limit: DATA_CONFIG.USER_QUOTA
   }
+}
+
+/**
+ * 检查用户是否有任何数据
+ * @param {Object} d1 - D1 数据库实例
+ * @param {string} userId - 用户 ID
+ * @returns {Promise<boolean>}
+ */
+export const hasUserData = async (d1, userId) => {
+  const db = createDb(d1)
+  const result = await db
+    .select({ count: count() })
+    .from(userData)
+    .where(eq(userData.userId, userId))
+    .get()
+  return (result?.count || 0) > 0
 }

@@ -21,7 +21,8 @@ import { generateTokenPair } from '../services/jwt.js'
 import {
   findOAuthAccount,
   linkOAuthAccount,
-  findOAuthAccountsByUserId
+  findOAuthAccountsByUserId,
+  transferOAuthAccount
 } from '../services/oauthAccount.js'
 import { resolveAvatars } from '../utils/avatar.js'
 import {
@@ -39,6 +40,10 @@ import {
   exchangeLinuxDoCode,
   getLinuxDoUser
 } from '../services/oauth.js'
+import { hasUserData } from '../services/userData.js'
+import { mergeUserData, cleanupSourceUser } from '../services/merge.js'
+import { mergeRequestSchema } from '../schemas/auth.js'
+import { zValidator } from '@hono/zod-validator'
 
 const oauth = new Hono()
 
@@ -50,6 +55,13 @@ const oauthStates = new Map()
 
 /** OAuth state 有效期 (10 分钟) */
 const OAUTH_STATE_TTL = 10 * 60 * 1000
+
+/**
+ * 合并 token 存储 (内存，10 分钟 TTL)
+ * @type {Map<string, {createdAt: number, sourceUserId: string, targetUserId: string, provider: string, providerId: string, accountId: string}>}
+ */
+const mergeTokens = new Map()
+const MERGE_TOKEN_TTL = 10 * 60 * 1000
 
 /**
  * 验证并消费 OAuth state，返回完整 state 记录
@@ -286,6 +298,51 @@ oauth.post('/link/:provider', requireAuth(), authRateLimit, (c) => {
 })
 
 // ============================================================
+// OAuth 账号合并
+// ============================================================
+
+/**
+ * POST /oauth/merge
+ * 合并 OAuth 账号（将其他用户的 OAuth 账号转移到当前用户）
+ */
+oauth.post('/merge', requireAuth(), zValidator('json', mergeRequestSchema), async (c) => {
+  const { id: currentUserId } = c.get('user')
+  const { mergeToken, dataChoices } = c.req.valid('json')
+
+  // 验证 mergeToken
+  const tokenRecord = mergeTokens.get(mergeToken)
+  if (!tokenRecord) {
+    return c.json({ error: 'Invalid or expired merge token', code: ERROR_CODES.INVALID_TOKEN }, 400)
+  }
+
+  mergeTokens.delete(mergeToken)
+
+  // 检查 TTL
+  if (Date.now() - tokenRecord.createdAt > MERGE_TOKEN_TTL) {
+    return c.json({ error: 'Merge token expired', code: ERROR_CODES.INVALID_TOKEN }, 400)
+  }
+
+  // 验证当前用户是目标用户
+  if (tokenRecord.targetUserId !== currentUserId) {
+    return c.json(
+      { error: 'Token does not belong to current user', code: ERROR_CODES.INVALID_TOKEN },
+      403
+    )
+  }
+
+  // 转移 OAuth 账号
+  await transferOAuthAccount(c.env.DB, tokenRecord.accountId, currentUserId)
+
+  // 合并数据
+  await mergeUserData(c.env.DB, currentUserId, tokenRecord.sourceUserId, dataChoices)
+
+  // 清理源用户
+  await cleanupSourceUser(c.env.DB, tokenRecord.sourceUserId)
+
+  return c.json({ success: true })
+})
+
+// ============================================================
 // 通用 OAuth 登录路由
 // ============================================================
 
@@ -377,10 +434,33 @@ oauth.get('/:provider/callback', authRateLimit, async (c) => {
     )
 
     if (existingAccount) {
+      const isSelf = existingAccount.userId === stateRecord.linkUserId
+      if (isSelf) {
+        return redirectWithLinkResult(c, {
+          success: false,
+          error: 'This account is already linked to your account',
+          code: ERROR_CODES.OAUTH_ALREADY_LINKED_SELF
+        })
+      }
+
+      // 属于其他用户 — 检查对方是否有数据，生成 mergeToken
+      const otherHasData = await hasUserData(c.env.DB, existingAccount.userId)
+      const mergeToken = generateOAuthState()
+      mergeTokens.set(mergeToken, {
+        createdAt: Date.now(),
+        sourceUserId: existingAccount.userId,
+        targetUserId: stateRecord.linkUserId,
+        provider: userResult.user.provider,
+        providerId: userResult.user.providerId,
+        accountId: existingAccount.id
+      })
+
       return redirectWithLinkResult(c, {
         success: false,
         error: 'This account is already linked to another user',
-        code: ERROR_CODES.OAUTH_ALREADY_LINKED
+        code: ERROR_CODES.OAUTH_ALREADY_LINKED,
+        hasData: otherHasData,
+        mergeToken
       })
     }
 

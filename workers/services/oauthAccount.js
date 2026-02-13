@@ -127,3 +127,15 @@ export const formatOAuthAccountForResponse = (account) => {
     linkedAt: account.linkedAt
   }
 }
+
+/**
+ * 转移 OAuth 账号到另一个用户
+ * @param {Object} d1 - D1 数据库实例
+ * @param {string} accountId - OAuth 账号 ID
+ * @param {string} newUserId - 新用户 ID
+ * @returns {Promise<void>}
+ */
+export const transferOAuthAccount = async (d1, accountId, newUserId) => {
+  const db = createDb(d1)
+  await db.update(oauthAccounts).set({ userId: newUserId }).where(eq(oauthAccounts.id, accountId))
+}

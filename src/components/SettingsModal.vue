@@ -17,7 +17,11 @@
 
           <!-- 右侧内容 -->
           <div class="content-area">
-            <component :is="currentTabComponent" @navigate="setActiveTab" />
+            <component
+              :is="currentTabComponent"
+              @navigate="setActiveTab"
+              @request-merge="(e) => emit('request-merge', e)"
+            />
           </div>
         </div>
       </div>
@@ -45,7 +49,7 @@ defineProps({
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'request-merge'])
 
 const { isPWA } = usePWA()
 

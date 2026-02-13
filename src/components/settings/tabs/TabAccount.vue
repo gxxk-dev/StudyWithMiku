@@ -2,7 +2,7 @@
   <div class="tab-content">
     <div v-if="isAuthenticated" class="authenticated-view">
       <AccountProfilePanel />
-      <AccountDeviceList />
+      <AccountDeviceList @request-merge="(e) => emit('request-merge', e)" />
       <AccountSyncPanel />
     </div>
 
@@ -24,6 +24,8 @@ import AccountLoginPanel from './account/AccountLoginPanel.vue'
 import AccountProfilePanel from './account/AccountProfilePanel.vue'
 import AccountDeviceList from './account/AccountDeviceList.vue'
 import AccountSyncPanel from './account/AccountSyncPanel.vue'
+
+const emit = defineEmits(['request-merge'])
 
 const { isAuthenticated, isLoading, fetchConfig } = useAuth()
 

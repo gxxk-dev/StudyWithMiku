@@ -85,10 +85,21 @@
       ref="settingsModalRef"
       :is-open="settingsModalOpen"
       @close="closeSettingsModal"
+      @request-merge="onRequestMerge"
     />
 
     <!-- 专注概览面板 -->
     <FocusSummaryModal :is-open="focusSummaryModalOpen" @close="closeFocusSummaryModal" />
+
+    <!-- 账号合并确认对话框 -->
+    <MergeConfirmDialog
+      :visible="showMergeDialog"
+      :merge-token="pendingMergeToken"
+      :merge-type="pendingMergeType"
+      :source-has-data="pendingMergeHasData"
+      @close="showMergeDialog = false"
+      @merged="onMergeComplete"
+    />
   </div>
 </template>
 
@@ -120,6 +131,7 @@ import Toast from './components/Toast.vue'
 import StatusPill from './components/StatusPill.vue'
 import SettingsModal from './components/SettingsModal.vue'
 import FocusSummaryModal from './components/FocusSummaryModal.vue'
+import MergeConfirmDialog from './components/settings/MergeConfirmDialog.vue'
 
 // 加载开发者控制台 (swm_dev)
 import './dev/index.js'
@@ -134,6 +146,10 @@ const settingsModalOpen = ref(false)
 const focusSummaryModalOpen = ref(false)
 const settingsModalRef = ref(null)
 const orientationPromptRef = ref(null)
+const showMergeDialog = ref(false)
+const pendingMergeToken = ref(null)
+const pendingMergeType = ref(null)
+const pendingMergeHasData = ref(false)
 
 const openSettingsModal = () => {
   settingsModalOpen.value = true
@@ -149,6 +165,21 @@ const openFocusSummaryModal = () => {
 
 const closeFocusSummaryModal = () => {
   focusSummaryModalOpen.value = false
+}
+
+const onRequestMerge = ({ mergeToken, mergeType, hasData }) => {
+  pendingMergeToken.value = mergeToken
+  pendingMergeType.value = mergeType
+  pendingMergeHasData.value = hasData
+  showMergeDialog.value = true
+}
+
+const onMergeComplete = () => {
+  showMergeDialog.value = false
+  pendingMergeToken.value = null
+  pendingMergeType.value = null
+  pendingMergeHasData.value = false
+  showToast('success', '账号合并成功')
 }
 
 // Toast 状态
@@ -324,11 +355,11 @@ onMounted(async () => {
     const oauthResult = await handleOAuthCallback()
     if (oauthResult) {
       console.log('OAuth 登录成功:', oauthResult.username || oauthResult.displayName)
-      showToast(`欢迎，${oauthResult.displayName || oauthResult.username}！`, 'success')
+      showToast('success', `欢迎，${oauthResult.displayName || oauthResult.username}！`)
     }
   } catch (err) {
     console.error('OAuth 回调处理失败:', err)
-    showToast(err.message || 'OAuth 登录失败', 'error')
+    showToast('error', err.message || 'OAuth 登录失败')
   }
 
   // 处理 OAuth 关联回调
@@ -336,14 +367,26 @@ onMounted(async () => {
     const linkResult = await handleOAuthLinkCallback()
     if (linkResult) {
       if (linkResult.success) {
-        showToast('第三方账号关联成功', 'success')
+        showToast('success', '第三方账号关联成功')
+      } else if (linkResult.code === 'OAUTH_ALREADY_LINKED_SELF') {
+        showToast('warning', '该第三方账号已关联到你的账号')
+      } else if (linkResult.code === 'OAUTH_ALREADY_LINKED') {
+        // 属于其他用户，可能需要合并
+        if (linkResult.mergeToken) {
+          showMergeDialog.value = true
+          pendingMergeToken.value = linkResult.mergeToken
+          pendingMergeType.value = 'oauth'
+          pendingMergeHasData.value = !!linkResult.hasData
+        } else {
+          showToast('error', '该第三方账号已被其他用户绑定')
+        }
       } else {
-        showToast(linkResult.error || '关联失败', 'error')
+        showToast('error', linkResult.error || '关联失败')
       }
     }
   } catch (err) {
     console.error('OAuth 关联回调处理失败:', err)
-    showToast(err.message || '关联处理失败', 'error')
+    showToast('error', err.message || '关联处理失败')
   }
 
   // 初始化认证状态

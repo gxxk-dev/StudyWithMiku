@@ -156,3 +156,15 @@ export const formatCredentialAsAuthMethod = (credential) => {
     lastUsedAt: credential.lastUsedAt || null
   }
 }
+
+/**
+ * 转移凭证到另一个用户
+ * @param {Object} d1 - D1 数据库实例
+ * @param {string} credentialId - 凭证 ID
+ * @param {string} newUserId - 新用户 ID
+ * @returns {Promise<void>}
+ */
+export const transferCredential = async (d1, credentialId, newUserId) => {
+  const db = createDb(d1)
+  await db.update(credentials).set({ userId: newUserId }).where(eq(credentials.id, credentialId))
+}

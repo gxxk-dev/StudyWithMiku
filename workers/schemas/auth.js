@@ -232,6 +232,18 @@ export const dataTypeSchemas = {
 }
 
 /**
+ * 账号合并请求验证
+ */
+export const mergeRequestSchema = z.object({
+  mergeToken: z.string().min(1),
+  dataChoices: z.object({
+    records: z.enum(['target', 'source']),
+    settings: z.enum(['target', 'source']),
+    playlists: z.enum(['target', 'source'])
+  })
+})
+
+/**
  * 数据类型路径参数验证
  */
 export const dataTypeParamSchema = z.object({
