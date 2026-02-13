@@ -135,12 +135,13 @@ const updateSyncStatus = (dataType, status) => {
  */
 const initSyncStatus = (dataType) => {
   if (!syncStatus.value[dataType]) {
+    const hasPending = pendingChanges.value.some((c) => c.type === dataType)
     syncStatus.value[dataType] = {
-      synced: false,
+      synced: !hasPending && lastSyncTime.value !== null,
       version: getLocalVersion(dataType),
-      lastSyncTime: null,
+      lastSyncTime: lastSyncTime.value,
       error: null,
-      hasLocalChanges: false
+      hasLocalChanges: hasPending
     }
   }
 }
@@ -301,7 +302,12 @@ export const useDataSync = () => {
 
         return response.data
       } else {
-        // 服务器没有数据，保持本地数据不变
+        // 服务器没有数据，本地数据即为最新
+        updateSyncStatus(dataType, {
+          synced: true,
+          lastSyncTime: Date.now(),
+          error: null
+        })
         return getLocalData(dataType)
       }
     } catch (error) {
@@ -445,7 +451,7 @@ export const useDataSync = () => {
   }
 
   /**
-   * 手动触发同步（处理离线队列）
+   * 手动触发完整同步（上传待同步变更 + 下载所有数据类型）
    * @returns {Promise<void>}
    */
   const triggerSync = async () => {
@@ -453,7 +459,40 @@ export const useDataSync = () => {
       throw new Error('未登录')
     }
 
-    return processQueue()
+    isSyncing.value = true
+    clearError()
+
+    try {
+      // 1. 上传待同步变更
+      if (pendingChanges.value.length > 0) {
+        const changesToProcess = [...pendingChanges.value]
+        for (const change of changesToProcess) {
+          try {
+            await uploadData(change.type, change.data)
+          } catch {
+            console.error(`上传 ${change.type} 失败`)
+          }
+        }
+      }
+
+      // 2. 下载所有数据类型，确保本地与云端一致
+      const dataTypes = Object.values(AUTH_CONFIG.DATA_TYPES)
+      for (const dataType of dataTypes) {
+        try {
+          await downloadData(dataType)
+        } catch {
+          console.error(`下载 ${dataType} 失败`)
+        }
+      }
+
+      lastSyncTime.value = Date.now()
+      safeLocalStorageSetJSON('swm_last_sync_time', lastSyncTime.value)
+    } catch (err) {
+      setError(err)
+      throw err
+    } finally {
+      isSyncing.value = false
+    }
   }
 
   // 计算属性

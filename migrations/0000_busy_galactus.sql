@@ -12,6 +12,20 @@ CREATE TABLE `credentials` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_credentials_user_id` ON `credentials` (`user_id`);--> statement-breakpoint
+CREATE TABLE `oauth_accounts` (
+	`id` text PRIMARY KEY NOT NULL,
+	`user_id` text NOT NULL,
+	`provider` text NOT NULL,
+	`provider_id` text NOT NULL,
+	`display_name` text,
+	`avatar_url` text,
+	`email` text,
+	`linked_at` integer NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `idx_oauth_accounts_user_id` ON `oauth_accounts` (`user_id`);--> statement-breakpoint
+CREATE INDEX `idx_oauth_accounts_provider` ON `oauth_accounts` (`provider`,`provider_id`);--> statement-breakpoint
 CREATE TABLE `token_blacklist` (
 	`jti` text PRIMARY KEY NOT NULL,
 	`expires_at` integer NOT NULL
@@ -33,10 +47,9 @@ CREATE TABLE `users` (
 	`username` text NOT NULL,
 	`display_name` text,
 	`avatar_url` text,
-	`auth_provider` text DEFAULT 'webauthn' NOT NULL,
-	`provider_id` text
+	`email` text,
+	`qq_number` text
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
-CREATE INDEX `idx_users_username` ON `users` (`username`);--> statement-breakpoint
-CREATE INDEX `idx_users_provider` ON `users` (`auth_provider`,`provider_id`);
+CREATE INDEX `idx_users_username` ON `users` (`username`);

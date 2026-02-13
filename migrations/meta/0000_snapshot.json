@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6dc94e4e-e3e9-47a9-b7bf-a06070ecb569",
+  "id": "52bdf1e4-3d20-4d8f-af22-5cc2529c18ba",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "credentials": {
@@ -86,6 +86,102 @@
         "credentials_user_id_users_id_fk": {
           "name": "credentials_user_id_users_id_fk",
           "tableFrom": "credentials",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "oauth_accounts": {
+      "name": "oauth_accounts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "linked_at": {
+          "name": "linked_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_oauth_accounts_user_id": {
+          "name": "idx_oauth_accounts_user_id",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "idx_oauth_accounts_provider": {
+          "name": "idx_oauth_accounts_provider",
+          "columns": [
+            "provider",
+            "provider_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "oauth_accounts_user_id_users_id_fk": {
+          "name": "oauth_accounts_user_id_users_id_fk",
+          "tableFrom": "oauth_accounts",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -233,16 +329,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "auth_provider": {
-          "name": "auth_provider",
+        "email": {
+          "name": "email",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'webauthn'"
+          "notNull": false,
+          "autoincrement": false
         },
-        "provider_id": {
-          "name": "provider_id",
+        "qq_number": {
+          "name": "qq_number",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -261,14 +356,6 @@
           "name": "idx_users_username",
           "columns": [
             "username"
-          ],
-          "isUnique": false
-        },
-        "idx_users_provider": {
-          "name": "idx_users_provider",
-          "columns": [
-            "auth_provider",
-            "provider_id"
           ],
           "isUnique": false
         }
