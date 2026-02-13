@@ -51,7 +51,7 @@ vi.mock('../../../../workers/services/jwt.js', () => ({
 }))
 
 vi.mock('../../../../workers/utils/avatar.js', () => ({
-  resolveAvatars: vi.fn(() => ({ gravatar: null, libravatar: null, qq: null, oauth: null }))
+  resolveAvatars: vi.fn(() => ({ gravatar: null, libravatar: null, qq: null, oauth: [] }))
 }))
 
 vi.mock('../../../../workers/middleware/rateLimit.js', () => ({

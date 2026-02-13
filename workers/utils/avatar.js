@@ -56,7 +56,7 @@ export async function resolveAvatars({ email, qqNumber, oauthAccounts = [] }) {
     gravatar: null,
     libravatar: null,
     qq: null,
-    oauth: null
+    oauth: []
   }
 
   if (email) {
@@ -72,10 +72,9 @@ export async function resolveAvatars({ email, qqNumber, oauthAccounts = [] }) {
     avatars.qq = buildQQAvatarUrl(qqNumber)
   }
 
-  const oauthAvatar = oauthAccounts.find((a) => a.avatarUrl)?.avatarUrl
-  if (oauthAvatar) {
-    avatars.oauth = oauthAvatar
-  }
+  avatars.oauth = oauthAccounts
+    .filter((a) => a.avatarUrl)
+    .map((a) => ({ provider: a.provider, avatarUrl: a.avatarUrl }))
 
   return avatars
 }

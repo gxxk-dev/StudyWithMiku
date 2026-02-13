@@ -25,29 +25,88 @@
   </div>
 
   <div v-if="editing" class="edit-form">
-    <label class="form-field">
-      <span class="label">邮箱</span>
-      <input
-        v-model="form.email"
-        type="email"
-        placeholder="用于 Gravatar 头像"
-        class="form-input"
-      />
-    </label>
-    <label class="form-field">
-      <span class="label">QQ 号</span>
-      <input
-        v-model="form.qqNumber"
-        type="text"
-        inputmode="numeric"
-        placeholder="用于 QQ 头像"
-        class="form-input"
-      />
-    </label>
-    <label class="form-field">
-      <span class="label">自定义头像 URL</span>
-      <input v-model="form.avatarUrl" type="url" placeholder="https://..." class="form-input" />
-    </label>
+    <div class="form-field">
+      <span class="label">选择头像</span>
+      <div class="avatar-picker">
+        <button
+          class="avatar-option"
+          :class="{ selected: selectedAvatar === 'auto' }"
+          title="自动选择"
+          @click="selectedAvatar = 'auto'"
+        >
+          <Icon icon="lucide:sparkles" :width="20" :height="20" />
+          <span class="avatar-option-label">自动</span>
+        </button>
+        <button
+          v-for="opt in oauthOptions"
+          :key="opt.key"
+          class="avatar-option"
+          :class="{ selected: selectedAvatar === opt.key }"
+          :title="opt.label"
+          @click="selectedAvatar = opt.key"
+        >
+          <img :src="opt.url" :alt="opt.label" class="avatar-thumb" @error="opt.failed = true" />
+          <span class="avatar-option-label">{{ opt.label }}</span>
+        </button>
+        <button
+          class="avatar-option"
+          :class="{ selected: selectedAvatar === 'gravatar' }"
+          title="Gravatar"
+          @click="selectedAvatar = 'gravatar'"
+        >
+          <img
+            v-if="user?.avatars?.gravatar"
+            :src="user.avatars.gravatar"
+            alt="Gravatar"
+            class="avatar-thumb"
+          />
+          <Icon v-else icon="simple-icons:gravatar" :width="20" :height="20" />
+          <span class="avatar-option-label">Gravatar</span>
+        </button>
+        <button
+          class="avatar-option"
+          :class="{ selected: selectedAvatar === 'qq' }"
+          title="QQ 头像"
+          @click="selectedAvatar = 'qq'"
+        >
+          <img v-if="user?.avatars?.qq" :src="user.avatars.qq" alt="QQ" class="avatar-thumb" />
+          <Icon v-else icon="simple-icons:tencentqq" :width="20" :height="20" />
+          <span class="avatar-option-label">QQ</span>
+        </button>
+        <button
+          class="avatar-option"
+          :class="{ selected: selectedAvatar === 'custom' }"
+          title="自定义 URL"
+          @click="selectedAvatar = 'custom'"
+        >
+          <Icon icon="lucide:link" :width="20" :height="20" />
+          <span class="avatar-option-label">自定义</span>
+        </button>
+      </div>
+      <label v-if="selectedAvatar === 'gravatar'" class="context-input">
+        <span class="context-label">邮箱</span>
+        <input
+          v-model="form.email"
+          type="email"
+          placeholder="输入邮箱以使用 Gravatar 头像"
+          class="form-input"
+        />
+      </label>
+      <label v-if="selectedAvatar === 'qq'" class="context-input">
+        <span class="context-label">QQ 号</span>
+        <input
+          v-model="form.qqNumber"
+          type="text"
+          inputmode="numeric"
+          placeholder="输入 QQ 号以使用 QQ 头像"
+          class="form-input"
+        />
+      </label>
+      <label v-if="selectedAvatar === 'custom'" class="context-input">
+        <span class="context-label">头像 URL</span>
+        <input v-model="form.customUrl" type="url" placeholder="https://..." class="form-input" />
+      </label>
+    </div>
     <button class="save-btn" :disabled="saving" @click="handleSave">
       {{ saving ? '保存中...' : '保存' }}
     </button>
@@ -67,14 +126,74 @@ const { showToast } = useToast()
 
 const editing = ref(false)
 const saving = ref(false)
-const form = ref({ email: '', qqNumber: '', avatarUrl: '' })
+const selectedAvatar = ref('auto')
+const form = ref({ email: '', qqNumber: '', customUrl: '' })
+
+const avatarOptions = computed(() => {
+  const avatars = user.value?.avatars
+  if (!avatars) return []
+  const opts = []
+  if (Array.isArray(avatars.oauth)) {
+    avatars.oauth.forEach((a) => {
+      const meta = getProviderMeta(a.provider)
+      opts.push({ key: `oauth:${a.provider}`, label: meta.label, url: a.avatarUrl })
+    })
+  }
+  if (avatars.gravatar) opts.push({ key: 'gravatar', url: avatars.gravatar })
+  if (avatars.qq) opts.push({ key: 'qq', url: avatars.qq })
+  return opts
+})
+
+const oauthOptions = computed(() => {
+  const avatars = user.value?.avatars
+  if (!avatars || !Array.isArray(avatars.oauth)) return []
+  return avatars.oauth.map((a) => {
+    const meta = getProviderMeta(a.provider)
+    return { key: `oauth:${a.provider}`, label: meta.label, url: a.avatarUrl }
+  })
+})
+
+const buildQQUrl = (qq) => `https://q1.qlogo.cn/g?b=qq&nk=${qq}&s=100`
+
+const buildGravatarUrl = async (email) => {
+  const data = new TextEncoder().encode(email.trim().toLowerCase())
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  const hex = Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, '0')).join('')
+  return `https://www.gravatar.com/avatar/${hex}?d=404&s=80`
+}
+
+const resolveAvatarUrl = async () => {
+  if (selectedAvatar.value === 'auto') return null
+  if (selectedAvatar.value === 'custom') return form.value.customUrl || null
+  if (selectedAvatar.value === 'qq' && form.value.qqNumber) {
+    return buildQQUrl(form.value.qqNumber)
+  }
+  if (selectedAvatar.value === 'gravatar' && form.value.email) {
+    return buildGravatarUrl(form.value.email)
+  }
+  const opt = avatarOptions.value.find((o) => o.key === selectedAvatar.value)
+  return opt?.url || null
+}
+
+const detectCurrentSelection = () => {
+  const current = user.value?.avatarUrl
+  if (!current) return 'auto'
+  const match = avatarOptions.value.find((o) => o.url === current)
+  if (match) return match.key
+  return 'custom'
+}
 
 watch(editing, (val) => {
   if (val) {
     form.value = {
       email: user.value?.email || '',
       qqNumber: user.value?.qqNumber || '',
-      avatarUrl: user.value?.avatarUrl || ''
+      customUrl: ''
+    }
+    const sel = detectCurrentSelection()
+    selectedAvatar.value = sel
+    if (sel === 'custom') {
+      form.value.customUrl = user.value?.avatarUrl || ''
     }
   }
 })
@@ -103,14 +222,18 @@ const handleSave = async () => {
   saving.value = true
   try {
     const updates = {}
-    if (form.value.email !== (user.value?.email || '')) {
+    const sel = selectedAvatar.value
+
+    if (sel === 'gravatar' && form.value.email !== (user.value?.email || '')) {
       updates.email = form.value.email || null
     }
-    if (form.value.qqNumber !== (user.value?.qqNumber || '')) {
+    if (sel === 'qq' && form.value.qqNumber !== (user.value?.qqNumber || '')) {
       updates.qqNumber = form.value.qqNumber || null
     }
-    if (form.value.avatarUrl !== (user.value?.avatarUrl || '')) {
-      updates.avatarUrl = form.value.avatarUrl || null
+
+    const newAvatarUrl = await resolveAvatarUrl()
+    if (newAvatarUrl !== (user.value?.avatarUrl || null)) {
+      updates.avatarUrl = newAvatarUrl
     }
 
     if (Object.keys(updates).length === 0) {
@@ -227,6 +350,66 @@ const handleLogout = async () => {
 .label {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.6);
+}
+
+.avatar-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.avatar-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  width: 64px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.avatar-option:hover {
+  border-color: rgba(57, 197, 187, 0.4);
+  background: rgba(57, 197, 187, 0.05);
+}
+
+.avatar-option.selected {
+  border-color: #39c5bb;
+  background: rgba(57, 197, 187, 0.1);
+  color: #39c5bb;
+}
+
+.avatar-thumb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar-option-label {
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.context-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.context-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .form-input {

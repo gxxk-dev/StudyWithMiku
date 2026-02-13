@@ -21,7 +21,14 @@ const sources = computed(() => {
   if (!props.user) return []
   const list = []
   if (props.user.avatarUrl) list.push(props.user.avatarUrl)
-  if (props.user.avatars?.oauth) list.push(props.user.avatars.oauth)
+  const oauth = props.user.avatars?.oauth
+  if (Array.isArray(oauth)) {
+    oauth.forEach((a) => {
+      if (a.avatarUrl) list.push(a.avatarUrl)
+    })
+  } else if (oauth) {
+    list.push(oauth)
+  }
   if (props.user.avatars?.gravatar) list.push(props.user.avatars.gravatar)
   if (props.user.avatars?.libravatar) list.push(props.user.avatars.libravatar)
   if (props.user.avatars?.qq) list.push(props.user.avatars.qq)

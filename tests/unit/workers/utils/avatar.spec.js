@@ -70,7 +70,7 @@ describe('workers/utils/avatar', () => {
       expect(avatars.gravatar).toMatch(/gravatar\.com/)
       expect(avatars.libravatar).toMatch(/libravatar\.org/)
       expect(avatars.qq).toBeNull()
-      expect(avatars.oauth).toBeNull()
+      expect(avatars.oauth).toEqual([])
     })
 
     it('有 qqNumber 时应该返回 qq', async () => {
@@ -83,43 +83,62 @@ describe('workers/utils/avatar', () => {
       expect(avatars.gravatar).toBeNull()
       expect(avatars.libravatar).toBeNull()
       expect(avatars.qq).toMatch(/qlogo\.cn/)
-      expect(avatars.oauth).toBeNull()
+      expect(avatars.oauth).toEqual([])
     })
 
-    it('有 OAuth 账号时应该返回 oauth 头像', async () => {
+    it('有 OAuth 账号时应该返回 oauth 头像数组', async () => {
       const avatars = await resolveAvatars({
         email: null,
         qqNumber: null,
-        oauthAccounts: [{ avatarUrl: 'https://github.com/avatar.png' }]
+        oauthAccounts: [{ provider: 'github', avatarUrl: 'https://github.com/avatar.png' }]
       })
 
-      expect(avatars.oauth).toBe('https://github.com/avatar.png')
+      expect(avatars.oauth).toEqual([
+        { provider: 'github', avatarUrl: 'https://github.com/avatar.png' }
+      ])
     })
 
-    it('OAuth 账号无头像时 oauth 应为 null', async () => {
+    it('多个 OAuth 账号时应该返回所有有头像的账号', async () => {
       const avatars = await resolveAvatars({
         email: null,
         qqNumber: null,
-        oauthAccounts: [{ avatarUrl: null }]
+        oauthAccounts: [
+          { provider: 'github', avatarUrl: 'https://github.com/avatar.png' },
+          { provider: 'google', avatarUrl: null },
+          { provider: 'linuxdo', avatarUrl: 'https://linuxdo.com/avatar.png' }
+        ]
       })
 
-      expect(avatars.oauth).toBeNull()
+      expect(avatars.oauth).toEqual([
+        { provider: 'github', avatarUrl: 'https://github.com/avatar.png' },
+        { provider: 'linuxdo', avatarUrl: 'https://linuxdo.com/avatar.png' }
+      ])
+    })
+
+    it('OAuth 账号无头像时 oauth 应为空数组', async () => {
+      const avatars = await resolveAvatars({
+        email: null,
+        qqNumber: null,
+        oauthAccounts: [{ provider: 'github', avatarUrl: null }]
+      })
+
+      expect(avatars.oauth).toEqual([])
     })
 
     it('所有来源都有时应该全部返回', async () => {
       const avatars = await resolveAvatars({
         email: 'test@example.com',
         qqNumber: '12345',
-        oauthAccounts: [{ avatarUrl: 'https://github.com/avatar.png' }]
+        oauthAccounts: [{ provider: 'github', avatarUrl: 'https://github.com/avatar.png' }]
       })
 
       expect(avatars.gravatar).toBeTruthy()
       expect(avatars.libravatar).toBeTruthy()
       expect(avatars.qq).toBeTruthy()
-      expect(avatars.oauth).toBeTruthy()
+      expect(avatars.oauth).toHaveLength(1)
     })
 
-    it('所有来源都为空时应该全部返回 null', async () => {
+    it('所有来源都为空时应该全部返回空值', async () => {
       const avatars = await resolveAvatars({
         email: null,
         qqNumber: null,
@@ -130,7 +149,7 @@ describe('workers/utils/avatar', () => {
         gravatar: null,
         libravatar: null,
         qq: null,
-        oauth: null
+        oauth: []
       })
     })
   })
