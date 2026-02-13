@@ -2,6 +2,10 @@
  * OAuth Provider 注册表
  * 所有组件从此读取 provider 元数据，新增 provider 只需在此添加一行
  */
+import { addIcon } from '@iconify/vue'
+import linuxdoIcon from '../assets/icons/linuxdo.js'
+
+addIcon('custom:linuxdo', linuxdoIcon)
 
 export const OAUTH_PROVIDERS = {
   github: {
@@ -24,7 +28,7 @@ export const OAUTH_PROVIDERS = {
   },
   linuxdo: {
     label: 'LINUX DO',
-    icon: 'simple-icons:discourse',
+    icon: 'custom:linuxdo',
     hoverBg: 'rgba(33, 150, 243, 0.8)',
     hoverColor: null
   }
