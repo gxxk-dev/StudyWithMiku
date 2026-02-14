@@ -5,7 +5,7 @@
 
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { ERROR_CODES, JWT_CONFIG } from '../constants.js'
+import { ERROR_CODES, JWT_CONFIG, MERGE_TOKEN_TTL } from '../constants.js'
 import { authRateLimit } from '../middleware/rateLimit.js'
 import { requireAuth } from '../middleware/auth.js'
 import {
@@ -64,13 +64,6 @@ import { generateOAuthState } from '../services/oauth.js'
 const auth = new Hono()
 
 /**
- * 合并 token 存储 (内存，10 分钟 TTL)
- * @type {Map<string, {createdAt: number, sourceUserId: string, targetUserId: string, credentialId: string}>}
- */
-const mergeTokens = new Map()
-const MERGE_TOKEN_TTL = 10 * 60 * 1000
-
-/**
  * 获取 AuthChallenge Durable Object 实例
  */
 const getChallengeStore = (env) => {
@@ -85,6 +78,39 @@ const generateChallengeId = () => {
   const array = new Uint8Array(16)
   crypto.getRandomValues(array)
   return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+/**
+ * 存储 merge token 到 Durable Object
+ */
+const storeMergeToken = async (env, token, data) => {
+  const store = getChallengeStore(env)
+  await store.fetch(new URL('http://internal').href, {
+    method: 'PUT',
+    body: JSON.stringify({
+      challengeId: token,
+      ttl: MERGE_TOKEN_TTL,
+      ...data
+    })
+  })
+}
+
+/**
+ * 获取 merge token 数据
+ */
+const getMergeToken = async (env, token) => {
+  const store = getChallengeStore(env)
+  const res = await store.fetch(new URL(`http://internal?id=${token}`).href)
+  if (!res.ok) return null
+  return res.json()
+}
+
+/**
+ * 删除 merge token（消费后防止重放）
+ */
+const deleteMergeToken = async (env, token) => {
+  const store = getChallengeStore(env)
+  await store.fetch(new URL(`http://internal?id=${token}`).href, { method: 'DELETE' })
 }
 
 /**
@@ -752,8 +778,7 @@ auth.post(
       // 属于其他用户 — 生成 mergeToken
       const otherHasData = await hasUserData(c.env.DB, existingCred.userId)
       const mergeToken = generateOAuthState()
-      mergeTokens.set(mergeToken, {
-        createdAt: Date.now(),
+      await storeMergeToken(c.env, mergeToken, {
         sourceUserId: existingCred.userId,
         targetUserId: id,
         credentialId: existingCred.id
@@ -803,15 +828,9 @@ auth.post('/devices/merge', requireAuth(), zValidator('json', mergeRequestSchema
   const { mergeToken, dataChoices } = c.req.valid('json')
 
   // 验证 mergeToken
-  const tokenRecord = mergeTokens.get(mergeToken)
+  const tokenRecord = await getMergeToken(c.env, mergeToken)
   if (!tokenRecord) {
     return c.json({ error: 'Invalid or expired merge token', code: ERROR_CODES.INVALID_TOKEN }, 400)
-  }
-
-  // 检查 TTL
-  if (Date.now() - tokenRecord.createdAt > MERGE_TOKEN_TTL) {
-    mergeTokens.delete(mergeToken)
-    return c.json({ error: 'Merge token expired', code: ERROR_CODES.INVALID_TOKEN }, 400)
   }
 
   // 验证当前用户是目标用户
@@ -832,7 +851,7 @@ auth.post('/devices/merge', requireAuth(), zValidator('json', mergeRequestSchema
   await cleanupSourceUser(c.env.DB, tokenRecord.sourceUserId)
 
   // 合并成功后消费 token，防止重放
-  mergeTokens.delete(mergeToken)
+  await deleteMergeToken(c.env, mergeToken)
 
   return c.json({ success: true })
 })

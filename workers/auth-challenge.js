@@ -49,19 +49,16 @@ export class AuthChallenge {
    * @returns {Promise<Response>}
    */
   async storeChallenge(request) {
-    const { challengeId, challenge, userId, type, username, displayName } = await request.json()
+    const { challengeId, ...rest } = await request.json()
 
     await this.storage.put(challengeId, {
-      challenge,
-      userId,
-      type,
-      username,
-      displayName,
+      ...rest,
       createdAt: Date.now()
     })
 
-    // 设置自动过期闹钟
-    await this.state.storage.setAlarm(Date.now() + WEBAUTHN_CONFIG.CHALLENGE_TTL)
+    // 设置自动过期闹钟（使用 per-entry TTL 或默认值）
+    const ttl = rest.ttl || WEBAUTHN_CONFIG.CHALLENGE_TTL
+    await this.state.storage.setAlarm(Date.now() + ttl)
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { 'Content-Type': 'application/json' }
@@ -90,8 +87,9 @@ export class AuthChallenge {
       })
     }
 
-    // 检查是否过期
-    if (Date.now() - data.createdAt > WEBAUTHN_CONFIG.CHALLENGE_TTL) {
+    // 检查是否过期（使用 per-entry TTL 或默认值）
+    const ttl = data.ttl || WEBAUTHN_CONFIG.CHALLENGE_TTL
+    if (Date.now() - data.createdAt > ttl) {
       await this.storage.delete(challengeId)
       return new Response(JSON.stringify({ error: 'Challenge expired' }), {
         status: 410,
@@ -128,7 +126,8 @@ export class AuthChallenge {
     const now = Date.now()
 
     for (const [key, value] of allEntries) {
-      if (value && value.createdAt && now - value.createdAt > WEBAUTHN_CONFIG.CHALLENGE_TTL) {
+      const ttl = (value && value.ttl) || WEBAUTHN_CONFIG.CHALLENGE_TTL
+      if (value && value.createdAt && now - value.createdAt > ttl) {
         await this.storage.delete(key)
       }
     }

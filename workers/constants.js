@@ -123,6 +123,12 @@ export const DATA_CONFIG = {
 }
 
 /**
+ * 合并 Token 有效期 (毫秒)
+ * @type {number}
+ */
+export const MERGE_TOKEN_TTL = 10 * 60 * 1000
+
+/**
  * 认证 Provider 枚举
  * @type {Object}
  */

@@ -508,12 +508,9 @@ export const createMockDOStub = () => {
 
       if (method === 'PUT') {
         const body = JSON.parse(options.body)
-        storage.set(body.challengeId, {
-          challenge: body.challenge,
-          userId: body.userId,
-          type: body.type,
-          username: body.username,
-          displayName: body.displayName,
+        const { challengeId, ...rest } = body
+        storage.set(challengeId, {
+          ...rest,
           createdAt: Date.now()
         })
         return new Response(JSON.stringify({ ok: true }), {
@@ -527,6 +524,15 @@ export const createMockDOStub = () => {
         if (!data) {
           return new Response(JSON.stringify({ error: 'Not found' }), {
             status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
+        // Per-entry TTL 过期检查
+        const ttl = data.ttl || 5 * 60 * 1000
+        if (Date.now() - data.createdAt > ttl) {
+          storage.delete(id)
+          return new Response(JSON.stringify({ error: 'Expired' }), {
+            status: 410,
             headers: { 'Content-Type': 'application/json' }
           })
         }
