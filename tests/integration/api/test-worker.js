@@ -40,3 +40,4 @@ app.post('/__test/reset', async (c) => {
 export default app
 export { OnlineCounter } from '../../../workers/online-counter.js'
 export { AuthChallenge } from '../../../workers/auth-challenge.js'
+export { RateLimiter } from '../../../workers/rate-limiter.js'

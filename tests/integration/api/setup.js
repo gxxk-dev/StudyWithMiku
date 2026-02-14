@@ -4,8 +4,12 @@
  */
 
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { sign } from 'hono/jwt'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const ROOT = resolve(__dirname, '../../..')
 
 const TEST_JWT_SECRET = 'test-jwt-secret-for-integration-tests'
 const TEST_USER_ID = 'test-user-001'
@@ -20,12 +24,12 @@ let originalFetch = null
 export async function startWorker() {
   const { unstable_dev } = await import('wrangler')
 
-  worker = await unstable_dev('tests/integration/api/test-worker.js', {
+  worker = await unstable_dev(resolve(__dirname, 'test-worker.js'), {
     experimental: { disableExperimentalWarning: true },
     local: true,
     persist: false,
     vars: { JWT_SECRET: TEST_JWT_SECRET },
-    config: 'wrangler.toml'
+    config: resolve(ROOT, 'wrangler.toml')
   })
 
   // 补丁 fetch：将相对路径转为 worker 地址
@@ -77,7 +81,7 @@ export async function initDatabase() {
   ]
 
   const statements = migrationFiles.flatMap((file) => {
-    const sql = readFileSync(resolve(file), 'utf-8')
+    const sql = readFileSync(resolve(ROOT, file), 'utf-8')
     return sql
       .split('--> statement-breakpoint')
       .map((s) => s.trim())
