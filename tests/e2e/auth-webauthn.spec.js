@@ -15,7 +15,7 @@ import {
   MOCK_TOKENS,
   MOCK_DEVICE
 } from './helpers/mockApi.js'
-import { openAccountTab, injectAuthState } from './helpers/navigate.js'
+import { openAccountTab } from './helpers/navigate.js'
 
 test.describe('WebAuthn 注册和登录', () => {
   let cdpSession
@@ -101,6 +101,37 @@ test.describe('WebAuthn 注册和登录', () => {
   })
 
   test('登录流程：输入用户名 → 点击登录 → 验证已登录', async ({ page }) => {
+    // 先注册以在虚拟认证器中创建可发现凭据
+    await openAccountTab(page)
+    await page.fill('input[placeholder="请输入用户名"]', 'testuser')
+    await page.click('button.btn-secondary:has-text("注册")')
+    await page.fill('input[placeholder="设备名称（可选，如：我的电脑）"]', 'Test Device')
+    await page.click('button.btn-secondary:has-text("确认注册")')
+    await expect(page.locator('.profile-panel')).toBeVisible({ timeout: 10000 })
+
+    // 清除认证状态，模拟退出登录
+    await page.evaluate(() => localStorage.clear())
+    await page.reload()
+    await page.waitForSelector('body')
+
+    // 覆盖登录选项：空 allowCredentials 触发可发现凭据匹配
+    await page.route('**/auth/login/options', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          challengeId: 'challenge-id-login-456',
+          options: {
+            challenge: 'dGVzdC1jaGFsbGVuZ2UtZm9yLWxvZ2lu',
+            timeout: 60000,
+            rpId: 'localhost',
+            allowCredentials: [],
+            userVerification: 'required'
+          }
+        })
+      })
+    })
+
     await openAccountTab(page)
 
     // 输入用户名
@@ -230,15 +261,15 @@ test.describe('WebAuthn 注册和登录', () => {
       })
     })
 
-    // 注入已登录状态
-    await injectAuthState(page, MOCK_USER, MOCK_TOKENS)
-    await page.reload()
-    await page.waitForSelector('body')
-
+    // 通过注册流程获得已登录状态（同时在虚拟认证器中创建凭据）
     await openAccountTab(page)
+    await page.fill('input[placeholder="请输入用户名"]', 'testuser')
+    await page.click('button.btn-secondary:has-text("注册")')
+    await page.fill('input[placeholder="设备名称（可选，如：我的电脑）"]', 'Test Device')
+    await page.click('button.btn-secondary:has-text("确认注册")')
 
     // 验证已登录
-    await expect(page.locator('.profile-panel')).toBeVisible()
+    await expect(page.locator('.profile-panel')).toBeVisible({ timeout: 10000 })
 
     // 点击添加设备
     await page.click('button.add-btn:has-text("添加安全密钥")')

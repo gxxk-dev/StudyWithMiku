@@ -225,7 +225,7 @@ export const mockAddDeviceFlow = async (page, device = MOCK_DEVICE) => {
           user: {
             id: generateBase64URL(16),
             name: MOCK_USER.username,
-            displayName: MOCK_USER.display_name
+            displayName: MOCK_USER.displayName
           },
           pubKeyCredParams: [
             { type: 'public-key', alg: -7 },

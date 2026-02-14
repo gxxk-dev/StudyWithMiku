@@ -4,7 +4,6 @@ dist
 .dev.vars
 .wrangler
 dev-dist
-bun.lock
 wrangler.toml
 wrangler.jsonc
 
@@ -16,3 +15,4 @@ coverage/
 test-results/
 playwright-report/
 .playwright/
+docs
