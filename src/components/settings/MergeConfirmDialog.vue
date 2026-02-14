@@ -24,6 +24,12 @@
                 >
                   保留对方的
                 </button>
+                <button
+                  :class="['choice-btn', { active: choices.records === 'merge' }]"
+                  @click="choices.records = 'merge'"
+                >
+                  合并两边
+                </button>
               </div>
             </div>
 
@@ -59,6 +65,12 @@
                   @click="choices.playlists = 'source'"
                 >
                   保留对方的
+                </button>
+                <button
+                  :class="['choice-btn', { active: choices.playlists === 'merge' }]"
+                  @click="choices.playlists = 'merge'"
+                >
+                  合并两边
                 </button>
               </div>
             </div>

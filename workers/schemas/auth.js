@@ -230,9 +230,9 @@ export const dataTypeSchemas = {
 export const mergeRequestSchema = z.object({
   mergeToken: z.string().min(1),
   dataChoices: z.object({
-    records: z.enum(['target', 'source']),
+    records: z.enum(['target', 'source', 'merge']),
     settings: z.enum(['target', 'source']),
-    playlists: z.enum(['target', 'source'])
+    playlists: z.enum(['target', 'source', 'merge'])
   })
 })
 
