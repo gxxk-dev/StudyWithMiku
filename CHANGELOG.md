@@ -1,5 +1,114 @@
 # Changelog
 
+## [1.2.0](https://github.com/gxxk-dev/StudyWithMiku/compare/v1.1.0...v1.2.0) (2026-02-14)
+
+好久不见！这次更新拖了挺久的，因为咱加了一个重量级功能——账号系统和云同步！
+
+记得当初自己开fork的时候就是想补全这一块碎片来着（）
+
+---
+
+**更新内容：**
+
+- 账号系统上线！支持多种方式登录（目前是 微软/Github/谷歌/L站），选一个自己常用的就好
+    （然而这个屑开发者只在后台配置了两个平台的登陆模式）
+- 登录之后专注记录和歌单以及个人设置会自动同步到云端，换设备也不用担心数据丢了
+- 打包了字体文件，不同设备上界面显示统一了
+- 修了一堆安全和稳定性的问题并且补全了一些技术组件
+    ~~（用户侧感知不大所以懒得写了（x~~
+
+------
+
+碎碎念：
+
+这个版本后端的工作量比前端大很多，基本上是从零开始搞认证+同步，踩了不少 Cloudflare Workers 的坑（
+
+（并且电子邮件服务和密码存储啥的安全性实在不高 这个功能最后还是没上）
+
+然后咱由于学业原因，接下来更新频率可能会慢一些，但有 bug 还是会修的！
+
+此外我最近的所有更新计划都会发到仓库的 Issues 里面 将来大概率会实现的（）
+
+有问题欢迎**提 Issue** 或者发邮件到 **gxxk@duck.com**，都会看的~
+
+请继续和 Miku 一起学习吧！
+
+<details>
+
+<summary>完整更新日志</summary>
+
+### ✨ 新功能
+
+* **auth:** 多源头像支持 + 用户资料编辑 (PATCH /auth/me) ([b8c32bf](https://github.com/gxxk-dev/StudyWithMiku/commit/b8c32bf150b0b22dec51b3625724629b7e29088a))
+* **auth:** 接入 LINUX DO OAuth + 前端 Provider 模板化重构 ([813313f](https://github.com/gxxk-dev/StudyWithMiku/commit/813313f17c082c53acaa544ba484308bd303d787))
+* **auth:** 认证互通 — oauth_accounts 表 + 统一凭证管理 ([6ec75d9](https://github.com/gxxk-dev/StudyWithMiku/commit/6ec75d9bae6a2d962f96c04d6780170832bc338c))
+* **auth:** 实现 WebAuthn/FIDO2 账号系统后端 ([6807ed0](https://github.com/gxxk-dev/StudyWithMiku/commit/6807ed02e69bc2cfe4889ba5bf775fc76fe90bd9))
+* **auth:** 实现前端账号系统与数据同步功能 ([d3fcb08](https://github.com/gxxk-dev/StudyWithMiku/commit/d3fcb087f100b50a51d2ed07bf7cf0737022a550))
+* **auth:** 账号关联冲突检测 + 跨账号合并功能 ([48c3e25](https://github.com/gxxk-dev/StudyWithMiku/commit/48c3e25bec907a6277db45f8fc9256a1b85a73ef))
+* **auth:** 自动检测 WebAuthn RP ID 和 OAuth 回调 URL ([89a8303](https://github.com/gxxk-dev/StudyWithMiku/commit/89a8303c1f60e966f198b71a6a862af8760eabcd))
+* **dev:** 暴露 auth/sync/authStorage 到 swm_dev 开发者控制台 ([6e812b5](https://github.com/gxxk-dev/StudyWithMiku/commit/6e812b593feb83209a68143d9a6706d51d8ae7a2))
+* **font:** 打包 Inter 和 Fira Code woff2 字体，统一跨平台字体渲染 ([37fd0e7](https://github.com/gxxk-dev/StudyWithMiku/commit/37fd0e78dd90cbb66980f7baf265a7a5abc2af2b))
+* **merge:** 为专注记录和歌单增加"合并两边"选项 ([41e4f54](https://github.com/gxxk-dev/StudyWithMiku/commit/41e4f54a756793bb391ccbf3e68ee52d4faeae60))
+* **worker:** CORS 自动从请求 URL 推导同源 origin ([c0091de](https://github.com/gxxk-dev/StudyWithMiku/commit/c0091deeaac95c2545e4142d171b22cd634cd4b3))
+
+### 🐛 Bug 修复
+
+* **auth:** 统一 OAuth 回调 URL，解决关联账号 redirect_uri 不匹配问题 ([eac16c9](https://github.com/gxxk-dev/StudyWithMiku/commit/eac16c954582a7952a2dec1d9dc4752c3f384904))
+* **auth:** 修复前后端 API 不匹配问题并优化账户功能 ([dc0b943](https://github.com/gxxk-dev/StudyWithMiku/commit/dc0b9436fb8cb7ce8f7c83603c53209a435a8da7))
+* **auth:** 允许有安全密钥的 OAuth 用户通过 WebAuthn 登录 ([df773a5](https://github.com/gxxk-dev/StudyWithMiku/commit/df773a5078fd2d97c8b5f659752aa2e1f5b39ab0))
+* **auth:** mergeToken 延迟消费，避免错误用户请求导致 token 失效 ([a6fef5b](https://github.com/gxxk-dev/StudyWithMiku/commit/a6fef5b5f604da6330d60e1d9a5f57456e1a7011)), closes [#7](https://github.com/gxxk-dev/StudyWithMiku/issues/7)
+* **auth:** mergeTokens 从内存 Map 迁移到 Durable Object 持久化存储 ([f46b9c8](https://github.com/gxxk-dev/StudyWithMiku/commit/f46b9c86732bad20b0dc86523cde7b4af25bde78))
+* **auth:** refresh token 迁移到 HttpOnly Cookie ([d739ae4](https://github.com/gxxk-dev/StudyWithMiku/commit/d739ae4766d4d416ee11cf39bfcfd011af8b31f8)), closes [#11](https://github.com/gxxk-dev/StudyWithMiku/issues/11)
+* **lint:** 清理全部 5 个 ESLint warning ([93c2d67](https://github.com/gxxk-dev/StudyWithMiku/commit/93c2d67e4f9a02320786d3661e3a4a7a3096abd7))
+* **security:** 修复内存泄漏、竞态条件和安全问题 ([027218a](https://github.com/gxxk-dev/StudyWithMiku/commit/027218a6847a6ae4c50fca6f249ddc13a5d156c2))
+* **sync:** 修复 13 个前后端 API 不一致和功能缺失问题 ([e5ef34f](https://github.com/gxxk-dev/StudyWithMiku/commit/e5ef34f3a0a5943ace893b7e85b2b728a60ff781))
+* **test:** 新增 wrangler.test.toml 解决 CI 找不到 wrangler.toml 的问题 ([c049c43](https://github.com/gxxk-dev/StudyWithMiku/commit/c049c43117db576186d603720372a2f89d078055))
+* **test:** 修复 24 个 E2E 测试失败 ([bdbf2ff](https://github.com/gxxk-dev/StudyWithMiku/commit/bdbf2ffee98d89b2a8cede67cf525b9cf86d20ec))
+* **test:** 修复 refresh token API 集成测试 ([7b558b5](https://github.com/gxxk-dev/StudyWithMiku/commit/7b558b541b51d70a1a95cd0de948b34babd65f5c))
+* **test:** 修复 WebAuthn E2E 登录和添加设备测试 ([6416495](https://github.com/gxxk-dev/StudyWithMiku/commit/6416495626a7b6d666f25d0c828a11b4a026afd1))
+* **test:** 增加 E2E 导航超时和本地重试以减少间歇性失败 ([8b00be8](https://github.com/gxxk-dev/StudyWithMiku/commit/8b00be80215d0de7dfd68448d5f67d4f88790fd9))
+* **test:** API 测试 initDatabase 先 DROP 旧表避免 schema 不一致 ([87b7cd1](https://github.com/gxxk-dev/StudyWithMiku/commit/87b7cd19d1804f0f97d362e5f9ae1fbaf9628c1a))
+* **test:** API 测试使用绝对路径 + 补充 RateLimiter 导出 ([fbe5e8e](https://github.com/gxxk-dev/StudyWithMiku/commit/fbe5e8e0e5275c38e57aa2fd8d99f004f0434192))
+* **test:** API 集成测试支持可配置 host/port 及启动重试 ([4bb1914](https://github.com/gxxk-dev/StudyWithMiku/commit/4bb1914ce7a090995c8d66f8581f430a92818d70)), closes [#15](https://github.com/gxxk-dev/StudyWithMiku/issues/15)
+* **worker:** CORS 添加 Origin 白名单控制 ([a4c81ac](https://github.com/gxxk-dev/StudyWithMiku/commit/a4c81ac7dbc6aa58f65a104b7cd16331eef36585)), closes [#12](https://github.com/gxxk-dev/StudyWithMiku/issues/12)
+* **worker:** rateLimit 迁移到 Durable Object 实现跨实例共享 ([9cf11d0](https://github.com/gxxk-dev/StudyWithMiku/commit/9cf11d08697d1ca2632d195c031c4185cae61fb8)), closes [#9](https://github.com/gxxk-dev/StudyWithMiku/issues/9)
+
+### ⚡ 性能优化
+
+* **build:** 优化构建产物 chunk 拆分 ([0f20cbe](https://github.com/gxxk-dev/StudyWithMiku/commit/0f20cbe3ff573f4174a86c988d2e01fc705386ec)), closes [#16](https://github.com/gxxk-dev/StudyWithMiku/issues/16)
+* **sync:** 使用 CBOR 格式优化云存档存储和传输 ([8dfcf5f](https://github.com/gxxk-dev/StudyWithMiku/commit/8dfcf5f3fa296102b56b8fc91401247b83e4f292))
+* **sync:** 重构专注记录同步架构 ([9759015](https://github.com/gxxk-dev/StudyWithMiku/commit/9759015d7f41fb22689204a1b807dca6b6c4bc6a))
+
+### ♻️ 重构
+
+* **auth:** 拆分 auth.js 为子路由模块 ([d7c598a](https://github.com/gxxk-dev/StudyWithMiku/commit/d7c598a43fc91bcd1cd7c4310a16b7c7c74d89b3)), closes [#14](https://github.com/gxxk-dev/StudyWithMiku/issues/14)
+* **auth:** 头像选择器改为可视化选中模式 ([772c212](https://github.com/gxxk-dev/StudyWithMiku/commit/772c212f35e846441d685bb158d96337f71ca3be))
+* **auth:** LINUX DO icon 改用自定义 SVG 替代 simple-icons:discourse ([733509a](https://github.com/gxxk-dev/StudyWithMiku/commit/733509a0f5d7c023749ca3c806fb616bb416f3fa))
+* **db:** 合并迁移文件并修复 Wrangler DO 配置 ([cb06528](https://github.com/gxxk-dev/StudyWithMiku/commit/cb06528b339b0ad110d6d4b8422556b0c0863544))
+* **frontend:** App.vue 拆分为独立 composable ([c69bf9b](https://github.com/gxxk-dev/StudyWithMiku/commit/c69bf9b06365e80f2e7edb949a844bebb0c7a3e1)), closes [#13](https://github.com/gxxk-dev/StudyWithMiku/issues/13)
+* **sync:** 简化数据同步架构，删除 delta/batch sync，修复 9 个前后端 Bug ([b08c230](https://github.com/gxxk-dev/StudyWithMiku/commit/b08c230b62caf38d4128546f43fff78b5ca4ba35))
+* **test:** 精简 E2E 测试，移除与单元测试重复的用例 ([8c664ad](https://github.com/gxxk-dev/StudyWithMiku/commit/8c664ad532c88b34d7db7a505ad08cc86f761bf9))
+* **workers:** 使用 Drizzle ORM 替换原始 SQL 查询 ([3e42d19](https://github.com/gxxk-dev/StudyWithMiku/commit/3e42d19cc45925269bee084bc6c4af5309e60324))
+
+### 📝 文档
+
+* **AICoding:** 重新生成AI工具的Project Memory ([faaad79](https://github.com/gxxk-dev/StudyWithMiku/commit/faaad7999cdb1403430050ec262dd4e146d7978f))
+
+### ✅ 测试
+
+* **api:** 添加前后端 API 集成测试，修复 2 个数据同步 Bug ([2e3ae0c](https://github.com/gxxk-dev/StudyWithMiku/commit/2e3ae0ce7a257b2db15071d9653cd168918bc93f))
+* **auth:** 添加 auth/sync 系统前后端单元测试 (17 文件, ~390 cases) ([e6576e2](https://github.com/gxxk-dev/StudyWithMiku/commit/e6576e2bfd4f2e9fdfb3da866764f9514965c6f2))
+* **e2e:** 添加 auth/sync E2E 测试 (6 文件, ~27 cases) ([042827d](https://github.com/gxxk-dev/StudyWithMiku/commit/042827d85bc3ecad0d4ae1600e75b44fb47c8e8d))
+
+### 🔧 其他
+
+* 将 wrangler.toml 重命名为示例文件并加入 gitignore ([09dd517](https://github.com/gxxk-dev/StudyWithMiku/commit/09dd5174cae92df140a51ffa0fbd476b6aadade4))
+* 迁移文件合并 + triggerSync 改为完整双向同步 ([13bd31a](https://github.com/gxxk-dev/StudyWithMiku/commit/13bd31accbfb4d31eaad096fd4917a4b31f741d9))
+* 增加 CI 工作流（lint/test/build/e2e） ([4352c67](https://github.com/gxxk-dev/StudyWithMiku/commit/4352c6709c18aecb6d66503c8b9df0d9d8367ea6)), closes [#8](https://github.com/gxxk-dev/StudyWithMiku/issues/8)
+* **lint:** 清理 ESLint 13 条 warning ([2e5c1a4](https://github.com/gxxk-dev/StudyWithMiku/commit/2e5c1a42979a0bc01065ad82c3a5389393538508)), closes [#17](https://github.com/gxxk-dev/StudyWithMiku/issues/17)
+
+</details>
+
 ## [1.1.0](https://github.com/gxxk-dev/StudyWithMiku/compare/v1.0.0...v1.1.0) (2026-02-03)
 
 各位好！学习辛苦了ww
@@ -7,7 +116,7 @@
 主要是 **设置分享** 和 **一些小优化**！
 希望大家能喜欢！
 
-（使用过程中遇到任何觉得卡手/打断心流等影响学习的设计问题或bug欢迎**提交Issue**或炮轰**gxxk@duck.com**！）
+（使用过程中遇到任何问题欢迎**提交Issue**或炮轰**gxxk@duck.com**！）
 （当然了，发在上游仓库也是可以的！我有空闲时间的话一定会看，并尽量跟进！）
 
 
