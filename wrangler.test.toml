@@ -1,0 +1,33 @@
+name = "study-with-miku-test"
+main = "workers/index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[durable_objects.bindings]]
+name = "ONLINE_COUNTER"
+class_name = "OnlineCounter"
+
+[[durable_objects.bindings]]
+name = "AUTH_CHALLENGE"
+class_name = "AuthChallenge"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["OnlineCounter"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["AuthChallenge"]
+
+[[migrations]]
+tag = "v3"
+new_classes = ["RateLimiter"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "study-with-miku-test-db"
+database_id = "00000000-0000-0000-0000-000000000000"

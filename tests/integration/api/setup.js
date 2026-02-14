@@ -29,7 +29,7 @@ export async function startWorker() {
     local: true,
     persist: false,
     vars: { JWT_SECRET: TEST_JWT_SECRET },
-    config: resolve(ROOT, 'wrangler.toml')
+    config: resolve(ROOT, 'wrangler.test.toml')
   })
 
   // 补丁 fetch：将相对路径转为 worker 地址
