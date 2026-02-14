@@ -12,7 +12,7 @@ import dataRoutes from './routes/data.js'
 
 const app = new Hono()
 
-const handleOptionsRoute = (c) => handleCorsOptions(c.req.raw)
+const handleOptionsRoute = (c) => handleCorsOptions(c.req.raw, c.env)
 
 // 全局错误处理
 app.onError((err, c) => {
