@@ -8,7 +8,17 @@ const parseAllowedOrigins = (corsOriginsStr) => {
   )
 }
 
-const isOriginAllowed = (origin, allowedOrigins) => {
+const getSelfOrigin = (requestUrl) => {
+  if (!requestUrl) return null
+  try {
+    const url = new URL(requestUrl)
+    return `${url.protocol}//${url.host}`
+  } catch {
+    return null
+  }
+}
+
+const isOriginAllowed = (origin, allowedOrigins, requestUrl) => {
   if (!origin) return false
   // 开发环境自动允许
   try {
@@ -19,10 +29,14 @@ const isOriginAllowed = (origin, allowedOrigins) => {
   } catch {
     return false
   }
+  // 自动允许与 Worker 同源的请求
+  const selfOrigin = getSelfOrigin(requestUrl)
+  if (selfOrigin && origin === selfOrigin) return true
+  // 额外白名单（CORS_ORIGINS 环境变量）
   return allowedOrigins.has(origin)
 }
 
-const getCorsHeaders = (origin, env) => {
+const getCorsHeaders = (origin, env, requestUrl) => {
   const allowedOrigins = parseAllowedOrigins(env?.CORS_ORIGINS)
   const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
@@ -30,15 +44,15 @@ const getCorsHeaders = (origin, env) => {
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400'
   }
-  if (origin && isOriginAllowed(origin, allowedOrigins)) {
+  if (origin && isOriginAllowed(origin, allowedOrigins, requestUrl)) {
     headers['Access-Control-Allow-Origin'] = origin
   }
   return headers
 }
 
-const withCors = (response, origin, env) => {
+const withCors = (response, origin, env, requestUrl) => {
   const headers = new Headers(response.headers)
-  const cors = getCorsHeaders(origin, env)
+  const cors = getCorsHeaders(origin, env, requestUrl)
   Object.entries(cors).forEach(([key, value]) => headers.set(key, value))
   return new Response(response.body, {
     status: response.status,
@@ -51,7 +65,7 @@ const handleCorsOptions = (request, env) => {
   const origin = request.headers.get('Origin')
   return new Response(null, {
     status: 204,
-    headers: getCorsHeaders(origin, env)
+    headers: getCorsHeaders(origin, env, request.url)
   })
 }
 
@@ -59,7 +73,7 @@ const corsGuard = async (c, next) => {
   const origin = c.req.header('Origin')
   await next()
   if (c.res && c.res.status >= 200) {
-    c.res = withCors(c.res, origin, c.env)
+    c.res = withCors(c.res, origin, c.env, c.req.url)
   }
 }
 

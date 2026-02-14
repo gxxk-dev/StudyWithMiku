@@ -33,4 +33,4 @@ database_name = "study-with-miku-test-db"
 database_id = "00000000-0000-0000-0000-000000000000"
 
 [vars]
-CORS_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+# CORS 自动从请求 URL 推导，开发环境自动允许 localhost
