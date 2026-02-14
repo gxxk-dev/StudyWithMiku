@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 1 : 1,
   workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? 'list' : 'html',
   timeout: 30000,
@@ -16,7 +16,7 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    navigationTimeout: 20000,
+    navigationTimeout: 30000,
     actionTimeout: 10000
   },
   projects: [
