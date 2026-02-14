@@ -166,4 +166,65 @@ const goBack = () => {
   border-radius: 0 8px 8px 0;
   color: rgba(255, 255, 255, 0.8);
 }
+
+.changelog-content :deep(details) {
+  margin: 16px 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.changelog-content :deep(details[open]) {
+  padding: 0 16px 12px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.changelog-content :deep(summary) {
+  padding: 10px 16px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  font-size: 0.92rem;
+  list-style: none;
+  list-style-type: none;
+  transition: background 0.2s ease;
+  user-select: none;
+}
+
+.changelog-content :deep(summary::-webkit-details-marker) {
+  display: none;
+}
+
+.changelog-content :deep(summary::marker) {
+  content: none;
+}
+
+.changelog-content :deep(summary::before) {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-right: 8px;
+  vertical-align: middle;
+  border-style: solid;
+  border-width: 5px 0 5px 8px;
+  border-color: transparent transparent transparent #39c5bb;
+  transition: transform 0.2s ease;
+}
+
+.changelog-content :deep(details[open] > summary) {
+  margin: 0 -16px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 8px;
+}
+
+.changelog-content :deep(details[open] > summary::before) {
+  transform: rotate(90deg);
+}
+
+.changelog-content :deep(summary:hover) {
+  background: rgba(255, 255, 255, 0.06);
+}
 </style>
