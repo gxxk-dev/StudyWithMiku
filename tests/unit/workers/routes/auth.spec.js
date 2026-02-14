@@ -206,21 +206,27 @@ describe('auth routes', () => {
   })
 
   describe('POST /auth/refresh', () => {
-    it('有效的 Refresh Token 应该返回新 Token 对', async () => {
+    it('有效的 Refresh Token（通过 Cookie）应该返回新 Access Token', async () => {
       const tokens = await generateTokenPair({
         userId: 'user-001',
         username: 'testuser',
         secret: testSecret
       })
 
-      const res = await jsonRequest('POST', '/auth/refresh', {
-        refreshToken: tokens.refreshToken
+      const req = new Request('http://localhost/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
+      // 手动设置 Cookie 头（绕过 Request 构造函数可能的限制）
+      req.headers.set('Cookie', `swm_refresh_token=${tokens.refreshToken}`)
 
-      expect(res.status).toBe(200)
+      const res = await app.request(req, undefined, env)
+
       const body = await res.json()
+      expect(res.status).toBe(200)
       expect(body.accessToken).toBeDefined()
-      expect(body.refreshToken).toBeDefined()
       expect(body.expiresIn).toBe(JWT_CONFIG.ACCESS_TOKEN_TTL)
     })
 
@@ -234,19 +240,25 @@ describe('auth routes', () => {
       // 推进时间超过 Refresh Token 有效期
       vi.advanceTimersByTime((JWT_CONFIG.REFRESH_TOKEN_TTL + 60) * 1000)
 
-      const res = await jsonRequest('POST', '/auth/refresh', {
-        refreshToken: tokens.refreshToken
+      const req = new Request('http://localhost/auth/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
+      req.headers.set('Cookie', `swm_refresh_token=${tokens.refreshToken}`)
+
+      const res = await app.request(req, undefined, env)
 
       expect(res.status).toBe(401)
       const body = await res.json()
       expect(body.code).toBe(ERROR_CODES.SESSION_EXPIRED)
     })
 
-    it('缺少 refreshToken 应该返回 400', async () => {
-      const res = await jsonRequest('POST', '/auth/refresh', {})
+    it('缺少 refresh token Cookie 应该返回 401', async () => {
+      const res = await jsonRequest('POST', '/auth/refresh')
 
-      expect(res.status).toBe(400)
+      expect(res.status).toBe(401)
     })
   })
 

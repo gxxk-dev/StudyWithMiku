@@ -15,8 +15,6 @@ import {
  * 存储键名
  */
 const STORAGE_KEYS = {
-  ACCESS_TOKEN: 'swm_access_token',
-  REFRESH_TOKEN: 'swm_refresh_token',
   TOKEN_EXPIRES_AT: 'swm_token_expires_at',
   TOKEN_TYPE: 'swm_token_type',
   USER_INFO: 'swm_user_info',
@@ -24,35 +22,45 @@ const STORAGE_KEYS = {
 }
 
 /**
+ * 旧版 localStorage 键名（迁移时清理用）
+ */
+const LEGACY_KEYS = ['swm_access_token', 'swm_refresh_token']
+
+/**
+ * 内存中的 Access Token（不再存 localStorage）
+ * @type {string|null}
+ */
+let memoryAccessToken = null
+
+/**
+ * 清理旧版 localStorage 键
+ */
+export const cleanupLegacyKeys = () => {
+  for (const key of LEGACY_KEYS) {
+    safeLocalStorageRemove(key)
+  }
+}
+
+/**
  * 保存认证令牌
  * @param {string} accessToken - 访问令牌
- * @param {string} refreshToken - 刷新令牌
  * @param {number} expiresIn - 过期时间（秒）
  * @param {string} [tokenType='Bearer'] - 令牌类型
  */
-export const saveTokens = (accessToken, refreshToken, expiresIn, tokenType = 'Bearer') => {
+export const saveTokens = (accessToken, expiresIn, tokenType = 'Bearer') => {
   const expiresAt = Date.now() + expiresIn * 1000
 
-  safeLocalStorageSet(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
-  safeLocalStorageSet(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
+  memoryAccessToken = accessToken
   safeLocalStorageSet(STORAGE_KEYS.TOKEN_EXPIRES_AT, expiresAt.toString())
   safeLocalStorageSet(STORAGE_KEYS.TOKEN_TYPE, tokenType)
 }
 
 /**
- * 获取访问令牌
+ * 获取访问令牌（从内存）
  * @returns {string|null} 访问令牌
  */
 export const getAccessToken = () => {
-  return safeLocalStorageGet(STORAGE_KEYS.ACCESS_TOKEN)
-}
-
-/**
- * 获取刷新令牌
- * @returns {string|null} 刷新令牌
- */
-export const getRefreshToken = () => {
-  return safeLocalStorageGet(STORAGE_KEYS.REFRESH_TOKEN)
+  return memoryAccessToken
 }
 
 /**
@@ -104,17 +112,15 @@ export const isTokenExpired = () => {
  */
 export const getTokens = () => {
   const accessToken = getAccessToken()
-  const refreshToken = getRefreshToken()
   const expiresAt = getTokenExpiresAt()
   const tokenType = getTokenType()
 
-  if (!accessToken || !refreshToken || !expiresAt) {
+  if (!accessToken || !expiresAt) {
     return null
   }
 
   return {
     accessToken,
-    refreshToken,
     expiresAt,
     tokenType
   }
@@ -124,8 +130,7 @@ export const getTokens = () => {
  * 清除所有令牌
  */
 export const clearTokens = () => {
-  safeLocalStorageRemove(STORAGE_KEYS.ACCESS_TOKEN)
-  safeLocalStorageRemove(STORAGE_KEYS.REFRESH_TOKEN)
+  memoryAccessToken = null
   safeLocalStorageRemove(STORAGE_KEYS.TOKEN_EXPIRES_AT)
   safeLocalStorageRemove(STORAGE_KEYS.TOKEN_TYPE)
 }
@@ -187,11 +192,12 @@ export const clearAllAuthData = () => {
 
 /**
  * 检查是否有有效的认证状态
+ * 基于内存 access token + 用户信息判断
  * @returns {boolean} 是否已认证
  */
 export const hasValidAuth = () => {
-  const tokens = getTokens()
+  const accessToken = getAccessToken()
   const user = getUser()
 
-  return !!(tokens && user && !isTokenExpired())
+  return !!(accessToken && user && !isTokenExpired())
 }

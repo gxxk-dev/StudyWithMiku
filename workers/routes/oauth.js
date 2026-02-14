@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono'
 import { ERROR_CODES, JWT_CONFIG } from '../constants.js'
+import { buildRefreshTokenCookie } from '../utils/cookie.js'
 import { authRateLimit } from '../middleware/rateLimit.js'
 import { requireAuth } from '../middleware/auth.js'
 import {
@@ -88,13 +89,20 @@ const redirectWithTokens = (c, tokens, isNew, user) => {
   const baseUrl = c.env.OAUTH_CALLBACK_BASE
   const params = new URLSearchParams({
     access_token: tokens.accessToken,
-    refresh_token: tokens.refreshToken,
     expires_in: String(JWT_CONFIG.ACCESS_TOKEN_TTL),
     is_new: String(isNew),
     user: JSON.stringify(user)
   })
 
-  return c.redirect(`${baseUrl}/#${params.toString()}`)
+  const cookie = buildRefreshTokenCookie(tokens.refreshToken, JWT_CONFIG.REFRESH_TOKEN_TTL, c.env)
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: `${baseUrl}/#${params.toString()}`,
+      'Set-Cookie': cookie
+    }
+  })
 }
 
 /**

@@ -4,11 +4,9 @@
  */
 
 import { Hono } from 'hono'
-import { zValidator } from '@hono/zod-validator'
 import { ERROR_CODES, JWT_CONFIG } from '../../constants.js'
 import { authRateLimit } from '../../middleware/rateLimit.js'
 import { requireAuth } from '../../middleware/auth.js'
-import { refreshTokenSchema } from '../../schemas/auth.js'
 import { findUserById } from '../../services/user.js'
 import {
   generateTokenPair,
@@ -16,15 +14,31 @@ import {
   blacklistToken,
   isTokenBlacklisted
 } from '../../services/jwt.js'
+import {
+  parseCookie,
+  buildRefreshTokenCookie,
+  buildClearRefreshTokenCookie
+} from '../../utils/cookie.js'
 
 const token = new Hono()
 
 /**
  * POST /refresh
- * 刷新 Access Token
+ * 刷新 Access Token（从 Cookie 读取 Refresh Token）
  */
-token.post('/refresh', authRateLimit, zValidator('json', refreshTokenSchema), async (c) => {
-  const { refreshToken } = c.req.valid('json')
+token.post('/refresh', authRateLimit, async (c) => {
+  const cookieHeader = c.req.header('Cookie')
+  const refreshToken = parseCookie(cookieHeader, 'swm_refresh_token')
+
+  if (!refreshToken) {
+    return c.json(
+      {
+        error: 'Missing refresh token',
+        code: ERROR_CODES.INVALID_TOKEN
+      },
+      401
+    )
+  }
 
   // 验证 Refresh Token
   const result = await verifyToken(refreshToken, c.env.JWT_SECRET, JWT_CONFIG.TOKEN_TYPE.REFRESH)
@@ -73,9 +87,13 @@ token.post('/refresh', authRateLimit, zValidator('json', refreshTokenSchema), as
   // 将旧的 Refresh Token 加入黑名单
   await blacklistToken(c.env.DB, result.payload.jti, result.payload.exp)
 
+  c.header(
+    'Set-Cookie',
+    buildRefreshTokenCookie(tokens.refreshToken, JWT_CONFIG.REFRESH_TOKEN_TTL, c.env)
+  )
+
   return c.json({
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
     expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL,
     tokenType: 'Bearer'
   })
@@ -83,7 +101,7 @@ token.post('/refresh', authRateLimit, zValidator('json', refreshTokenSchema), as
 
 /**
  * POST /logout
- * 登出 (将当前 Token 加入黑名单)
+ * 登出 (将当前 Token 加入黑名单，清除 Refresh Token Cookie)
  */
 token.post('/logout', requireAuth(), async (c) => {
   const user = c.get('user')
@@ -91,22 +109,26 @@ token.post('/logout', requireAuth(), async (c) => {
   // 将 Access Token 加入黑名单
   await blacklistToken(c.env.DB, user.jti, user.exp)
 
-  // 如果请求体中有 Refresh Token，也加入黑名单
-  try {
-    const body = await c.req.json()
-    if (body.refreshToken) {
+  // 从 Cookie 读取 Refresh Token 并加入黑名单
+  const cookieHeader = c.req.header('Cookie')
+  const refreshToken = parseCookie(cookieHeader, 'swm_refresh_token')
+  if (refreshToken) {
+    try {
       const result = await verifyToken(
-        body.refreshToken,
+        refreshToken,
         c.env.JWT_SECRET,
         JWT_CONFIG.TOKEN_TYPE.REFRESH
       )
       if (result.valid) {
         await blacklistToken(c.env.DB, result.payload.jti, result.payload.exp)
       }
+    } catch {
+      // 忽略解析错误
     }
-  } catch {
-    // 忽略解析错误
   }
+
+  // 清除 Refresh Token Cookie
+  c.header('Set-Cookie', buildClearRefreshTokenCookie(c.env))
 
   return c.json({ ok: true })
 })

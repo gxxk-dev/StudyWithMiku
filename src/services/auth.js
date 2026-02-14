@@ -138,6 +138,7 @@ export const registerVerify = async (challengeId, response, deviceName) => {
 
   return fetchWithRetry(AUTH_API.REGISTER_VERIFY, {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ challengeId, response, deviceName })
   })
 }
@@ -171,6 +172,7 @@ export const loginVerify = async (challengeId, response) => {
 
   return fetchWithRetry(AUTH_API.LOGIN_VERIFY, {
     method: 'POST',
+    credentials: 'include',
     body: JSON.stringify({ challengeId, response })
   })
 }
@@ -194,7 +196,7 @@ export const oauthLogin = (provider) => {
 
 /**
  * 处理 OAuth 回调
- * 从 URL 中提取 Token 并返回
+ * 从 URL 中提取 Token 并返回（refresh token 通过 HttpOnly Cookie 自动设置）
  * @returns {Object|null} 认证响应（包含 tokens 和 user），如果不是回调页面则返回 null
  */
 export const handleOAuthCallback = () => {
@@ -204,7 +206,6 @@ export const handleOAuthCallback = () => {
 
   // 检查是否有 Token
   const accessToken = urlParams.get('access_token')
-  const refreshToken = urlParams.get('refresh_token')
   const expiresIn = urlParams.get('expires_in')
 
   const error = urlParams.get('error')
@@ -219,7 +220,7 @@ export const handleOAuthCallback = () => {
   }
 
   // 如果没有 Token，说明不是回调页面
-  if (!accessToken || !refreshToken || !expiresIn) {
+  if (!accessToken || !expiresIn) {
     return null
   }
 
@@ -241,7 +242,6 @@ export const handleOAuthCallback = () => {
   return {
     tokens: {
       accessToken,
-      refreshToken,
       expiresIn: parseInt(expiresIn, 10),
       tokenType: 'Bearer'
     },
@@ -250,44 +250,33 @@ export const handleOAuthCallback = () => {
 }
 
 /**
- * 刷新访问令牌
- * @param {string} refreshToken - 刷新令牌
+ * 刷新访问令牌（通过 HttpOnly Cookie 自动发送 Refresh Token）
  * @returns {Promise<Object>} 新的令牌信息
  */
-export const refreshToken = async (refreshToken) => {
-  if (!refreshToken) {
-    throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '刷新令牌不能为空')
-  }
-
+export const refreshToken = async () => {
   return fetchWithRetry(AUTH_API.REFRESH, {
     method: 'POST',
-    body: JSON.stringify({ refreshToken })
+    credentials: 'include'
   })
 }
 
 /**
  * 登出
  * @param {string} accessToken - 访问令牌
- * @param {string} [refreshToken] - 刷新令牌（可选，用于同时吊销）
  * @returns {Promise<void>}
  */
-export const logout = async (accessToken, refreshToken = null) => {
+export const logout = async (accessToken) => {
   if (!accessToken) {
     throw createAuthError(ERROR_TYPES.VALIDATION_ERROR, '访问令牌不能为空')
   }
 
-  const options = {
+  return fetchWithRetry(AUTH_API.LOGOUT, {
     method: 'POST',
+    credentials: 'include',
     headers: {
       Authorization: `Bearer ${accessToken}`
     }
-  }
-
-  if (refreshToken) {
-    options.body = JSON.stringify({ refreshToken })
-  }
-
-  return fetchWithRetry(AUTH_API.LOGOUT, options)
+  })
 }
 
 /**

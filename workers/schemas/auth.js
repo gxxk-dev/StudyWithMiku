@@ -78,13 +78,6 @@ export const loginVerifySchema = z.object({
 })
 
 /**
- * Token 刷新请求
- */
-export const refreshTokenSchema = z.object({
-  refreshToken: z.string()
-})
-
-/**
  * 设备添加验证请求
  */
 export const addDeviceVerifySchema = z.object({

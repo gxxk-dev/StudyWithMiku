@@ -182,7 +182,8 @@ describe('workers/routes/oauth', () => {
         expect(res.status).toBe(302)
         const location = res.headers.get('Location')
         expect(location).toContain('access_token=jwt-access')
-        expect(location).toContain('refresh_token=jwt-refresh')
+        // refresh token 通过 HttpOnly Cookie 发送，不再出现在 URL 中
+        expect(location).not.toContain('refresh_token=')
       })
 
       it('OAuth error 参数重定向到错误页', async () => {

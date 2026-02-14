@@ -184,9 +184,9 @@ describe('auth service', () => {
       window.location = originalLocation
     })
 
-    it('parses tokens and user from location hash', () => {
+    it('parses tokens and user from location hash (refresh token via HttpOnly Cookie)', () => {
       window.location.hash =
-        '#access_token=at&refresh_token=rt&expires_in=3600&user=' +
+        '#access_token=at&expires_in=3600&user=' +
         encodeURIComponent(JSON.stringify({ id: '1', name: 'miku' }))
       window.location.pathname = '/callback'
       window.history = { replaceState: vi.fn() }
@@ -194,7 +194,7 @@ describe('auth service', () => {
       const result = handleOAuthCallback()
 
       expect(result.tokens.accessToken).toBe('at')
-      expect(result.tokens.refreshToken).toBe('rt')
+      expect(result.tokens.expiresIn).toBe(3600)
       expect(result.user.name).toBe('miku')
     })
 
@@ -216,42 +216,30 @@ describe('auth service', () => {
   // ── refreshToken ─────────────────────────────────────────
 
   describe('refreshToken', () => {
-    it('sends POST with refreshToken in body', async () => {
+    it('sends POST with credentials: include (cookie-based refresh)', async () => {
       fetchMock.mockReturnValueOnce(jsonOk({ accessToken: 'new' }))
 
-      const result = await refreshToken('rt123')
+      const result = await refreshToken()
 
-      const body = JSON.parse(fetchMock.mock.calls[0][1].body)
-      expect(body.refreshToken).toBe('rt123')
+      const [, opts] = fetchMock.mock.calls[0]
+      expect(opts.method).toBe('POST')
+      expect(opts.credentials).toBe('include')
+      expect(opts.body).toBeUndefined()
       expect(result.accessToken).toBe('new')
-    })
-
-    it('throws VALIDATION_ERROR when refreshToken is empty', async () => {
-      await expect(refreshToken('')).rejects.toMatchObject({
-        type: ERROR_TYPES.VALIDATION_ERROR
-      })
     })
   })
 
   // ── logout ───────────────────────────────────────────────
 
   describe('logout', () => {
-    it('sends POST with Bearer token', async () => {
+    it('sends POST with Bearer token and credentials: include', async () => {
       fetchMock.mockReturnValueOnce(jsonOk({ success: true }))
 
       await logout('at123')
 
       const [, opts] = fetchMock.mock.calls[0]
       expect(opts.headers.Authorization).toBe('Bearer at123')
-    })
-
-    it('includes refreshToken in body when provided', async () => {
-      fetchMock.mockReturnValueOnce(jsonOk({ success: true }))
-
-      await logout('at123', 'rt456')
-
-      const body = JSON.parse(fetchMock.mock.calls[0][1].body)
-      expect(body.refreshToken).toBe('rt456')
+      expect(opts.credentials).toBe('include')
     })
   })
 

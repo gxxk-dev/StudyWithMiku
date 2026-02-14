@@ -32,12 +32,12 @@ vi.mock('@/utils/authStorage.js', () => ({
   hasValidAuth: vi.fn(() => false),
   getUser: vi.fn(() => null),
   getAccessToken: vi.fn(() => null),
-  getRefreshToken: vi.fn(() => null),
   getTokenExpiresAt: vi.fn(() => null),
   isTokenExpiringSoon: vi.fn(() => false),
   saveUser: vi.fn(),
   saveTokens: vi.fn(),
-  clearAllAuthData: vi.fn()
+  clearAllAuthData: vi.fn(),
+  cleanupLegacyKeys: vi.fn()
 }))
 
 let authService, webauthnHelper, authStorage, useAuth
@@ -57,7 +57,6 @@ beforeEach(async () => {
   authStorage.hasValidAuth.mockReturnValue(false)
   authStorage.getUser.mockReturnValue(null)
   authStorage.getAccessToken.mockReturnValue(null)
-  authStorage.getRefreshToken.mockReturnValue(null)
   authStorage.getTokenExpiresAt.mockReturnValue(null)
   authStorage.isTokenExpiringSoon.mockReturnValue(false)
 })
@@ -95,14 +94,14 @@ describe('useAuth', () => {
   })
 
   describe('initialize', () => {
-    it('无认证时清除状态', async () => {
+    it('无认证时不设置认证状态', async () => {
       authStorage.hasValidAuth.mockReturnValue(false)
+      authStorage.getUser.mockReturnValue(null)
       const { initialize, isAuthenticated } = useAuth()
 
       await initialize()
 
       expect(isAuthenticated.value).toBe(false)
-      expect(authStorage.clearAllAuthData).toHaveBeenCalled()
     })
 
     it('有认证时恢复用户', async () => {
@@ -151,6 +150,37 @@ describe('useAuth', () => {
 
       expect(isAuthenticated.value).toBe(false)
     })
+
+    it('页面刷新后通过 cookie 刷新恢复登录态', async () => {
+      const savedUser = { id: 'user-001', username: 'test' }
+      authStorage.hasValidAuth.mockReturnValue(false)
+      authStorage.getUser.mockReturnValue(savedUser)
+      authService.refreshToken.mockResolvedValue({
+        accessToken: 'new-at',
+        expiresIn: 900,
+        tokenType: 'Bearer'
+      })
+      authService.getCurrentUser.mockResolvedValue({ user: savedUser })
+
+      const { initialize, isAuthenticated, user } = useAuth()
+      await initialize()
+
+      expect(isAuthenticated.value).toBe(true)
+      expect(user.value).toEqual(savedUser)
+      expect(authStorage.saveTokens).toHaveBeenCalledWith('new-at', 900, 'Bearer')
+    })
+
+    it('cookie 刷新失败时清除状态', async () => {
+      authStorage.hasValidAuth.mockReturnValue(false)
+      authStorage.getUser.mockReturnValue({ id: 'u1', username: 'test' })
+      authService.refreshToken.mockRejectedValue(new Error('Cookie expired'))
+
+      const { initialize, isAuthenticated } = useAuth()
+      await initialize()
+
+      expect(isAuthenticated.value).toBe(false)
+      expect(authStorage.clearAllAuthData).toHaveBeenCalled()
+    })
   })
 
   describe('register', () => {
@@ -159,7 +189,7 @@ describe('useAuth', () => {
       const mockCredential = { id: 'cred-001', response: {} }
       const mockResponse = {
         user: { id: 'user-001', username: 'newuser' },
-        tokens: { accessToken: 'at', refreshToken: 'rt', expiresIn: 3600 }
+        tokens: { accessToken: 'at', expiresIn: 3600 }
       }
 
       authService.registerOptions.mockResolvedValue(mockOptions)
@@ -198,7 +228,7 @@ describe('useAuth', () => {
       const mockCredential = { id: 'cred-001', response: {} }
       const mockResponse = {
         user: { id: 'user-001', username: 'testuser' },
-        tokens: { accessToken: 'at', refreshToken: 'rt', expiresIn: 3600 }
+        tokens: { accessToken: 'at', expiresIn: 3600 }
       }
 
       authService.loginOptions.mockResolvedValue(mockOptions)
@@ -250,7 +280,7 @@ describe('useAuth', () => {
     it('有数据时设置认证状态', async () => {
       const mockResult = {
         user: { id: 'user-001', username: 'ghuser' },
-        tokens: { accessToken: 'at', refreshToken: 'rt', expiresIn: 3600 }
+        tokens: { accessToken: 'at', expiresIn: 3600 }
       }
       authService.handleOAuthCallback.mockReturnValue(mockResult)
 
@@ -284,13 +314,12 @@ describe('useAuth', () => {
   describe('logout', () => {
     it('服务器登出 + 清除本地状态', async () => {
       authStorage.getAccessToken.mockReturnValue('token')
-      authStorage.getRefreshToken.mockReturnValue('refresh')
       authService.logout.mockResolvedValue({})
 
       const { logout, isAuthenticated } = useAuth()
       await logout()
 
-      expect(authService.logout).toHaveBeenCalledWith('token', 'refresh')
+      expect(authService.logout).toHaveBeenCalledWith('token')
       expect(authStorage.clearAllAuthData).toHaveBeenCalled()
       expect(isAuthenticated.value).toBe(false)
     })
@@ -318,15 +347,7 @@ describe('useAuth', () => {
   })
 
   describe('refreshTokenIfNeeded', () => {
-    it('无 refreshToken 时抛错', async () => {
-      authStorage.getRefreshToken.mockReturnValue(null)
-
-      const { refreshTokenIfNeeded } = useAuth()
-      await expect(refreshTokenIfNeeded()).rejects.toThrow('刷新令牌')
-    })
-
     it('未过期时不刷新', async () => {
-      authStorage.getRefreshToken.mockReturnValue('refresh')
       authStorage.isTokenExpiringSoon.mockReturnValue(false)
 
       const { refreshTokenIfNeeded } = useAuth()
@@ -336,12 +357,10 @@ describe('useAuth', () => {
       expect(authService.refreshToken).not.toHaveBeenCalled()
     })
 
-    it('过期时刷新并保存新 token', async () => {
-      authStorage.getRefreshToken.mockReturnValue('old-refresh')
+    it('过期时刷新并保存新 token（通过 cookie 自动发送 refresh token）', async () => {
       authStorage.isTokenExpiringSoon.mockReturnValue(true)
       authService.refreshToken.mockResolvedValue({
         accessToken: 'new-at',
-        refreshToken: 'new-rt',
         expiresIn: 3600,
         tokenType: 'Bearer'
       })
@@ -350,11 +369,10 @@ describe('useAuth', () => {
       const result = await refreshTokenIfNeeded()
 
       expect(result.accessToken).toBe('new-at')
-      expect(authStorage.saveTokens).toHaveBeenCalledWith('new-at', 'new-rt', 3600, 'Bearer')
+      expect(authStorage.saveTokens).toHaveBeenCalledWith('new-at', 3600, 'Bearer')
     })
 
     it('刷新失败时清除状态', async () => {
-      authStorage.getRefreshToken.mockReturnValue('refresh')
       authStorage.isTokenExpiringSoon.mockReturnValue(true)
       authService.refreshToken.mockRejectedValue(new Error('Invalid refresh token'))
 

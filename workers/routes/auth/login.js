@@ -13,6 +13,7 @@ import { findCredentialsByUserId, updateCredentialCounter } from '../../services
 import { createAuthenticationOptions, verifyAuthentication } from '../../services/webauthn.js'
 import { generateTokenPair } from '../../services/jwt.js'
 import { getChallengeStore, generateChallengeId } from '../../utils/authHelpers.js'
+import { buildRefreshTokenCookie } from '../../utils/cookie.js'
 
 const login = new Hono()
 
@@ -146,11 +147,15 @@ login.post('/verify', authRateLimit, zValidator('json', loginVerifySchema), asyn
     secret: c.env.JWT_SECRET
   })
 
+  c.header(
+    'Set-Cookie',
+    buildRefreshTokenCookie(tokens.refreshToken, JWT_CONFIG.REFRESH_TOKEN_TTL, c.env)
+  )
+
   const result = {
     user: formatUserForResponse(user),
     tokens: {
       accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
       expiresIn: JWT_CONFIG.ACCESS_TOKEN_TTL,
       tokenType: 'Bearer'
     }

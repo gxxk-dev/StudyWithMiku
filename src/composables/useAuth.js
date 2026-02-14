@@ -78,12 +78,7 @@ const setAuthState = (userData, tokens) => {
 
   // 保存到 localStorage
   authStorage.saveUser(userData)
-  authStorage.saveTokens(
-    tokens.accessToken,
-    tokens.refreshToken,
-    tokens.expiresIn || 3600,
-    tokens.tokenType
-  )
+  authStorage.saveTokens(tokens.accessToken, tokens.expiresIn || 3600, tokens.tokenType)
 
   // 启动 Token 刷新定时器
   if (scheduleTokenRefreshFn) {
@@ -127,39 +122,60 @@ export const useAuth = () => {
   scheduleTokenRefreshFn = scheduleTokenRefresh
   /**
    * 初始化认证状态
-   * 从 localStorage 恢复 Token 和用户信息
+   * 清理旧版 localStorage 键，尝试通过 cookie 刷新恢复登录态
    */
   const initialize = async () => {
     isLoading.value = true
     clearError()
 
+    // 清理旧版 localStorage 键（swm_access_token, swm_refresh_token）
+    authStorage.cleanupLegacyKeys()
+
     try {
-      // 检查是否有有效的认证状态
-      if (!authStorage.hasValidAuth()) {
-        clearAuthState()
-        return
+      // 如果内存中有有效的认证状态，直接恢复
+      if (authStorage.hasValidAuth()) {
+        const savedUser = authStorage.getUser()
+        if (savedUser) {
+          user.value = savedUser
+          isAuthenticated.value = true
+          scheduleTokenRefresh()
+
+          // 尝试获取最新用户信息
+          try {
+            const accessToken = authStorage.getAccessToken()
+            if (accessToken) {
+              const response = await authService.getCurrentUser(accessToken)
+              user.value = response.user
+              authStorage.saveUser(response.user)
+            }
+          } catch (error) {
+            console.warn('获取最新用户信息失败:', error)
+          }
+          return
+        }
       }
 
-      // 恢复用户信息
+      // 内存中没有 access token（页面刷新后），尝试通过 cookie 刷新
       const savedUser = authStorage.getUser()
       if (savedUser) {
-        user.value = savedUser
-        isAuthenticated.value = true
-
-        // 启动 Token 刷新定时器
-        scheduleTokenRefresh()
-
-        // 尝试获取最新用户信息
         try {
-          const accessToken = authStorage.getAccessToken()
-          if (accessToken) {
-            const response = await authService.getCurrentUser(accessToken)
-            user.value = response.user
-            authStorage.saveUser(response.user)
+          const response = await authService.refreshToken()
+          authStorage.saveTokens(response.accessToken, response.expiresIn, response.tokenType)
+          user.value = savedUser
+          isAuthenticated.value = true
+          scheduleTokenRefresh()
+
+          // 尝试获取最新用户信息
+          try {
+            const freshUser = await authService.getCurrentUser(response.accessToken)
+            user.value = freshUser.user
+            authStorage.saveUser(freshUser.user)
+          } catch (error) {
+            console.warn('获取最新用户信息失败:', error)
           }
         } catch (error) {
-          console.warn('获取最新用户信息失败:', error)
-          // 不影响初始化流程
+          console.warn('Cookie 刷新失败，需要重新登录:', error)
+          clearAuthState()
         }
       }
     } catch (error) {
@@ -293,8 +309,7 @@ export const useAuth = () => {
       // 尝试调用服务器登出 API
       if (accessToken) {
         try {
-          const refreshToken = authStorage.getRefreshToken()
-          await authService.logout(accessToken, refreshToken)
+          await authService.logout(accessToken)
         } catch (error) {
           console.warn('服务器登出失败:', error)
           // 不影响本地登出流程
@@ -317,26 +332,15 @@ export const useAuth = () => {
    * @returns {Promise<import('../types/auth.js').AuthTokens|undefined>} 刷新后的令牌信息，无需刷新时返回 undefined
    */
   const refreshTokenIfNeeded = async () => {
-    const refreshToken = authStorage.getRefreshToken()
-
-    if (!refreshToken) {
-      throw new Error('没有刷新令牌')
-    }
-
     if (!authStorage.isTokenExpiringSoon()) {
       return // 不需要刷新
     }
 
     try {
-      const response = await authService.refreshToken(refreshToken)
+      const response = await authService.refreshToken()
 
       // 更新 Token
-      authStorage.saveTokens(
-        response.accessToken,
-        response.refreshToken,
-        response.expiresIn,
-        response.tokenType
-      )
+      authStorage.saveTokens(response.accessToken, response.expiresIn, response.tokenType)
 
       // 重新计划下次刷新
       scheduleTokenRefresh()

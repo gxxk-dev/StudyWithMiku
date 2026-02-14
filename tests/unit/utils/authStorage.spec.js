@@ -21,34 +21,34 @@ describe('authStorage', () => {
 
   // --- saveTokens / getters ---
   describe('saveTokens', () => {
-    it('should save all token fields to localStorage', () => {
-      authStorage.saveTokens('access-abc', 'refresh-xyz', 3600)
-      expect(localStorage.getItem('swm_access_token')).toBe('access-abc')
-      expect(localStorage.getItem('swm_refresh_token')).toBe('refresh-xyz')
+    it('should save token fields (access token in memory, expiresAt and tokenType to localStorage)', () => {
+      authStorage.saveTokens('access-abc', 3600)
+      expect(authStorage.getAccessToken()).toBe('access-abc')
       expect(localStorage.getItem('swm_token_type')).toBe('Bearer')
+      expect(localStorage.getItem('swm_token_expires_at')).toBeDefined()
     })
 
     it('should compute expiresAt as Date.now() + expiresIn * 1000', () => {
       const now = Date.now()
-      authStorage.saveTokens('a', 'r', 3600)
+      authStorage.saveTokens('a', 3600)
       const stored = Number(localStorage.getItem('swm_token_expires_at'))
       expect(stored).toBe(now + 3600 * 1000)
     })
 
     it('should accept a custom tokenType', () => {
-      authStorage.saveTokens('a', 'r', 3600, 'DPoP')
+      authStorage.saveTokens('a', 3600, 'DPoP')
       expect(localStorage.getItem('swm_token_type')).toBe('DPoP')
     })
 
     it('should default tokenType to Bearer', () => {
-      authStorage.saveTokens('a', 'r', 3600)
+      authStorage.saveTokens('a', 3600)
       expect(authStorage.getTokenType()).toBe('Bearer')
     })
   })
 
   describe('getAccessToken', () => {
-    it('should return the saved access token', () => {
-      authStorage.saveTokens('my-access', 'my-refresh', 1800)
+    it('should return the saved access token from memory', () => {
+      authStorage.saveTokens('my-access', 1800)
       expect(authStorage.getAccessToken()).toBe('my-access')
     })
 
@@ -57,20 +57,9 @@ describe('authStorage', () => {
     })
   })
 
-  describe('getRefreshToken', () => {
-    it('should return the saved refresh token', () => {
-      authStorage.saveTokens('a', 'my-refresh', 1800)
-      expect(authStorage.getRefreshToken()).toBe('my-refresh')
-    })
-
-    it('should return null when no token is saved', () => {
-      expect(authStorage.getRefreshToken()).toBeNull()
-    })
-  })
-
   describe('getTokenType', () => {
     it('should return the saved token type', () => {
-      authStorage.saveTokens('a', 'r', 1800, 'MAC')
+      authStorage.saveTokens('a', 1800, 'MAC')
       expect(authStorage.getTokenType()).toBe('MAC')
     })
   })
@@ -78,7 +67,7 @@ describe('authStorage', () => {
   describe('getTokenExpiresAt', () => {
     it('should return the numeric expiration timestamp', () => {
       const now = Date.now()
-      authStorage.saveTokens('a', 'r', 7200)
+      authStorage.saveTokens('a', 7200)
       expect(authStorage.getTokenExpiresAt()).toBe(now + 7200 * 1000)
     })
 
@@ -90,17 +79,17 @@ describe('authStorage', () => {
   // --- isTokenExpiringSoon ---
   describe('isTokenExpiringSoon', () => {
     it('should return false when token is far from expiring', () => {
-      authStorage.saveTokens('a', 'r', 3600) // expires in 1 hour
+      authStorage.saveTokens('a', 3600) // expires in 1 hour
       expect(authStorage.isTokenExpiringSoon(60)).toBe(false)
     })
 
     it('should return true when token expires within threshold', () => {
-      authStorage.saveTokens('a', 'r', 30) // expires in 30 seconds
+      authStorage.saveTokens('a', 30) // expires in 30 seconds
       expect(authStorage.isTokenExpiringSoon(60)).toBe(true)
     })
 
     it('should return true when token is exactly at threshold boundary', () => {
-      authStorage.saveTokens('a', 'r', 60) // expires in exactly 60 seconds
+      authStorage.saveTokens('a', 60) // expires in exactly 60 seconds
       expect(authStorage.isTokenExpiringSoon(60)).toBe(true)
     })
 
@@ -109,18 +98,18 @@ describe('authStorage', () => {
     })
 
     it('should use default threshold of 60 seconds', () => {
-      authStorage.saveTokens('a', 'r', 59)
+      authStorage.saveTokens('a', 59)
       expect(authStorage.isTokenExpiringSoon()).toBe(true)
     })
 
     it('should support custom threshold values', () => {
-      authStorage.saveTokens('a', 'r', 120) // expires in 120s
+      authStorage.saveTokens('a', 120) // expires in 120s
       expect(authStorage.isTokenExpiringSoon(300)).toBe(true) // 300s threshold → expiring soon
       expect(authStorage.isTokenExpiringSoon(60)).toBe(false) // 60s threshold → not yet
     })
 
     it('should return true when token is already expired', () => {
-      authStorage.saveTokens('a', 'r', 10)
+      authStorage.saveTokens('a', 10)
       vi.advanceTimersByTime(20 * 1000)
       expect(authStorage.isTokenExpiringSoon()).toBe(true)
     })
@@ -129,18 +118,18 @@ describe('authStorage', () => {
   // --- isTokenExpired ---
   describe('isTokenExpired', () => {
     it('should return false when token is still valid', () => {
-      authStorage.saveTokens('a', 'r', 3600)
+      authStorage.saveTokens('a', 3600)
       expect(authStorage.isTokenExpired()).toBe(false)
     })
 
     it('should return true when token has expired', () => {
-      authStorage.saveTokens('a', 'r', 3600)
+      authStorage.saveTokens('a', 3600)
       vi.advanceTimersByTime(3600 * 1000) // advance to exact expiry
       expect(authStorage.isTokenExpired()).toBe(true)
     })
 
     it('should return true when token is past expiry', () => {
-      authStorage.saveTokens('a', 'r', 100)
+      authStorage.saveTokens('a', 100)
       vi.advanceTimersByTime(200 * 1000)
       expect(authStorage.isTokenExpired()).toBe(true)
     })
@@ -152,44 +141,36 @@ describe('authStorage', () => {
 
   // --- getTokens ---
   describe('getTokens', () => {
-    it('should return all token fields when all are present', () => {
+    it('should return token fields when all are present', () => {
       const now = Date.now()
-      authStorage.saveTokens('access-1', 'refresh-1', 3600, 'Bearer')
+      authStorage.saveTokens('access-1', 3600, 'Bearer')
       const tokens = authStorage.getTokens()
       expect(tokens).toEqual({
         accessToken: 'access-1',
-        refreshToken: 'refresh-1',
         expiresAt: now + 3600 * 1000,
         tokenType: 'Bearer'
       })
     })
 
-    it('should return null when accessToken is missing', () => {
-      localStorage.setItem('swm_refresh_token', 'r')
-      localStorage.setItem('swm_token_expires_at', String(Date.now() + 60000))
-      expect(authStorage.getTokens()).toBeNull()
-    })
-
-    it('should return null when refreshToken is missing', () => {
-      localStorage.setItem('swm_access_token', 'a')
+    it('should return null when accessToken is missing (memory cleared)', () => {
+      // Without calling saveTokens, memory access token is null
       localStorage.setItem('swm_token_expires_at', String(Date.now() + 60000))
       expect(authStorage.getTokens()).toBeNull()
     })
 
     it('should return null when expiresAt is missing', () => {
-      localStorage.setItem('swm_access_token', 'a')
-      localStorage.setItem('swm_refresh_token', 'r')
+      authStorage.saveTokens('a', 3600)
+      localStorage.removeItem('swm_token_expires_at')
       expect(authStorage.getTokens()).toBeNull()
     })
   })
 
   // --- clearTokens ---
   describe('clearTokens', () => {
-    it('should remove all 4 token keys from localStorage', () => {
-      authStorage.saveTokens('a', 'r', 3600, 'Bearer')
+    it('should clear memory access token and localStorage token keys', () => {
+      authStorage.saveTokens('a', 3600, 'Bearer')
       authStorage.clearTokens()
-      expect(localStorage.getItem('swm_access_token')).toBeNull()
-      expect(localStorage.getItem('swm_refresh_token')).toBeNull()
+      expect(authStorage.getAccessToken()).toBeNull()
       expect(localStorage.getItem('swm_token_expires_at')).toBeNull()
       expect(localStorage.getItem('swm_token_type')).toBeNull()
     })
@@ -236,12 +217,11 @@ describe('authStorage', () => {
   // --- clearAllAuthData ---
   describe('clearAllAuthData', () => {
     it('should clear tokens, user, and device ID', () => {
-      authStorage.saveTokens('a', 'r', 3600)
+      authStorage.saveTokens('a', 3600)
       authStorage.saveUser(TEST_USER)
       authStorage.saveDeviceId('dev-1')
       authStorage.clearAllAuthData()
       expect(authStorage.getAccessToken()).toBeNull()
-      expect(authStorage.getRefreshToken()).toBeNull()
       expect(authStorage.getTokenExpiresAt()).toBeNull()
       expect(authStorage.getUser()).toBeUndefined()
       expect(authStorage.getDeviceId()).toBeNull()
@@ -254,27 +234,38 @@ describe('authStorage', () => {
 
   // --- hasValidAuth ---
   describe('hasValidAuth', () => {
-    it('should return true when tokens and user exist and token is not expired', () => {
-      authStorage.saveTokens('a', 'r', 3600)
+    it('should return true when memory access token and user exist and token is not expired', () => {
+      authStorage.saveTokens('a', 3600)
       authStorage.saveUser(TEST_USER)
       expect(authStorage.hasValidAuth()).toBe(true)
     })
 
-    it('should return false when tokens are missing', () => {
+    it('should return false when access token is missing (not in memory)', () => {
       authStorage.saveUser(TEST_USER)
       expect(authStorage.hasValidAuth()).toBe(false)
     })
 
     it('should return false when user is missing', () => {
-      authStorage.saveTokens('a', 'r', 3600)
+      authStorage.saveTokens('a', 3600)
       expect(authStorage.hasValidAuth()).toBe(false)
     })
 
     it('should return false when token is expired', () => {
-      authStorage.saveTokens('a', 'r', 100)
+      authStorage.saveTokens('a', 100)
       authStorage.saveUser(TEST_USER)
       vi.advanceTimersByTime(100 * 1000)
       expect(authStorage.hasValidAuth()).toBe(false)
+    })
+  })
+
+  // --- cleanupLegacyKeys ---
+  describe('cleanupLegacyKeys', () => {
+    it('should remove legacy localStorage keys', () => {
+      localStorage.setItem('swm_access_token', 'old-at')
+      localStorage.setItem('swm_refresh_token', 'old-rt')
+      authStorage.cleanupLegacyKeys()
+      expect(localStorage.getItem('swm_access_token')).toBeNull()
+      expect(localStorage.getItem('swm_refresh_token')).toBeNull()
     })
   })
 })
