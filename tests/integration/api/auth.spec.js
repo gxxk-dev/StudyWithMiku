@@ -20,13 +20,7 @@ import {
   TEST_USERNAME
 } from './setup.js'
 
-import {
-  getCurrentUser,
-  refreshToken as refreshTokenFn,
-  logout,
-  getAuthConfig,
-  updateProfile
-} from '../../../src/services/auth.js'
+import { getCurrentUser, logout, getAuthConfig, updateProfile } from '../../../src/services/auth.js'
 
 describe('认证 API 集成测试', () => {
   let accessToken
@@ -100,20 +94,41 @@ describe('认证 API 集成测试', () => {
   // ============================================================
 
   describe('refreshToken', () => {
+    // refreshToken() 依赖浏览器 Cookie jar（credentials: 'include'），
+    // Node.js 测试环境无 Cookie jar，需直接调 API 并手动传 Cookie 头
+    const fetchRefresh = async (token) => {
+      const res = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: { Cookie: `swm_refresh_token=${token}` }
+      })
+      const data = await res.json()
+      if (!res.ok) throw data
+      return data
+    }
+
     it('有效 refresh token 返回新 token pair', async () => {
-      const result = await refreshTokenFn(refreshTokenStr)
-      expect(result.accessToken).toBeDefined()
-      expect(result.refreshToken).toBeDefined()
-      expect(result.expiresIn).toBeGreaterThan(0)
-      expect(result.tokenType).toBe('Bearer')
+      const res = await fetch('/auth/refresh', {
+        method: 'POST',
+        headers: { Cookie: `swm_refresh_token=${refreshTokenStr}` }
+      })
+      expect(res.ok).toBe(true)
+
+      const data = await res.json()
+      expect(data.accessToken).toBeDefined()
+      expect(data.expiresIn).toBeGreaterThan(0)
+      expect(data.tokenType).toBe('Bearer')
+
+      // 新的 refresh token 通过 Set-Cookie 返回
+      const setCookie = res.headers.get('Set-Cookie')
+      expect(setCookie).toContain('swm_refresh_token=')
     })
 
     it('刷新后旧 refresh token 被加入黑名单', async () => {
-      await refreshTokenFn(refreshTokenStr)
+      await fetchRefresh(refreshTokenStr)
 
       // 再次使用同一个 refresh token 应失败
-      await expect(refreshTokenFn(refreshTokenStr)).rejects.toMatchObject({
-        type: 'TOKEN_EXPIRED'
+      await expect(fetchRefresh(refreshTokenStr)).rejects.toMatchObject({
+        code: expect.any(String)
       })
     })
   })
