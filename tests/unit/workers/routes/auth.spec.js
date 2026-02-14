@@ -62,7 +62,7 @@ describe('auth routes', () => {
     env.DB.__setTable('credentials', JSON.parse(JSON.stringify(sampleCredentials)))
 
     // 动态导入路由以使用 mock
-    const authModule = await import('../../../../workers/routes/auth.js')
+    const authModule = await import('../../../../workers/routes/auth/index.js')
     app = new Hono()
     app.route('/auth', authModule.default)
   })

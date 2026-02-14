@@ -6,7 +6,7 @@ import { corsGuard, handleCorsOptions } from './middleware/cors.js'
 import { securityHeaders } from './middleware/securityHeaders.js'
 import { envDefaults } from './middleware/envDefaults.js'
 import { getCounterStub } from './services/counter.js'
-import authRoutes from './routes/auth.js'
+import authRoutes from './routes/auth/index.js'
 import oauthRoutes from './routes/oauth.js'
 import dataRoutes from './routes/data.js'
 
