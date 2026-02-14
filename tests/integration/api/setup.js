@@ -3,7 +3,7 @@
  * @description API 集成测试的 Worker 生命周期管理、DB 初始化、JWT 生成、fetch 补丁
  */
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { sign } from 'hono/jwt'
@@ -112,10 +112,11 @@ export async function initDatabase() {
     body: JSON.stringify({ statements: dropStatements })
   })
 
-  const migrationFiles = [
-    'migrations/0000_busy_galactus.sql',
-    'migrations/0001_awesome_susan_delgado.sql'
-  ]
+  const migrationsDir = resolve(ROOT, 'migrations')
+  const migrationFiles = readdirSync(migrationsDir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .map((f) => `migrations/${f}`)
 
   const statements = migrationFiles.flatMap((file) => {
     const sql = readFileSync(resolve(ROOT, file), 'utf-8')

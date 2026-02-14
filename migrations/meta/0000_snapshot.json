@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "52bdf1e4-3d20-4d8f-af22-5cc2529c18ba",
+  "id": "c1aff5fb-0bcb-45a0-8623-eb3b156930b7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "credentials": {
@@ -175,7 +175,7 @@
             "provider",
             "provider_id"
           ],
-          "isUnique": false
+          "isUnique": true
         }
       },
       "foreignKeys": {

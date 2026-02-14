@@ -25,7 +25,7 @@ CREATE TABLE `oauth_accounts` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_oauth_accounts_user_id` ON `oauth_accounts` (`user_id`);--> statement-breakpoint
-CREATE INDEX `idx_oauth_accounts_provider` ON `oauth_accounts` (`provider`,`provider_id`);--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_oauth_accounts_provider` ON `oauth_accounts` (`provider`,`provider_id`);--> statement-breakpoint
 CREATE TABLE `token_blacklist` (
 	`jti` text PRIMARY KEY NOT NULL,
 	`expires_at` integer NOT NULL

@@ -25,7 +25,7 @@ new_sqlite_classes = ["AuthChallenge"]
 
 [[migrations]]
 tag = "v3"
-new_classes = ["RateLimiter"]
+new_sqlite_classes = ["RateLimiter"]
 
 [[d1_databases]]
 binding = "DB"

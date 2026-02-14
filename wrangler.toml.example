@@ -14,7 +14,7 @@ class_name = "AuthChallenge"
 
 [[migrations]]
 tag = "v1"
-new_sqlite_classes = ["OnlineCounter"]
+new_classes = ["OnlineCounter"]
 
 [[durable_objects.bindings]]
 name = "RATE_LIMITER"
