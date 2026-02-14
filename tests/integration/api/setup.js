@@ -56,6 +56,21 @@ export async function stopWorker() {
  * 初始化数据库 schema
  */
 export async function initDatabase() {
+  // 先删除所有表，确保 schema 与迁移一致（子表在前，父表在后）
+  const dropStatements = [
+    'DROP TABLE IF EXISTS user_data',
+    'DROP TABLE IF EXISTS token_blacklist',
+    'DROP TABLE IF EXISTS credentials',
+    'DROP TABLE IF EXISTS oauth_accounts',
+    'DROP TABLE IF EXISTS users'
+  ]
+
+  await workerFetch('/__test/seed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ statements: dropStatements })
+  })
+
   const migrationFiles = [
     'migrations/0000_busy_galactus.sql',
     'migrations/0001_awesome_susan_delgado.sql'
@@ -81,7 +96,6 @@ export async function initDatabase() {
   const data = await res.json()
   const failed = data.results.filter((r) => !r.success)
   if (failed.length > 0) {
-    // 忽略 "already exists" 错误（表可能已存在）
     const realErrors = failed.filter((f) => !f.error?.includes('already exists'))
     if (realErrors.length > 0) {
       throw new Error(`DB init failed: ${JSON.stringify(realErrors)}`)

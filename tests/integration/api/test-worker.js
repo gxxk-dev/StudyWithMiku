@@ -28,7 +28,7 @@ app.post('/__test/seed', async (c) => {
 
 app.post('/__test/reset', async (c) => {
   const db = c.env.DB
-  const tables = ['user_data', 'token_blacklist', 'credentials', 'users']
+  const tables = ['user_data', 'token_blacklist', 'credentials', 'oauth_accounts', 'users']
 
   for (const table of tables) {
     await db.prepare(`DELETE FROM ${table}`).run()
