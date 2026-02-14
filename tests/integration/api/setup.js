@@ -19,18 +19,55 @@ let worker = null
 let originalFetch = null
 
 /**
- * 启动 Worker
+ * 启动 Worker（支持重试和健康检查）
  */
 export async function startWorker() {
   const { unstable_dev } = await import('wrangler')
 
-  worker = await unstable_dev(resolve(__dirname, 'test-worker.js'), {
+  const host = process.env.TEST_HOST || '127.0.0.1'
+  const port = process.env.TEST_PORT ? Number(process.env.TEST_PORT) : undefined
+
+  const devOptions = {
     experimental: { disableExperimentalWarning: true },
     local: true,
     persist: false,
+    ip: host,
     vars: { JWT_SECRET: TEST_JWT_SECRET },
     config: resolve(ROOT, 'wrangler.test.toml')
-  })
+  }
+  if (port) devOptions.port = port
+
+  const MAX_RETRIES = 3
+  const RETRY_DELAY_MS = 1000
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      worker = await unstable_dev(resolve(__dirname, 'test-worker.js'), devOptions)
+      break
+    } catch (err) {
+      if (attempt === MAX_RETRIES) {
+        throw new Error(`Worker failed to start after ${MAX_RETRIES} attempts: ${err.message}`)
+      }
+      console.warn(`Worker start attempt ${attempt}/${MAX_RETRIES} failed, retrying...`)
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
+    }
+  }
+
+  // 健康检查：确认 Worker 可达
+  const healthUrl = `http://${worker.address}:${worker.port}/`
+  const HEALTH_RETRIES = 5
+  const HEALTH_DELAY_MS = 500
+  for (let i = 1; i <= HEALTH_RETRIES; i++) {
+    try {
+      await fetch(healthUrl)
+      break
+    } catch {
+      if (i === HEALTH_RETRIES) {
+        throw new Error(`Worker health check failed after ${HEALTH_RETRIES} attempts`)
+      }
+      await new Promise((r) => setTimeout(r, HEALTH_DELAY_MS))
+    }
+  }
 
   // 补丁 fetch：将相对路径转为 worker 地址
   originalFetch = globalThis.fetch
