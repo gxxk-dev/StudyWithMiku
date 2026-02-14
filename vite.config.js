@@ -196,7 +196,9 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             vendor: ['vue'],
-            aplayer: ['aplayer']
+            aplayer: ['aplayer'],
+            html2canvas: ['html2canvas'],
+            'cbor-x': ['cbor-x']
           }
         }
       }
