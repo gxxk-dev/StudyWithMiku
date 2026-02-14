@@ -808,10 +808,9 @@ auth.post('/devices/merge', requireAuth(), zValidator('json', mergeRequestSchema
     return c.json({ error: 'Invalid or expired merge token', code: ERROR_CODES.INVALID_TOKEN }, 400)
   }
 
-  mergeTokens.delete(mergeToken)
-
   // 检查 TTL
   if (Date.now() - tokenRecord.createdAt > MERGE_TOKEN_TTL) {
+    mergeTokens.delete(mergeToken)
     return c.json({ error: 'Merge token expired', code: ERROR_CODES.INVALID_TOKEN }, 400)
   }
 
@@ -831,6 +830,9 @@ auth.post('/devices/merge', requireAuth(), zValidator('json', mergeRequestSchema
 
   // 清理源用户
   await cleanupSourceUser(c.env.DB, tokenRecord.sourceUserId)
+
+  // 合并成功后消费 token，防止重放
+  mergeTokens.delete(mergeToken)
 
   return c.json({ success: true })
 })

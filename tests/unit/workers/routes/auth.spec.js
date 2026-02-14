@@ -435,4 +435,76 @@ describe('auth routes', () => {
       expect(res.status).toBe(404)
     })
   })
+
+  describe('POST /auth/devices/merge', () => {
+    it('错误用户尝试后，正确用户仍可使用同一 mergeToken 完成合并', async () => {
+      // 让 add/verify 走到“凭据已属于其他用户”的冲突分支
+      env.DB.__setTable('credentials', [
+        ...JSON.parse(JSON.stringify(sampleCredentials)),
+        {
+          ...JSON.parse(JSON.stringify(sampleCredentials[2])),
+          id: 'new-credential-id',
+          user_id: 'user-002'
+        }
+      ])
+
+      const targetHeaders = await getAuthHeaders('user-001', 'testuser')
+
+      const optionsRes = await jsonRequest('POST', '/auth/devices/add/options', {}, targetHeaders)
+      expect(optionsRes.status).toBe(200)
+      const { challengeId } = await optionsRes.json()
+
+      const verifyRes = await jsonRequest(
+        'POST',
+        '/auth/devices/add/verify',
+        {
+          challengeId,
+          response: {
+            id: 'new-credential-id',
+            rawId: 'new-credential-id',
+            response: {
+              clientDataJSON: 'mock-client-data',
+              attestationObject: 'mock-attestation',
+              transports: ['internal']
+            },
+            type: 'public-key'
+          }
+        },
+        targetHeaders
+      )
+
+      expect(verifyRes.status).toBe(409)
+      const conflict = await verifyRes.json()
+      expect(conflict.code).toBe(ERROR_CODES.CREDENTIAL_EXISTS)
+      expect(conflict.mergeToken).toBeDefined()
+
+      const mergePayload = {
+        mergeToken: conflict.mergeToken,
+        dataChoices: {
+          records: 'target',
+          settings: 'source',
+          playlists: 'target'
+        }
+      }
+
+      const wrongHeaders = await getAuthHeaders('user-003', 'google_user')
+      const wrongUserRes = await jsonRequest(
+        'POST',
+        '/auth/devices/merge',
+        mergePayload,
+        wrongHeaders
+      )
+      expect(wrongUserRes.status).toBe(403)
+
+      const rightUserRes = await jsonRequest(
+        'POST',
+        '/auth/devices/merge',
+        mergePayload,
+        targetHeaders
+      )
+      expect(rightUserRes.status).toBe(200)
+      const body = await rightUserRes.json()
+      expect(body.success).toBe(true)
+    })
+  })
 })

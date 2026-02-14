@@ -4,6 +4,8 @@ import oauthRoutes from '../../../../workers/routes/oauth.js'
 import * as oauthService from '../../../../workers/services/oauth.js'
 import * as userService from '../../../../workers/services/user.js'
 import * as oauthAccountService from '../../../../workers/services/oauthAccount.js'
+import * as userDataService from '../../../../workers/services/userData.js'
+import * as mergeService from '../../../../workers/services/merge.js'
 import * as jwtService from '../../../../workers/services/jwt.js'
 
 vi.mock('../../../../workers/services/oauth.js', () => ({
@@ -43,7 +45,17 @@ vi.mock('../../../../workers/services/user.js', () => ({
 vi.mock('../../../../workers/services/oauthAccount.js', () => ({
   findOAuthAccount: vi.fn(),
   linkOAuthAccount: vi.fn(),
-  findOAuthAccountsByUserId: vi.fn(() => [])
+  findOAuthAccountsByUserId: vi.fn(() => []),
+  transferOAuthAccount: vi.fn()
+}))
+
+vi.mock('../../../../workers/services/userData.js', () => ({
+  hasUserData: vi.fn()
+}))
+
+vi.mock('../../../../workers/services/merge.js', () => ({
+  mergeUserData: vi.fn(),
+  cleanupSourceUser: vi.fn()
 }))
 
 vi.mock('../../../../workers/services/jwt.js', () => ({
@@ -59,7 +71,10 @@ vi.mock('../../../../workers/middleware/rateLimit.js', () => ({
 }))
 
 vi.mock('../../../../workers/middleware/auth.js', () => ({
-  requireAuth: vi.fn(() => async (_c, next) => next())
+  requireAuth: vi.fn(() => async (c, next) => {
+    c.set('user', { id: c.req.header('x-test-user-id') || 'user-001' })
+    await next()
+  })
 }))
 
 // 创建测试 app
@@ -93,6 +108,12 @@ const createApp = (envOverrides = {}) => {
 beforeEach(() => {
   vi.clearAllMocks()
 })
+
+const parseLinkResult = (location) => {
+  const hash = new URL(location).hash.slice(1)
+  const params = new URLSearchParams(hash)
+  return JSON.parse(params.get('link_result'))
+}
 
 describe('workers/routes/oauth', () => {
   describe('GitHub OAuth', () => {
@@ -456,6 +477,88 @@ describe('workers/routes/oauth', () => {
         expect(res.status).toBe(302)
         expect(res.headers.get('Location')).toContain('error=')
       })
+    })
+  })
+
+  describe('OAuth 账号合并', () => {
+    it('错误用户尝试后，正确用户仍可使用同一 mergeToken 完成合并', async () => {
+      const app = createApp()
+
+      // 1) 发起关联，获取 state
+      const linkRes = await app.request('/oauth/link/github', {
+        method: 'POST',
+        headers: { 'x-test-user-id': 'user-target' }
+      })
+      expect(linkRes.status).toBe(200)
+
+      // 2) 回调触发冲突，返回 mergeToken
+      oauthService.exchangeGitHubCode.mockResolvedValue({ accessToken: 'gh-token' })
+      oauthService.getGitHubUser.mockResolvedValue({
+        user: {
+          provider: 'github',
+          providerId: 'provider-conflict',
+          username: 'octocat',
+          displayName: 'Octocat',
+          avatarUrl: null
+        }
+      })
+      oauthAccountService.findOAuthAccount.mockResolvedValue({
+        id: 'oauth-conflict-001',
+        userId: 'user-source',
+        provider: 'github',
+        providerId: 'provider-conflict'
+      })
+      userDataService.hasUserData.mockResolvedValue(true)
+
+      const callbackRes = await app.request('/oauth/github/callback?code=ok&state=mock-state-123')
+      expect(callbackRes.status).toBe(302)
+
+      const linkResult = parseLinkResult(callbackRes.headers.get('Location'))
+      expect(linkResult.code).toBe('OAUTH_ALREADY_LINKED')
+      expect(linkResult.mergeToken).toBeDefined()
+
+      const mergePayload = {
+        mergeToken: linkResult.mergeToken,
+        dataChoices: {
+          records: 'target',
+          settings: 'source',
+          playlists: 'target'
+        }
+      }
+
+      // 3) 错误用户先尝试，应该 403
+      const wrongUserRes = await app.request('/oauth/merge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-test-user-id': 'user-other'
+        },
+        body: JSON.stringify(mergePayload)
+      })
+      expect(wrongUserRes.status).toBe(403)
+
+      // 4) 正确用户随后使用同一 token 仍应成功
+      oauthAccountService.transferOAuthAccount.mockResolvedValue(undefined)
+      mergeService.mergeUserData.mockResolvedValue(undefined)
+      mergeService.cleanupSourceUser.mockResolvedValue(true)
+
+      const rightUserRes = await app.request('/oauth/merge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-test-user-id': 'user-target'
+        },
+        body: JSON.stringify(mergePayload)
+      })
+
+      expect(rightUserRes.status).toBe(200)
+      const body = await rightUserRes.json()
+      expect(body.success).toBe(true)
+      expect(oauthAccountService.transferOAuthAccount).toHaveBeenCalledWith(
+        {},
+        'oauth-conflict-001',
+        'user-target'
+      )
     })
   })
 })
