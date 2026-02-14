@@ -9,7 +9,7 @@
 export const MOCK_USER = {
   id: 'test-user-id-123',
   username: 'testuser',
-  display_name: 'Test User',
+  displayName: 'Test User',
   authProvider: 'webauthn',
   createdAt: '2026-01-01T00:00:00.000Z'
 }
@@ -17,7 +17,7 @@ export const MOCK_USER = {
 export const MOCK_OAUTH_USER = {
   id: 'oauth-user-id-456',
   username: 'oauthuser',
-  display_name: 'OAuth User',
+  displayName: 'OAuth User',
   authProvider: 'github',
   createdAt: '2026-01-01T00:00:00.000Z'
 }
@@ -310,6 +310,25 @@ export const mockAddDeviceFlow = async (page, device = MOCK_DEVICE) => {
       contentType: 'application/json',
       body: JSON.stringify({ device })
     })
+  })
+}
+
+/**
+ * Mock GET /auth/methods
+ * @param {import('@playwright/test').Page} page
+ * @param {Array} methods - 认证方法列表
+ */
+export const mockAuthMethods = async (page, methods = []) => {
+  await page.route('**/auth/methods', (route) => {
+    if (route.request().method() === 'GET') {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ methods })
+      })
+    } else {
+      route.continue()
+    }
   })
 }
 

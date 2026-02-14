@@ -6,7 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 2,
   workers: 1,
-  reporter: 'html',
+  reporter: process.env.CI ? 'list' : 'html',
   timeout: 30000,
   expect: {
     timeout: 10000

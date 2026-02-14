@@ -8,6 +8,7 @@ import {
   mockGetMe,
   mockDataSync,
   mockDataSyncError,
+  mockAuthMethods,
   MOCK_USER,
   MOCK_TOKENS
 } from './helpers/mockApi.js'
@@ -17,6 +18,7 @@ test.describe('离线队列和数据同步', () => {
   test.beforeEach(async ({ page }) => {
     await mockAuthConfig(page)
     await mockGetMe(page, MOCK_USER)
+    await mockAuthMethods(page, [{ id: 'webauthn-1', type: 'webauthn', deviceName: 'Test Device' }])
   })
 
   test('已登录时同步面板显示正确状态', async ({ page }) => {
@@ -74,6 +76,22 @@ test.describe('离线队列和数据同步', () => {
     await page.waitForSelector('body')
 
     await injectAuthState(page, MOCK_USER, MOCK_TOKENS)
+
+    // 添加待同步队列，triggerSync 只上传 pendingChanges 中的数据
+    await page.evaluate(() => {
+      const queue = [
+        {
+          id: 'focus_records_queued',
+          type: 'focus_records',
+          data: [{ id: 'r1', mode: 'focus', duration: 1500 }],
+          version: 1,
+          timestamp: Date.now(),
+          operation: 'update'
+        }
+      ]
+      localStorage.setItem('swm_sync_queue', JSON.stringify(queue))
+    })
+
     await page.reload()
     await page.waitForSelector('body')
 
@@ -85,7 +103,7 @@ test.describe('离线队列和数据同步', () => {
     // 等待同步完成
     await page.waitForTimeout(2000)
 
-    // 验证 API 被调用
+    // 验证 PUT API 被调用
     expect(syncCalled).toBe(true)
 
     // 验证状态文字变为已同步
@@ -102,14 +120,11 @@ test.describe('离线队列和数据同步', () => {
     await page.waitForSelector('body')
 
     await injectAuthState(page, MOCK_USER, MOCK_TOKENS)
-
-    // 设置离线
-    await context.setOffline(true)
-
     await page.reload()
     await page.waitForSelector('body')
 
-    await openAccountTab(page)
+    // 设置离线（在 reload 之后，否则页面无法加载）
+    await context.setOffline(true)
 
     // 验证显示离线状态（通过检查 navigator.onLine）
     const isOnline = await page.evaluate(() => navigator.onLine)
@@ -134,7 +149,15 @@ test.describe('离线队列和数据同步', () => {
           })
         })
       } else {
-        route.continue()
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            type: 'focus_records',
+            data: [],
+            version: 1
+          })
+        })
       }
     })
 
@@ -148,7 +171,7 @@ test.describe('离线队列和数据同步', () => {
     // 设置离线
     await context.setOffline(true)
 
-    // 模拟离线时的数据变更
+    // 模拟离线时的数据变更：同时写入 localStorage 和同步队列
     await page.evaluate(() => {
       const records = [
         {
@@ -160,6 +183,17 @@ test.describe('离线队列和数据同步', () => {
         }
       ]
       localStorage.setItem('swm_focus_records', JSON.stringify(records))
+      const queue = [
+        {
+          id: 'focus_records_offline',
+          type: 'focus_records',
+          data: records,
+          version: 1,
+          timestamp: Date.now(),
+          operation: 'update'
+        }
+      ]
+      localStorage.setItem('swm_sync_queue', JSON.stringify(queue))
     })
 
     // 恢复网络
@@ -205,6 +239,20 @@ test.describe('离线队列和数据同步', () => {
     let conflictReturned = false
     let forceUploadCalled = false
 
+    // 先注册通配路由处理其他数据类型
+    await page.route('**/api/data/*', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          type: 'unknown',
+          data: null,
+          version: 1
+        })
+      })
+    })
+
+    // 再注册 focus_records 专用路由（后注册的优先匹配）
     await page.route('**/api/data/focus_records', (route) => {
       if (route.request().method() === 'PUT') {
         if (!conflictReturned) {
@@ -248,10 +296,8 @@ test.describe('离线队列和数据同步', () => {
     await page.waitForSelector('body')
 
     await injectAuthState(page, MOCK_USER, MOCK_TOKENS)
-    await page.reload()
-    await page.waitForSelector('body')
 
-    // 添加数据到 localStorage
+    // 添加数据到 localStorage 和同步队列
     await page.evaluate(() => {
       const records = [
         {
@@ -263,7 +309,21 @@ test.describe('离线队列和数据同步', () => {
         }
       ]
       localStorage.setItem('swm_focus_records', JSON.stringify(records))
+      const queue = [
+        {
+          id: 'focus_records_conflict',
+          type: 'focus_records',
+          data: records,
+          version: 1,
+          timestamp: Date.now(),
+          operation: 'update'
+        }
+      ]
+      localStorage.setItem('swm_sync_queue', JSON.stringify(queue))
     })
+
+    await page.reload()
+    await page.waitForSelector('body')
 
     await openAccountTab(page)
 

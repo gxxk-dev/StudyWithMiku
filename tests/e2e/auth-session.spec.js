@@ -8,6 +8,7 @@ import {
   mockGetMe,
   mockRefreshToken,
   mockLogout,
+  mockAuthMethods,
   MOCK_USER,
   MOCK_TOKENS
 } from './helpers/mockApi.js'
@@ -23,6 +24,7 @@ test.describe('会话持久化和管理', () => {
     await mockAuthConfig(page)
     await mockGetMe(page, MOCK_USER)
     await mockLogout(page)
+    await mockAuthMethods(page, [{ id: 'webauthn-1', type: 'webauthn', deviceName: 'Test Device' }])
   })
 
   test('刷新页面后保持登录：注入 token → reload → 验证 profile panel 可见', async ({ page }) => {
@@ -95,6 +97,10 @@ test.describe('会话持久化和管理', () => {
       expiresIn: 30
     }
     await injectAuthState(page, MOCK_USER, soonExpireTokens)
+
+    // reload 让 initialize() 读取 token 并启动 scheduleTokenRefresh
+    await page.reload()
+    await page.waitForSelector('body')
 
     // 等待自动刷新（TOKEN_REFRESH_THRESHOLD = 60 秒，所以会立即触发）
     await page.waitForTimeout(3000)

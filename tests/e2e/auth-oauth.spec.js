@@ -4,13 +4,22 @@
  */
 
 import { test, expect } from '@playwright/test'
-import { mockAuthConfig, mockGetMe, MOCK_OAUTH_USER, MOCK_TOKENS } from './helpers/mockApi.js'
+import {
+  mockAuthConfig,
+  mockGetMe,
+  mockAuthMethods,
+  MOCK_OAUTH_USER,
+  MOCK_TOKENS
+} from './helpers/mockApi.js'
 import { openAccountTab } from './helpers/navigate.js'
 
 test.describe('OAuth 回调处理', () => {
   test.beforeEach(async ({ page }) => {
     await mockAuthConfig(page)
     await mockGetMe(page, MOCK_OAUTH_USER)
+    await mockAuthMethods(page, [
+      { id: 'oauth-1', type: 'oauth', provider: MOCK_OAUTH_USER.authProvider }
+    ])
   })
 
   test('GitHub OAuth 回调：导航到带 hash 的 URL → 验证自动登录', async ({ page }) => {
@@ -37,6 +46,7 @@ test.describe('OAuth 回调处理', () => {
   test('Google OAuth 回调：provider 为 Google', async ({ page }) => {
     const googleUser = { ...MOCK_OAUTH_USER, authProvider: 'google' }
     await mockGetMe(page, googleUser)
+    await mockAuthMethods(page, [{ id: 'oauth-1', type: 'oauth', provider: 'google' }])
 
     const userJson = encodeURIComponent(JSON.stringify(googleUser))
     const callbackUrl = `http://localhost:3000/#access_token=${MOCK_TOKENS.accessToken}&refresh_token=${MOCK_TOKENS.refreshToken}&expires_in=${MOCK_TOKENS.expiresIn}&user=${userJson}`
@@ -113,7 +123,7 @@ test.describe('OAuth 回调处理', () => {
     })
 
     // 点击 GitHub OAuth 按钮
-    await page.click('button.oauth-btn.github')
+    await page.click('button.oauth-btn:has-text("GitHub")')
 
     // 验证 sessionStorage 保存了 return URL
     const returnUrl = await page.evaluate(() => {

@@ -10,6 +10,7 @@ import {
   mockLoginFlow,
   mockGetDevices,
   mockAddDeviceFlow,
+  mockAuthMethods,
   MOCK_USER,
   MOCK_TOKENS,
   MOCK_DEVICE
@@ -48,6 +49,9 @@ test.describe('WebAuthn 注册和登录', () => {
     await mockRegisterFlow(page, MOCK_USER, MOCK_TOKENS)
     await mockLoginFlow(page, MOCK_USER, MOCK_TOKENS)
     await mockGetDevices(page, [MOCK_DEVICE])
+    await mockAuthMethods(page, [
+      { id: MOCK_DEVICE.credentialId, type: 'webauthn', deviceName: MOCK_DEVICE.deviceName }
+    ])
 
     // 导航到首页
     await page.goto('/')
@@ -206,6 +210,33 @@ test.describe('WebAuthn 注册和登录', () => {
       deviceName: 'New Device'
     })
 
+    // 覆盖 authMethods mock：添加设备后 getAuthMethods 会重新请求，返回 2 个方法
+    let deviceAdded = false
+    await page.route('**/auth/devices/add/verify', async (route) => {
+      deviceAdded = true
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          device: { ...MOCK_DEVICE, id: 'device-id-002', deviceName: 'New Device' }
+        })
+      })
+    })
+    await page.route('**/auth/methods', (route) => {
+      if (route.request().method() !== 'GET') return route.continue()
+      const methods = deviceAdded
+        ? [
+            { id: MOCK_DEVICE.credentialId, type: 'webauthn', deviceName: MOCK_DEVICE.deviceName },
+            { id: 'device-id-002', type: 'webauthn', deviceName: 'New Device' }
+          ]
+        : [{ id: MOCK_DEVICE.credentialId, type: 'webauthn', deviceName: MOCK_DEVICE.deviceName }]
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ methods })
+      })
+    })
+
     // 注入已登录状态
     await injectAuthState(page, MOCK_USER, MOCK_TOKENS)
     await page.reload()
@@ -217,7 +248,7 @@ test.describe('WebAuthn 注册和登录', () => {
     await expect(page.locator('.profile-panel')).toBeVisible()
 
     // 点击添加设备
-    await page.click('button.add-btn:has-text("添加设备")')
+    await page.click('button.add-btn:has-text("添加安全密钥")')
 
     // 验证显示输入框
     await expect(page.locator('.add-device-form')).toBeVisible()
