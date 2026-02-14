@@ -117,7 +117,7 @@ const goBack = () => {
   background: rgba(255, 255, 255, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
   color: #f39c12;
 }

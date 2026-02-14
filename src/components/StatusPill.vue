@@ -241,7 +241,7 @@ $glass-border: rgba(255, 255, 255, 0.2);
   gap: 1.2rem;
   white-space: nowrap;
   color: white;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   user-select: none;
 
   &:hover {

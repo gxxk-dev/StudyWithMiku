@@ -365,7 +365,7 @@ $color-paused: #ffc107;
 .time-display {
   font-size: 3rem;
   font-weight: 600;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   color: rgba(255, 255, 255, 0.95);
   letter-spacing: 2px;
 }

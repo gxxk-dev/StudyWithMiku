@@ -323,7 +323,7 @@ $color-break: #4ecdc4;
   font-size: 0.9rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.9);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   min-width: 50px;
 }
 

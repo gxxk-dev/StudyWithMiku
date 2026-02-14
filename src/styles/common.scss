@@ -3,6 +3,11 @@
  * 用于整个应用的可复用样式
  */
 
+:root {
+  --font-sans: 'Inter Variable', 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-mono: 'Fira Code', monospace;
+}
+
 // ===== 隐藏元素 =====
 .hidden {
   opacity: 0;

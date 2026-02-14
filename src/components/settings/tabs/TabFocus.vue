@@ -740,7 +740,7 @@ const handleNotificationSound = (e) => {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
   font-size: 0.8rem;
-  font-family: monospace;
+  font-family: var(--font-mono);
   color: rgba(255, 255, 255, 0.7);
   word-break: break-all;
   max-height: 80px;
