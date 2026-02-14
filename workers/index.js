@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { OnlineCounter } from './online-counter.js'
 import { AuthChallenge } from './auth-challenge.js'
+import { RateLimiter } from './rate-limiter.js'
 import { corsGuard, handleCorsOptions } from './middleware/cors.js'
 import { securityHeaders } from './middleware/securityHeaders.js'
 import { envDefaults } from './middleware/envDefaults.js'
@@ -69,4 +70,4 @@ app.route('/oauth', oauthRoutes)
 app.route('/api/data', dataRoutes)
 
 export default app
-export { OnlineCounter, AuthChallenge }
+export { OnlineCounter, AuthChallenge, RateLimiter }

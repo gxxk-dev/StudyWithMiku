@@ -552,6 +552,42 @@ export const createMockDOStub = () => {
 }
 
 /**
+ * 创建 Mock RateLimiter DO Binding
+ * 模拟 RateLimiter Durable Object 的限流行为
+ */
+export const createMockRateLimiterBinding = () => {
+  const instances = new Map()
+
+  return {
+    idFromName: vi.fn((name) => name),
+    get: vi.fn((id) => {
+      if (!instances.has(id)) {
+        let count = 0
+        let resetTime = 0
+        instances.set(id, {
+          fetch: vi.fn(async (_url, opts) => {
+            const { windowMs, max } = JSON.parse(opts.body)
+            const now = Date.now()
+            if (now > resetTime) {
+              count = 0
+              resetTime = now + windowMs
+            }
+            count++
+            const allowed = count <= max
+            const remaining = Math.max(0, max - count)
+            const retryAfter = allowed ? 0 : Math.ceil((resetTime - now) / 1000)
+            return new Response(
+              JSON.stringify({ allowed, count, remaining, resetTime, retryAfter })
+            )
+          })
+        })
+      }
+      return instances.get(id)
+    })
+  }
+}
+
+/**
  * 创建 Mock Cloudflare Workers 环境
  * @param {Object} overrides - 环境变量覆盖
  * @returns {Object} Mock env 对象
@@ -559,6 +595,7 @@ export const createMockDOStub = () => {
 export const createMockEnv = (overrides = {}) => {
   const db = createMockD1()
   const challengeStub = createMockDOStub()
+  const rateLimiterBinding = createMockRateLimiterBinding()
 
   return {
     DB: db,
@@ -566,6 +603,7 @@ export const createMockEnv = (overrides = {}) => {
       idFromName: vi.fn(() => 'mock-id'),
       get: vi.fn(() => challengeStub)
     },
+    RATE_LIMITER: rateLimiterBinding,
     JWT_SECRET: 'test-jwt-secret-32-characters-long',
     WEBAUTHN_RP_ID: 'localhost',
     WEBAUTHN_RP_NAME: 'Test App',

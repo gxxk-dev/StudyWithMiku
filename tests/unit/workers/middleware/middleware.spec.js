@@ -33,12 +33,14 @@ describe('middleware', () => {
     })
 
     it('超过限制应该返回 429', async () => {
+      const env = createMockEnv()
       const middleware = rateLimit({ windowMs: 60000, max: 2, keyPrefix: 'limit-test' })
       const next = vi.fn()
 
       // 发送多个请求
       for (let i = 0; i < 3; i++) {
         const c = createMockContext({
+          env,
           headers: { 'CF-Connecting-IP': '1.2.3.4' }
         })
         const result = await middleware(c, next)
@@ -55,15 +57,18 @@ describe('middleware', () => {
     })
 
     it('时间窗口过后应该重置计数', async () => {
+      const env = createMockEnv()
       const middleware = rateLimit({ windowMs: 1000, max: 1, keyPrefix: 'reset-test' })
 
       const c1 = createMockContext({
+        env,
         headers: { 'CF-Connecting-IP': '5.6.7.8' }
       })
       await middleware(c1, vi.fn())
 
       // 第二个请求应该被拒绝
       const c2 = createMockContext({
+        env,
         headers: { 'CF-Connecting-IP': '5.6.7.8' }
       })
       const result2 = await middleware(c2, vi.fn())
@@ -74,6 +79,7 @@ describe('middleware', () => {
 
       // 新请求应该被允许
       const c3 = createMockContext({
+        env,
         headers: { 'CF-Connecting-IP': '5.6.7.8' }
       })
       const next3 = vi.fn()
@@ -82,12 +88,15 @@ describe('middleware', () => {
     })
 
     it('不同 IP 应该独立计数', async () => {
+      const env = createMockEnv()
       const middleware = rateLimit({ windowMs: 60000, max: 1, keyPrefix: 'ip-test' })
 
       const c1 = createMockContext({
+        env,
         headers: { 'CF-Connecting-IP': '1.1.1.1' }
       })
       const c2 = createMockContext({
+        env,
         headers: { 'CF-Connecting-IP': '2.2.2.2' }
       })
 
@@ -102,8 +111,10 @@ describe('middleware', () => {
     })
 
     it('应该添加 RateLimit 响应头', async () => {
+      const env = createMockEnv()
       const middleware = rateLimit({ windowMs: 60000, max: 10, keyPrefix: 'header-test' })
       const c = createMockContext({
+        env,
         headers: { 'CF-Connecting-IP': '3.3.3.3' }
       })
       const next = vi.fn()

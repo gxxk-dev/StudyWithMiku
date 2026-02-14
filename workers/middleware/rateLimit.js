@@ -1,28 +1,10 @@
 /**
  * @module workers/middleware/rateLimit
- * @description 基于 IP 的速率限制中间件
- * 使用内存存储，Workers 实例间不共享状态
+ * @description 基于 Durable Object 的分布式速率限制中间件
+ * 通过 RateLimiter DO 实现跨 Worker 实例的一致限流
  */
 
 import { RATE_LIMIT_CONFIG, ERROR_CODES } from '../constants.js'
-
-/**
- * 速率限制存储
- * @type {Map<string, {count: number, resetTime: number}>}
- */
-const rateLimitStore = new Map()
-
-/**
- * 清理过期的速率限制记录
- */
-const cleanupExpiredEntries = () => {
-  const now = Date.now()
-  for (const [key, value] of rateLimitStore) {
-    if (now > value.resetTime) {
-      rateLimitStore.delete(key)
-    }
-  }
-}
 
 /**
  * 获取客户端 IP
@@ -45,49 +27,36 @@ export const rateLimit = ({ windowMs, max, keyPrefix = '' }) => {
   return async (c, next) => {
     const ip = getClientIP(c)
     const key = `${keyPrefix}:${ip}`
-    const now = Date.now()
 
-    // 定期清理 (每 100 次请求)
-    if (Math.random() < 0.01) {
-      cleanupExpiredEntries()
+    const id = c.env.RATE_LIMITER.idFromName(key)
+    const stub = c.env.RATE_LIMITER.get(id)
+
+    const res = await stub.fetch('https://rate-limiter/check', {
+      method: 'POST',
+      body: JSON.stringify({ windowMs, max })
+    })
+
+    const { allowed, remaining, resetTime, retryAfter } = await res.json()
+
+    if (!allowed) {
+      return c.json(
+        {
+          error: 'Too many requests',
+          code: ERROR_CODES.RATE_LIMITED,
+          retryAfter
+        },
+        429,
+        {
+          'Retry-After': String(retryAfter)
+        }
+      )
     }
 
-    let record = rateLimitStore.get(key)
-
-    if (!record || now > record.resetTime) {
-      // 新记录或已过期
-      record = {
-        count: 1,
-        resetTime: now + windowMs
-      }
-      rateLimitStore.set(key, record)
-    } else {
-      // 增加计数
-      record.count++
-
-      if (record.count > max) {
-        const retryAfter = Math.ceil((record.resetTime - now) / 1000)
-
-        return c.json(
-          {
-            error: 'Too many requests',
-            code: ERROR_CODES.RATE_LIMITED,
-            retryAfter
-          },
-          429,
-          {
-            'Retry-After': String(retryAfter)
-          }
-        )
-      }
-    }
-
-    // 添加速率限制信息到响应头
     await next()
 
     c.res.headers.set('X-RateLimit-Limit', String(max))
-    c.res.headers.set('X-RateLimit-Remaining', String(Math.max(0, max - record.count)))
-    c.res.headers.set('X-RateLimit-Reset', String(Math.ceil(record.resetTime / 1000)))
+    c.res.headers.set('X-RateLimit-Remaining', String(remaining))
+    c.res.headers.set('X-RateLimit-Reset', String(Math.ceil(resetTime / 1000)))
   }
 }
 

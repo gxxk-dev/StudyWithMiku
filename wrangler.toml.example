@@ -16,9 +16,17 @@ class_name = "AuthChallenge"
 tag = "v1"
 new_sqlite_classes = ["OnlineCounter"]
 
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
 [[migrations]]
 tag = "v2"
 new_classes = ["AuthChallenge"]
+
+[[migrations]]
+tag = "v3"
+new_classes = ["RateLimiter"]
 
 # D1 数据库
 [[d1_databases]]
