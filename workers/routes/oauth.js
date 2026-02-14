@@ -65,12 +65,29 @@ const mergeTokens = new Map()
 const MERGE_TOKEN_TTL = 10 * 60 * 1000
 
 /**
+ * 清理 Map 中过期的条目
+ * @param {Map} map
+ * @param {number} ttl
+ */
+const cleanupExpiredEntries = (map, ttl) => {
+  const now = Date.now()
+  for (const [key, value] of map) {
+    if (now - value.createdAt > ttl) {
+      map.delete(key)
+    }
+  }
+}
+
+/**
  * 验证并消费 OAuth state，返回完整 state 记录
  * @param {string} state
  * @param {string} expectedProvider
  * @returns {Object|null} state 记录或 null
  */
 const validateState = (state, expectedProvider) => {
+  cleanupExpiredEntries(oauthStates, OAUTH_STATE_TTL)
+  cleanupExpiredEntries(mergeTokens, MERGE_TOKEN_TTL)
+
   const record = oauthStates.get(state)
   if (!record) return null
 
@@ -448,8 +465,8 @@ oauth.get('/:provider/callback', authRateLimit, async (c) => {
       if (isSelf) {
         return redirectWithLinkResult(c, {
           success: false,
-          error: 'This account is already linked to your account',
-          code: ERROR_CODES.OAUTH_ALREADY_LINKED_SELF
+          error: 'This account is already linked',
+          code: ERROR_CODES.OAUTH_ALREADY_LINKED
         })
       }
 
@@ -467,7 +484,7 @@ oauth.get('/:provider/callback', authRateLimit, async (c) => {
 
       return redirectWithLinkResult(c, {
         success: false,
-        error: 'This account is already linked to another user',
+        error: 'This account is already linked',
         code: ERROR_CODES.OAUTH_ALREADY_LINKED,
         hasData: otherHasData,
         mergeToken

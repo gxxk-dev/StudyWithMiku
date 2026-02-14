@@ -10,6 +10,7 @@ import { ref, readonly, computed } from 'vue'
 import * as dataSyncService from '../services/dataSync.js'
 import * as authStorage from '../utils/authStorage.js'
 import * as conflictResolver from '../utils/syncConflictResolver.js'
+import { validateRecord } from '../utils/syncConflictResolver.js'
 import { safeLocalStorageGetJSON, safeLocalStorageSetJSON } from '../utils/storage.js'
 import { AUTH_CONFIG, STORAGE_KEYS } from '../config/constants.js'
 
@@ -371,13 +372,21 @@ export const useDataSync = () => {
    */
   const resolveConflict = async (dataType, localData, serverData, localVersion, serverVersion) => {
     // 使用自动冲突解决策略
-    const resolvedData = conflictResolver.resolveConflict(
+    let resolvedData = conflictResolver.resolveConflict(
       dataType,
       localData,
       serverData,
       localVersion,
       serverVersion
     )
+
+    // 对 focus_records 做合并后再校验
+    if (dataType === 'focus_records') {
+      if (!Array.isArray(resolvedData) || !resolvedData.every(validateRecord)) {
+        console.warn('冲突解决后数据校验失败，回退到服务器数据')
+        resolvedData = serverData
+      }
+    }
 
     // 保存解决后的数据到本地
     saveLocalData(dataType, resolvedData)
@@ -448,6 +457,16 @@ export const useDataSync = () => {
         })
       }
     }, AUTH_CONFIG.SYNC_DEBOUNCE_DELAY)
+  }
+
+  /**
+   * 取消待执行的防抖同步定时器
+   */
+  const cancelPendingSync = () => {
+    if (syncDebounceTimer) {
+      clearTimeout(syncDebounceTimer)
+      syncDebounceTimer = null
+    }
   }
 
   /**
@@ -522,6 +541,7 @@ export const useDataSync = () => {
     queueChange,
     processQueue,
     triggerSync,
+    cancelPendingSync,
     clearError
   }
 }

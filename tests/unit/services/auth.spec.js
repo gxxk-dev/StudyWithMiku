@@ -187,7 +187,7 @@ describe('auth service', () => {
     it('parses tokens and user from location hash (refresh token via HttpOnly Cookie)', () => {
       window.location.hash =
         '#access_token=at&expires_in=3600&user=' +
-        encodeURIComponent(JSON.stringify({ id: '1', name: 'miku' }))
+        encodeURIComponent(JSON.stringify({ id: '1', displayName: 'miku' }))
       window.location.pathname = '/callback'
       window.history = { replaceState: vi.fn() }
 
@@ -195,7 +195,7 @@ describe('auth service', () => {
 
       expect(result.tokens.accessToken).toBe('at')
       expect(result.tokens.expiresIn).toBe(3600)
-      expect(result.user.name).toBe('miku')
+      expect(result.user.displayName).toBe('miku')
     })
 
     it('returns null when hash has no tokens', () => {

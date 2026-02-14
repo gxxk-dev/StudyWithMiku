@@ -13,6 +13,23 @@
 import { AUTH_API, OAUTH_API, AUTH_CONFIG } from '../config/constants.js'
 
 /**
+ * OAuth 参数最大允许长度（10KB）
+ */
+const MAX_OAUTH_PARAM_SIZE = 10 * 1024
+
+/**
+ * 验证 OAuth 回调中解析出的用户对象
+ * @param {any} user - 解析后的用户对象
+ * @returns {Object|null} 合法用户对象或 null
+ */
+const validateOAuthUser = (user) => {
+  if (!user || typeof user !== 'object' || Array.isArray(user)) return null
+  if (typeof user.id !== 'string' && typeof user.id !== 'number') return null
+  if (typeof user.displayName !== 'string') return null
+  return user
+}
+
+/**
  * 创建带认证头的 fetch 选项
  * @param {string} accessToken
  * @param {Object} [extra]
@@ -229,7 +246,12 @@ export const handleOAuthCallback = () => {
   let user = null
   if (userJson) {
     try {
-      user = JSON.parse(decodeURIComponent(userJson))
+      const decoded = decodeURIComponent(userJson)
+      if (decoded.length > MAX_OAUTH_PARAM_SIZE) {
+        console.error('OAuth 用户参数超出大小限制')
+      } else {
+        user = validateOAuthUser(JSON.parse(decoded))
+      }
     } catch (error) {
       console.error('解析用户信息失败:', error)
     }
@@ -476,7 +498,14 @@ export const handleOAuthLinkCallback = () => {
   window.history.replaceState({}, document.title, window.location.pathname)
 
   try {
-    return JSON.parse(linkResultStr)
+    if (linkResultStr.length > MAX_OAUTH_PARAM_SIZE) {
+      return { success: false, error: 'OAuth 关联参数超出大小限制' }
+    }
+    const result = JSON.parse(linkResultStr)
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      return { success: false, error: '关联结果格式无效' }
+    }
+    return result
   } catch {
     return { success: false, error: '解析关联结果失败' }
   }

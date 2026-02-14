@@ -18,12 +18,15 @@ const getSelfOrigin = (requestUrl) => {
   }
 }
 
-const isOriginAllowed = (origin, allowedOrigins, requestUrl) => {
+const isOriginAllowed = (origin, allowedOrigins, requestUrl, env) => {
   if (!origin) return false
-  // 开发环境自动允许
+  // 开发环境自动允许 localhost
   try {
     const url = new URL(origin)
-    if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    if (
+      env?.ENVIRONMENT === 'development' &&
+      (url.hostname === 'localhost' || url.hostname === '127.0.0.1')
+    ) {
       return true
     }
   } catch {
@@ -44,7 +47,7 @@ const getCorsHeaders = (origin, env, requestUrl) => {
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400'
   }
-  if (origin && isOriginAllowed(origin, allowedOrigins, requestUrl)) {
+  if (origin && isOriginAllowed(origin, allowedOrigins, requestUrl, env)) {
     headers['Access-Control-Allow-Origin'] = origin
   }
   return headers

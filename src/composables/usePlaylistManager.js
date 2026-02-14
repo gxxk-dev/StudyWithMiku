@@ -40,6 +40,9 @@ const defaultPlaylistId = ref(null)
 /** @type {boolean} */
 let initialized = false
 
+/** @type {Promise|null} */
+let initPromise = null
+
 // ============ 工具函数 ============
 
 /**
@@ -130,77 +133,86 @@ export const usePlaylistManager = () => {
       return { success: true }
     }
 
-    try {
-      playlists.value = safeLocalStorageGetJSON(STORAGE_KEYS.PLAYLISTS, [])
-      currentPlaylistId.value = safeLocalStorageGetJSON(STORAGE_KEYS.CURRENT_PLAYLIST, null)
-      defaultPlaylistId.value = safeLocalStorageGetJSON(STORAGE_KEYS.DEFAULT_PLAYLIST, null)
-
-      // 如果歌单列表为空，创建内置默认歌单
-      if (playlists.value.length === 0) {
-        playlists.value.push({ ...BUILTIN_PLAYLIST })
-        defaultPlaylistId.value = BUILTIN_PLAYLIST.id
-        currentPlaylistId.value = BUILTIN_PLAYLIST.id
-        persist()
-        console.debug('[PlaylistManager] 已创建内置默认歌单')
-      }
-
-      // 如果用户已登录，下载并合并服务器数据
-      const { isAuthenticated } = useAuth()
-      const { downloadData } = useDataSync()
-
-      if (isAuthenticated.value) {
-        try {
-          const serverData = await downloadData(AUTH_CONFIG.DATA_TYPES.PLAYLISTS)
-          if (serverData && typeof serverData === 'object') {
-            // 合并歌单列表
-            if (serverData.playlists && Array.isArray(serverData.playlists)) {
-              playlists.value = mergePlaylists(playlists.value, serverData.playlists)
-            }
-
-            // 使用服务器的当前和默认歌单 ID（如果有效）
-            if (
-              serverData.currentId &&
-              playlists.value.find((p) => p.id === serverData.currentId)
-            ) {
-              currentPlaylistId.value = serverData.currentId
-            }
-            if (
-              serverData.defaultId &&
-              playlists.value.find((p) => p.id === serverData.defaultId)
-            ) {
-              defaultPlaylistId.value = serverData.defaultId
-            }
-
-            persist()
-          }
-        } catch (error) {
-          console.error('[PlaylistManager] 下载歌单失败:', error)
-          // 不影响初始化流程，继续使用本地数据
-        }
-      }
-
-      // 验证 currentPlaylistId 是否有效
-      if (
-        currentPlaylistId.value &&
-        !playlists.value.find((p) => p.id === currentPlaylistId.value)
-      ) {
-        currentPlaylistId.value = null
-      }
-
-      // 验证 defaultPlaylistId 是否有效
-      if (
-        defaultPlaylistId.value &&
-        !playlists.value.find((p) => p.id === defaultPlaylistId.value)
-      ) {
-        defaultPlaylistId.value = null
-      }
-
-      initialized = true
-      return { success: true }
-    } catch (err) {
-      console.error('[PlaylistManager] 初始化失败:', err)
-      return { success: false, error: ErrorTypes.STORAGE_ERROR }
+    if (initPromise) {
+      return initPromise
     }
+
+    initPromise = (async () => {
+      try {
+        playlists.value = safeLocalStorageGetJSON(STORAGE_KEYS.PLAYLISTS, [])
+        currentPlaylistId.value = safeLocalStorageGetJSON(STORAGE_KEYS.CURRENT_PLAYLIST, null)
+        defaultPlaylistId.value = safeLocalStorageGetJSON(STORAGE_KEYS.DEFAULT_PLAYLIST, null)
+
+        // 如果歌单列表为空，创建内置默认歌单
+        if (playlists.value.length === 0) {
+          playlists.value.push({ ...BUILTIN_PLAYLIST })
+          defaultPlaylistId.value = BUILTIN_PLAYLIST.id
+          currentPlaylistId.value = BUILTIN_PLAYLIST.id
+          persist()
+          console.debug('[PlaylistManager] 已创建内置默认歌单')
+        }
+
+        // 如果用户已登录，下载并合并服务器数据
+        const { isAuthenticated } = useAuth()
+        const { downloadData } = useDataSync()
+
+        if (isAuthenticated.value) {
+          try {
+            const serverData = await downloadData(AUTH_CONFIG.DATA_TYPES.PLAYLISTS)
+            if (serverData && typeof serverData === 'object') {
+              // 合并歌单列表
+              if (serverData.playlists && Array.isArray(serverData.playlists)) {
+                playlists.value = mergePlaylists(playlists.value, serverData.playlists)
+              }
+
+              // 使用服务器的当前和默认歌单 ID（如果有效）
+              if (
+                serverData.currentId &&
+                playlists.value.find((p) => p.id === serverData.currentId)
+              ) {
+                currentPlaylistId.value = serverData.currentId
+              }
+              if (
+                serverData.defaultId &&
+                playlists.value.find((p) => p.id === serverData.defaultId)
+              ) {
+                defaultPlaylistId.value = serverData.defaultId
+              }
+
+              persist()
+            }
+          } catch (error) {
+            console.error('[PlaylistManager] 下载歌单失败:', error)
+            // 不影响初始化流程，继续使用本地数据
+          }
+        }
+
+        // 验证 currentPlaylistId 是否有效
+        if (
+          currentPlaylistId.value &&
+          !playlists.value.find((p) => p.id === currentPlaylistId.value)
+        ) {
+          currentPlaylistId.value = null
+        }
+
+        // 验证 defaultPlaylistId 是否有效
+        if (
+          defaultPlaylistId.value &&
+          !playlists.value.find((p) => p.id === defaultPlaylistId.value)
+        ) {
+          defaultPlaylistId.value = null
+        }
+
+        initialized = true
+        return { success: true }
+      } catch (err) {
+        console.error('[PlaylistManager] 初始化失败:', err)
+        initPromise = null
+        return { success: false, error: ErrorTypes.STORAGE_ERROR }
+      }
+    })()
+
+    return initPromise
   }
 
   // ============ CRUD 操作 ============

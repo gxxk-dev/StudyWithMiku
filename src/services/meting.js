@@ -27,7 +27,7 @@ export const fetchPlaylist = async (server = 'netease', id = DEFAULT_PLAYLIST_ID
   // 如果传入了外部 signal，需要同时监听
   const combinedSignal = signal || controller.signal
   if (signal) {
-    signal.addEventListener('abort', () => controller.abort())
+    signal.addEventListener('abort', () => controller.abort(), { once: true })
   }
 
   try {

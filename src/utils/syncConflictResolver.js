@@ -4,6 +4,30 @@
  */
 
 /**
+ * 验证单条 Focus 记录的时间一致性
+ * @param {Object} record - Focus 记录
+ * @returns {boolean} 记录是否合法
+ */
+export const validateRecord = (record) => {
+  if (!record || typeof record !== 'object') return false
+
+  // startTime 必须为正数
+  if (typeof record.startTime !== 'number' || record.startTime <= 0) return false
+
+  // endTime 存在时必须 >= startTime
+  if (record.endTime != null) {
+    if (typeof record.endTime !== 'number' || record.endTime < record.startTime) return false
+  }
+
+  // duration 存在时必须 >= 0
+  if (record.duration != null) {
+    if (typeof record.duration !== 'number' || record.duration < 0) return false
+  }
+
+  return true
+}
+
+/**
  * 合并 Focus 记录（Last-Write-Wins 基于 updatedAt）
  * @param {Array} localRecords - 本地记录
  * @param {Array} serverRecords - 服务器记录
@@ -20,6 +44,7 @@ export const mergeFocusRecords = (localRecords, serverRecords) => {
   const allRecords = [...serverRecords, ...localRecords]
   for (const record of allRecords) {
     if (!record || !record.id) continue
+    if (!validateRecord(record)) continue
 
     const existing = recordMap.get(record.id)
     if (!existing) {

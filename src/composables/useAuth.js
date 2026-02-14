@@ -11,6 +11,7 @@ import * as authService from '../services/auth.js'
 import * as authStorage from '../utils/authStorage.js'
 import * as webauthnHelper from '../utils/webauthnHelper.js'
 import { AUTH_CONFIG } from '../config/constants.js'
+import { useDataSync } from './useDataSync.js'
 
 // 模块级状态（单例）
 const user = ref(null)
@@ -315,6 +316,10 @@ export const useAuth = () => {
           // 不影响本地登出流程
         }
       }
+
+      // 清除待执行的同步定时器
+      const { cancelPendingSync } = useDataSync()
+      cancelPendingSync()
 
       // 清除本地状态
       clearAuthState()

@@ -297,7 +297,7 @@ const stopShowControlsWatch = watch(showControls, (newValue) => {
 })
 
 // 监听平台切换，清理旧播放器的 Media Session
-watch(
+const stopPlatformWatch = watch(
   () => platform.value,
   (newPlatform, oldPlatform) => {
     if (oldPlatform !== newPlatform) {
@@ -307,7 +307,7 @@ watch(
 )
 
 // 监听歌曲列表变化，更新 APlayer
-watch(
+const stopSongsWatch = watch(
   () => songs.value,
   async (newSongs) => {
     console.debug('[App] songs 变化, 数量:', newSongs?.length, 'isSpotify:', isSpotify.value)
@@ -381,6 +381,14 @@ onUnmounted(() => {
 
   if (stopShowControlsWatch) {
     stopShowControlsWatch()
+  }
+
+  if (stopPlatformWatch) {
+    stopPlatformWatch()
+  }
+
+  if (stopSongsWatch) {
+    stopSongsWatch()
   }
 
   cleanupAPlayer()
