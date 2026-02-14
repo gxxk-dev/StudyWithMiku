@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 vi.mock('@/utils/cborClient.js', () => ({
   CBOR_CONTENT_TYPE: 'application/cbor',
-  createCborRequestInit: vi.fn((dataType, body) => ({
+  createCborRequestInit: vi.fn((_dataType, _body) => ({
     headers: { 'Content-Type': 'application/cbor', Accept: 'application/cbor' },
     body: new Uint8Array([1, 2, 3])
   })),
@@ -11,7 +11,7 @@ vi.mock('@/utils/cborClient.js', () => ({
 
 import { getData, updateData, deleteData, hasData } from '@/services/dataSync.js'
 import { ERROR_TYPES } from '@/services/auth.js'
-import { createCborRequestInit, parseCborResponse } from '@/utils/cborClient.js'
+import { createCborRequestInit } from '@/utils/cborClient.js'
 
 describe('dataSync service', () => {
   /** @type {ReturnType<typeof vi.fn>} */

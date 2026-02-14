@@ -62,7 +62,7 @@ describe('webauthnHelper', () => {
     })
 
     it('处理需要填充的 base64url 字符串', async () => {
-      const { base64URLToBuffer, bufferToBase64URL } = await loadModule()
+      const { base64URLToBuffer } = await loadModule()
       // 'YQ' 是 'a' 的 base64url 编码（无填充）
       const buffer = base64URLToBuffer('YQ')
       const view = new Uint8Array(buffer)

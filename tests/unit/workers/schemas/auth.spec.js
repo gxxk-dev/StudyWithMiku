@@ -247,7 +247,7 @@ describe('workers/schemas/auth', () => {
     })
 
     it('拒绝缺少必填字段', () => {
-      const { focusDuration: _focusDuration, ...incomplete } = validSettings
+      const { focusDuration: _unused, ...incomplete } = validSettings // eslint-disable-line no-unused-vars
       expect(focusSettingsSchema.safeParse(incomplete).success).toBe(false)
     })
   })

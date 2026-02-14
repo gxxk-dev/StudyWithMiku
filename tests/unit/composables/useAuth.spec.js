@@ -205,7 +205,7 @@ describe('useAuth', () => {
       webauthnHelper.getCredential.mockResolvedValue(mockCredential)
       authService.loginVerify.mockResolvedValue(mockResponse)
 
-      const { login, user, isAuthenticated } = useAuth()
+      const { login, isAuthenticated } = useAuth()
       const result = await login('testuser')
 
       expect(result).toEqual(mockResponse.user)
@@ -254,7 +254,7 @@ describe('useAuth', () => {
       }
       authService.handleOAuthCallback.mockReturnValue(mockResult)
 
-      const { handleOAuthCallback, user, isAuthenticated } = useAuth()
+      const { handleOAuthCallback, isAuthenticated } = useAuth()
       const result = await handleOAuthCallback()
 
       expect(result).toEqual(mockResult.user)

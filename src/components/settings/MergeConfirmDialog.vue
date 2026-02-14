@@ -88,8 +88,14 @@ import { mergeOAuthAccount, mergeWebAuthnAccount } from '../../services/auth.js'
 
 const props = defineProps({
   visible: Boolean,
-  mergeToken: String,
-  mergeType: String,
+  mergeToken: {
+    type: String,
+    default: ''
+  },
+  mergeType: {
+    type: String,
+    default: ''
+  },
   sourceHasData: Boolean
 })
 
