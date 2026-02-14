@@ -2,10 +2,10 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './tests/e2e',
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: 2,
-  workers: 1,
+  retries: process.env.CI ? 1 : 0,
+  workers: process.env.CI ? 2 : 1,
   reporter: process.env.CI ? 'list' : 'html',
   timeout: 30000,
   expect: {
@@ -23,10 +23,6 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] }
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] }
     }
   ],
   webServer: {

@@ -14,14 +14,6 @@ export const MOCK_USER = {
   createdAt: '2026-01-01T00:00:00.000Z'
 }
 
-export const MOCK_OAUTH_USER = {
-  id: 'oauth-user-id-456',
-  username: 'oauthuser',
-  displayName: 'OAuth User',
-  authProvider: 'github',
-  createdAt: '2026-01-01T00:00:00.000Z'
-}
-
 export const MOCK_TOKENS = {
   accessToken: 'mock-access-token-abc123',
   refreshToken: 'mock-refresh-token-xyz789',
@@ -197,56 +189,6 @@ export const mockLoginFlow = async (page, user = MOCK_USER, tokens = MOCK_TOKENS
 }
 
 /**
- * Mock POST /auth/refresh
- */
-export const mockRefreshToken = async (page, newTokens = MOCK_TOKENS) => {
-  await page.route('**/auth/refresh', (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(newTokens)
-    })
-  })
-}
-
-/**
- * Mock POST /auth/logout
- */
-export const mockLogout = async (page) => {
-  await page.route('**/auth/logout', (route) => {
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: true })
-    })
-  })
-}
-
-/**
- * Mock GET /auth/me
- */
-export const mockGetMe = async (page, user = MOCK_USER) => {
-  await page.route('**/auth/me', (route) => {
-    const authHeader = route.request().headers()['authorization']
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'Unauthorized' })
-      })
-      return
-    }
-
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ user })
-    })
-  })
-}
-
-/**
  * Mock GET /auth/devices
  */
 export const mockGetDevices = async (page, devices = [MOCK_DEVICE]) => {
@@ -325,92 +267,6 @@ export const mockAuthMethods = async (page, methods = []) => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ methods })
-      })
-    } else {
-      route.continue()
-    }
-  })
-}
-
-/**
- * Mock 数据同步 API
- * @param {import('@playwright/test').Page} page
- * @param {Object} dataMap - 数据类型到数据内容的映射
- */
-export const mockDataSync = async (page, dataMap = {}) => {
-  // GET/PUT /api/data/:type
-  await page.route('**/api/data/*', (route) => {
-    const url = route.request().url()
-    const match = url.match(/\/api\/data\/([^?]+)/)
-
-    if (!match) {
-      route.continue()
-      return
-    }
-
-    const dataType = match[1]
-
-    if (route.request().method() === 'GET') {
-      const data = dataMap[dataType] || null
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          type: dataType,
-          data,
-          version: 1
-        })
-      })
-    } else if (route.request().method() === 'PUT') {
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          version: 2,
-          merged: false
-        })
-      })
-    } else {
-      route.continue()
-    }
-  })
-}
-
-/**
- * Mock 数据同步冲突（PUT 返回 409）
- */
-export const mockDataSyncConflict = async (page, dataType, serverData) => {
-  await page.route(`**/api/data/${dataType}`, (route) => {
-    if (route.request().method() === 'PUT') {
-      route.fulfill({
-        status: 409,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          error: 'Conflict',
-          conflict: true,
-          serverData,
-          serverVersion: 2
-        })
-      })
-    } else {
-      route.continue()
-    }
-  })
-}
-
-/**
- * Mock 数据同步失败（返回 500）
- */
-export const mockDataSyncError = async (page) => {
-  await page.route('**/api/data/*', (route) => {
-    if (route.request().method() === 'PUT') {
-      route.fulfill({
-        status: 500,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          error: 'Internal Server Error'
-        })
       })
     } else {
       route.continue()

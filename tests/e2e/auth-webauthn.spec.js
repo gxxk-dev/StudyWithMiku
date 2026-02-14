@@ -90,9 +90,6 @@ test.describe('WebAuthn 注册和登录', () => {
     // 点击确认注册
     await page.click('button.btn-secondary:has-text("确认注册")')
 
-    // 等待虚拟认证器响应（自动完成）
-    await page.waitForTimeout(1000)
-
     // 验证跳转到已登录视图
     await expect(page.locator('.profile-panel')).toBeVisible({ timeout: 10000 })
 
@@ -112,9 +109,6 @@ test.describe('WebAuthn 注册和登录', () => {
     // 点击登录按钮
     await page.click('button.btn-primary:has-text("登录")')
 
-    // 等待虚拟认证器响应
-    await page.waitForTimeout(1000)
-
     // 验证已登录
     await expect(page.locator('.profile-panel')).toBeVisible({ timeout: 10000 })
     await expect(page.locator('.username')).toHaveText('Test User')
@@ -128,7 +122,6 @@ test.describe('WebAuthn 注册和登录', () => {
     await page.click('button.btn-secondary:has-text("注册")')
     await page.fill('input[placeholder="设备名称（可选，如：我的电脑）"]', 'My Device')
     await page.click('button.btn-secondary:has-text("确认注册")')
-    await page.waitForTimeout(1000)
 
     // 验证设备列表
     await expect(page.locator('.device-list-panel')).toBeVisible({ timeout: 10000 })
@@ -261,9 +254,6 @@ test.describe('WebAuthn 注册和登录', () => {
 
     // 点击确认
     await page.click('button.btn-confirm:has-text("确认添加")')
-
-    // 等待虚拟认证器响应
-    await page.waitForTimeout(1000)
 
     // 验证设备列表更新（应该有 2 个设备）
     await expect(page.locator('.device-item')).toHaveCount(2, { timeout: 5000 })
