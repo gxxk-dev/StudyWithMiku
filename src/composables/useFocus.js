@@ -4,6 +4,7 @@
  * 整合 useSession、useRecords、useStats 提供统一 API
  */
 
+import { watch } from 'vue'
 import { useSession, _internal as sessionInternal } from './focus/useSession.js'
 import { useRecords, _internal as recordsInternal } from './focus/useRecords.js'
 import { useStats } from './focus/useStats.js'
@@ -13,7 +14,8 @@ import {
   exportToMarkdown,
   exportAndDownload
 } from '../utils/exportUtils.js'
-import { ExportFormat } from './focus/constants.js'
+import { ExportFormat, FocusState, FocusMode } from './focus/constants.js'
+import { focusEventBus } from './focus/eventBus.js'
 
 // 重新导出常量
 export {
@@ -51,11 +53,118 @@ export {
  * } = useFocus()
  * ```
  */
+// 事件总线集成：标记显式操作，避免 watcher 重复触发
+let explicitTransition = false
+let prevMode = null
+let eventBusInitialized = false
+
 export const useFocus = () => {
   // 获取各模块实例
   const session = useSession()
   const recordsModule = useRecords()
   const stats = useStats()
+
+  // 初始化事件总线（仅一次）
+  if (!eventBusInitialized) {
+    eventBusInitialized = true
+
+    // 检测 handleComplete（内部完成，不经过 facade 的操作方法）
+    watch(session.state, (newState, oldState) => {
+      if (explicitTransition) return
+      // RUNNING → IDLE 表示自动完成
+      if (oldState === FocusState.RUNNING && newState === FocusState.IDLE) {
+        focusEventBus.emit('transition', {
+          action: 'complete',
+          mode: prevMode || FocusMode.FOCUS,
+          completionType: 'completed'
+        })
+      }
+    })
+
+    // 记录当前 mode 用于 complete 事件
+    watch(
+      session.mode,
+      (newMode, oldMode) => {
+        if (oldMode) prevMode = oldMode
+      },
+      { immediate: true }
+    )
+
+    // tick 事件
+    watch(session.elapsed, (val) => {
+      if (session.state.value !== FocusState.RUNNING) return
+      focusEventBus.emit('tick', {
+        action: 'tick',
+        mode: session.mode.value,
+        elapsed: val,
+        duration: session.duration.value
+      })
+    })
+  }
+
+  // 包装 session 方法，成功后发出事件
+  const start = () => {
+    const result = session.start()
+    if (result.success) {
+      focusEventBus.emit('transition', {
+        action: 'start',
+        mode: session.mode.value
+      })
+    }
+    return result
+  }
+
+  const pause = () => {
+    const result = session.pause()
+    if (result.success) {
+      focusEventBus.emit('transition', {
+        action: 'pause',
+        mode: session.mode.value
+      })
+    }
+    return result
+  }
+
+  const resume = () => {
+    const result = session.resume()
+    if (result.success) {
+      focusEventBus.emit('transition', {
+        action: 'resume',
+        mode: session.mode.value
+      })
+    }
+    return result
+  }
+
+  const cancel = () => {
+    const currentMode = session.mode.value
+    explicitTransition = true
+    const result = session.cancel()
+    explicitTransition = false
+    if (result.success) {
+      focusEventBus.emit('transition', {
+        action: 'cancel',
+        mode: currentMode,
+        completionType: 'cancelled'
+      })
+    }
+    return result
+  }
+
+  const skip = () => {
+    const currentMode = session.mode.value
+    explicitTransition = true
+    const result = session.skip()
+    explicitTransition = false
+    if (result.success) {
+      focusEventBus.emit('transition', {
+        action: 'skip',
+        mode: currentMode,
+        completionType: 'skipped'
+      })
+    }
+    return result
+  }
 
   /**
    * 导出数据
@@ -155,11 +264,11 @@ export const useFocus = () => {
     isIdle: session.isIdle,
 
     // ============ 会话操作 ============
-    start: session.start,
-    pause: session.pause,
-    resume: session.resume,
-    cancel: session.cancel,
-    skip: session.skip,
+    start,
+    pause,
+    resume,
+    cancel,
+    skip,
     setMode: session.setMode,
 
     // ============ 设置 ============
@@ -204,6 +313,10 @@ export const _internal = {
   resetForTesting: () => {
     sessionInternal.resetForTesting()
     recordsInternal.resetForTesting()
+    explicitTransition = false
+    prevMode = null
+    eventBusInitialized = false
+    focusEventBus.clear()
   }
 }
 

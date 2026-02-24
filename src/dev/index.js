@@ -16,6 +16,7 @@ import { useFocus } from '../composables/useFocus.js'
 import { useToast } from '../composables/useToast.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useDataSync } from '../composables/useDataSync.js'
+import { useCoyote } from '../composables/useCoyote.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
 import * as exportUtils from '../utils/exportUtils.js'
@@ -23,6 +24,8 @@ import * as authStorage from '../utils/authStorage.js'
 import { onlineServer } from '../services/onlineServer.js'
 import { runtimeConfigService } from '../services/runtimeConfig.js'
 import { createHelpSystem } from './help/index.js'
+import { COYOTE_STORAGE_KEYS } from '../composables/coyote/constants.js'
+import { safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage.js'
 
 // 初始化 playlistManager
 const playlistManager = usePlaylistManager()
@@ -32,6 +35,17 @@ playlistManager.initialize()
 const toastApi = useToast()
 toastApi.show = toastApi.showToast
 toastApi.confirm = toastApi.showConfirm
+
+// 初始化 coyote（添加 unlock/lock 便捷方法）
+const coyoteApi = useCoyote()
+coyoteApi.unlock = () => {
+  safeLocalStorageSet(COYOTE_STORAGE_KEYS.UNLOCKED, 'true')
+  toastApi.show('success', 'DG-Lab Tab 已解锁，请刷新页面')
+}
+coyoteApi.lock = () => {
+  safeLocalStorageRemove(COYOTE_STORAGE_KEYS.UNLOCKED)
+  toastApi.show('info', 'DG-Lab Tab 已锁定，请刷新页面')
+}
 
 // 创建 swm_dev 对象
 const swm_dev = {
@@ -47,7 +61,8 @@ const swm_dev = {
   sync: useDataSync(),
   authStorage,
   server: onlineServer,
-  config: runtimeConfigService
+  config: runtimeConfigService,
+  coyote: coyoteApi
 }
 
 // 创建帮助系统并注入

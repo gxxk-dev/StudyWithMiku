@@ -22,7 +22,8 @@ const TARGET_FILES = {
   sync: 'src/composables/useDataSync.js',
   authStorage: 'src/utils/authStorage.js',
   server: 'src/services/onlineServer.js',
-  config: 'src/services/runtimeConfig.js'
+  config: 'src/services/runtimeConfig.js',
+  coyote: 'src/composables/useCoyote.js'
 }
 
 // 函数级标签，用于区分模块描述和方法描述
