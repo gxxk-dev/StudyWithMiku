@@ -13,6 +13,13 @@ import {
   createFocusSettingsData,
   createUserSettingsData
 } from '../../../setup/fixtures/authData.js'
+import {
+  encodeSyncRequest,
+  decodeSyncResponse,
+  encodeData
+} from '../../../../shared/proto/index.js'
+
+const PROTOBUF_CONTENT_TYPE = 'application/x-protobuf'
 
 describe('data routes', () => {
   let app
@@ -44,8 +51,14 @@ describe('data routes', () => {
     })
     return {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
+      'Content-Type': PROTOBUF_CONTENT_TYPE,
+      Accept: PROTOBUF_CONTENT_TYPE
     }
+  }
+
+  const parseProtobufResponse = async (res, dataType) => {
+    const buffer = await res.arrayBuffer()
+    return decodeSyncResponse(new Uint8Array(buffer), dataType)
   }
 
   describe('GET /api/data/:type', () => {
@@ -62,7 +75,7 @@ describe('data routes', () => {
       )
 
       expect(res.status).toBe(200)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, 'focus_records')
       expect(body.type).toBe('focus_records')
       expect(body.data).toBeDefined()
       expect(body.version).toBeDefined()
@@ -81,7 +94,7 @@ describe('data routes', () => {
       )
 
       expect(res.status).toBe(200)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, 'share_config')
       expect(body.data).toBeNull()
       expect(body.version).toBe(0)
     })
@@ -99,7 +112,7 @@ describe('data routes', () => {
       )
 
       expect(res.status).toBe(400)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, null)
       expect(body.code).toBe(ERROR_CODES.INVALID_TYPE)
     })
   })
@@ -114,13 +127,13 @@ describe('data routes', () => {
         {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ data, version: 0 })
+          body: encodeSyncRequest('user_settings', data, 0)
         },
         env
       )
 
       expect(res.status).toBe(200)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, 'user_settings')
       expect(body.success).toBe(true)
       expect(body.version).toBe(1)
     })
@@ -134,13 +147,13 @@ describe('data routes', () => {
         {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ data, version: 2 }) // 当前版本是 2
+          body: encodeSyncRequest('focus_settings', data, 2)
         },
         env
       )
 
       expect(res.status).toBe(200)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, 'focus_settings')
       expect(body.success).toBe(true)
       expect(body.version).toBe(3)
     })
@@ -150,8 +163,8 @@ describe('data routes', () => {
       env.DB.__getTables().user_data.push({
         user_id: 'user-conflict',
         data_type: DATA_CONFIG.TYPES.FOCUS_SETTINGS,
-        data: JSON.stringify(createFocusSettingsData()),
-        data_format: 'json',
+        data: encodeData('focus_settings', createFocusSettingsData()),
+        data_format: 'protobuf',
         version: 5
       })
 
@@ -163,13 +176,13 @@ describe('data routes', () => {
         {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ data, version: 3 }) // 过期版本，服务端是 5
+          body: encodeSyncRequest('focus_settings', data, 3)
         },
         env
       )
 
       expect(res.status).toBe(409)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, 'focus_settings')
       expect(body.conflict).toBe(true)
       expect(body.serverVersion).toBe(5)
       expect(body.serverData).toBeDefined()
@@ -183,10 +196,7 @@ describe('data routes', () => {
         {
           method: 'PUT',
           headers,
-          body: JSON.stringify({
-            data: { invalid: 'data' },
-            version: 2
-          })
+          body: encodeSyncRequest('focus_settings', { invalid: 'data' }, 2)
         },
         env
       )
@@ -197,36 +207,42 @@ describe('data routes', () => {
     it('缺少 data 字段应该返回 400', async () => {
       const headers = await getAuthHeaders()
 
+      // Send an empty SyncRequest (no oneof data set)
+      const { create, toBinary } = await import('@bufbuild/protobuf')
+      const { SyncRequestSchema } = await import('../../../../shared/proto/gen/studymiku_pb.js')
+      const emptyReq = create(SyncRequestSchema, { version: 0 })
+
       const res = await app.request(
         '/api/data/focus_settings',
         {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ version: 0 })
+          body: toBinary(SyncRequestSchema, emptyReq)
         },
         env
       )
 
       expect(res.status).toBe(400)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, 'focus_settings')
       expect(body.code).toBe(ERROR_CODES.VALIDATION_FAILED)
     })
 
     it('无效的数据类型应该返回 400', async () => {
       const headers = await getAuthHeaders()
 
+      // Send raw bytes — the type validation happens before parsing
       const res = await app.request(
         '/api/data/invalid_type',
         {
           method: 'PUT',
           headers,
-          body: JSON.stringify({ data: {}, version: 0 })
+          body: new Uint8Array([0])
         },
         env
       )
 
       expect(res.status).toBe(400)
-      const body = await res.json()
+      const body = await parseProtobufResponse(res, null)
       expect(body.code).toBe(ERROR_CODES.INVALID_TYPE)
     })
   })

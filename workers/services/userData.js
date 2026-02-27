@@ -7,7 +7,7 @@ import { eq, and, sql, count } from 'drizzle-orm'
 import { createDb, userData } from '../db/index.js'
 import { DATA_CONFIG, ERROR_CODES } from '../constants.js'
 import { dataTypeSchemas } from '../schemas/auth.js'
-import { encodeToCbor, parseStoredData } from '../utils/cborServer.js'
+import { encodeToProtobuf, parseStoredData } from '../utils/protobufServer.js'
 
 /**
  * 验证数据大小
@@ -77,7 +77,6 @@ export const getUserData = async (d1, userId, dataType) => {
   const row = await db
     .select({
       data: userData.data,
-      dataFormat: userData.dataFormat,
       version: userData.version
     })
     .from(userData)
@@ -88,14 +87,8 @@ export const getUserData = async (d1, userId, dataType) => {
     return { data: null, version: 0 }
   }
 
-  // 自动检测格式并解析
-  const parsedData =
-    row.dataFormat === 'json'
-      ? JSON.parse(row.data.toString())
-      : parseStoredData(dataType, row.data)
-
   return {
-    data: parsedData,
+    data: parseStoredData(dataType, row.data),
     version: row.version
   }
 }
@@ -130,7 +123,6 @@ export const getAllUserData = async (d1, userId) => {
     .select({
       dataType: userData.dataType,
       data: userData.data,
-      dataFormat: userData.dataFormat,
       version: userData.version
     })
     .from(userData)
@@ -138,13 +130,8 @@ export const getAllUserData = async (d1, userId) => {
 
   const dataMap = {}
   for (const row of results) {
-    const parsedData =
-      row.dataFormat === 'json'
-        ? JSON.parse(row.data.toString())
-        : parseStoredData(row.dataType, row.data)
-
     dataMap[row.dataType] = {
-      data: parsedData,
+      data: parseStoredData(row.dataType, row.data),
       version: row.version
     }
   }
@@ -186,14 +173,14 @@ export const updateUserData = async (d1, userId, dataType, data, clientVersion) 
   // 获取当前服务端数据
   const current = await getUserData(d1, userId, dataType)
 
-  // 首次写入 - 使用 CBOR 格式
+  // 首次写入 - 使用 Protobuf 格式
   if (current.version === 0) {
-    const cborData = encodeToCbor(dataType, validation.data)
+    const protobufData = encodeToProtobuf(dataType, validation.data)
     await db.insert(userData).values({
       userId,
       dataType,
-      data: cborData,
-      dataFormat: 'cbor',
+      data: protobufData,
+      dataFormat: 'protobuf',
       version: 1
     })
 
@@ -210,12 +197,12 @@ export const updateUserData = async (d1, userId, dataType, data, clientVersion) 
     }
   }
 
-  // 正常更新 - 使用 CBOR 格式
+  // 正常更新 - 使用 Protobuf 格式
   const newVersion = current.version + 1
-  const cborData = encodeToCbor(dataType, validation.data)
+  const protobufData = encodeToProtobuf(dataType, validation.data)
   await db
     .update(userData)
-    .set({ data: cborData, dataFormat: 'cbor', version: newVersion })
+    .set({ data: protobufData, dataFormat: 'protobuf', version: newVersion })
     .where(and(eq(userData.userId, userId), eq(userData.dataType, dataType)))
 
   return { success: true, version: newVersion }

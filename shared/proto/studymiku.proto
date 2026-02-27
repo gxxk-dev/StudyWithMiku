@@ -1,0 +1,149 @@
+syntax = "proto3";
+package studymiku;
+import "google/protobuf/timestamp.proto";
+
+// --- Enums ---
+
+enum FocusMode {
+  FOCUS_MODE_UNSPECIFIED = 0;
+  FOCUS = 1;
+  SHORT_BREAK = 2;
+  LONG_BREAK = 3;
+}
+
+enum CompletionType {
+  COMPLETION_TYPE_UNSPECIFIED = 0;
+  COMPLETED = 1;
+  CANCELLED = 2;
+  SKIPPED = 3;
+  INTERRUPTED = 4;
+  DISABLED = 5;
+}
+
+enum PlaylistMode {
+  PLAYLIST_MODE_UNSPECIFIED = 0;
+  PLAYLIST = 1;
+  COLLECTION = 2;
+}
+
+enum PlaylistSource {
+  PLAYLIST_SOURCE_UNSPECIFIED = 0;
+  NETEASE = 1;
+  TENCENT = 2;
+  SPOTIFY = 3;
+  LOCAL = 4;
+}
+
+// --- Data Messages ---
+
+message FocusRecord {
+  string id = 1;
+  FocusMode mode = 2;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  int32 duration = 5;
+  int32 elapsed = 6;
+  CompletionType completion_type = 7;
+  optional google.protobuf.Timestamp updated_at = 8;
+}
+
+message FocusRecords {
+  repeated FocusRecord records = 1;
+}
+
+message FocusSettings {
+  int32 focus_duration = 1;
+  int32 short_break_duration = 2;
+  int32 long_break_duration = 3;
+  int32 long_break_interval = 4;
+  bool auto_start_breaks = 5;
+  bool auto_start_focus = 6;
+  bool notification_enabled = 7;
+  bool notification_sound = 8;
+}
+
+message Song {
+  string id = 1;
+  string name = 2;
+  optional string artist = 3;
+  optional string url = 4;
+  optional string cover = 5;
+  optional string lrc = 6;
+}
+
+message PlaylistItem {
+  string id = 1;
+  string name = 2;
+  optional string cover = 3;
+  int32 order = 4;
+  PlaylistMode mode = 5;
+  optional PlaylistSource source = 6;
+  optional string source_id = 7;
+  repeated Song songs = 8;
+}
+
+message Playlists {
+  repeated PlaylistItem playlists = 1;
+  optional string current_id = 2;
+  optional string default_id = 3;
+}
+
+message MediaSettings {
+  int32 current_index = 1;
+  optional int32 current_song_index = 2;
+}
+
+message UserSettings {
+  optional MediaSettings video = 1;
+  optional MediaSettings music = 2;
+}
+
+message ShareConfigModules {
+  bool basic_stats = 1;
+  bool mini_heatmap = 2;
+  bool trend_chart = 3;
+}
+
+message ShareConfig {
+  ShareConfigModules modules = 1;
+  bool show_hitokoto = 2;
+  repeated string hitokoto_categories = 3;
+}
+
+// --- Wire Protocol ---
+
+message SyncRequest {
+  optional int32 version = 1;
+  oneof data {
+    FocusRecords focus_records = 10;
+    FocusSettings focus_settings = 11;
+    Playlists playlists = 12;
+    UserSettings user_settings = 13;
+    ShareConfig share_config = 14;
+  }
+}
+
+message SyncResponse {
+  string type = 1;
+  int32 version = 2;
+  bool success = 3;
+  optional string error = 4;
+  optional string code = 5;
+  bool conflict = 6;
+  optional int32 server_version = 7;
+  optional bool merged = 8;
+  oneof data {
+    FocusRecords focus_records = 10;
+    FocusSettings focus_settings = 11;
+    Playlists playlists = 12;
+    UserSettings user_settings = 13;
+    ShareConfig share_config = 14;
+  }
+  oneof server_data {
+    FocusRecords server_focus_records = 20;
+    FocusSettings server_focus_settings = 21;
+    Playlists server_playlists = 22;
+    UserSettings server_user_settings = 23;
+    ShareConfig server_share_config = 24;
+  }
+}

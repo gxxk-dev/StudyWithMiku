@@ -2,6 +2,8 @@
  * Workers 测试用 fixtures - 用户和认证数据
  */
 
+import { encodeData } from '../../../shared/proto/index.js'
+
 /**
  * 示例用户数据（数据库存储格式 - snake_case）
  * Mock D1 会自动转换为 camelCase 返回
@@ -115,40 +117,44 @@ export const sampleBlacklist = [
 
 /**
  * 示例用户数据
- * 注意：data_format 字段标识数据格式，'json' 表示 JSON 字符串
+ * 注意：data_format 字段标识数据格式，'protobuf' 表示 Protobuf 二进制
  */
+const _focusRecordsData = [
+  {
+    id: 'focus-1',
+    mode: 'focus',
+    startTime: 1700000000000,
+    endTime: 1700001500000,
+    duration: 1500,
+    elapsed: 1500,
+    completionType: 'completed'
+  }
+]
+
+const _focusSettingsData = {
+  focusDuration: 1500,
+  shortBreakDuration: 300,
+  longBreakDuration: 900,
+  longBreakInterval: 4,
+  autoStartBreaks: false,
+  autoStartFocus: false,
+  notificationEnabled: true,
+  notificationSound: true
+}
+
 export const sampleUserData = [
   {
     user_id: 'user-001',
     data_type: 'focus_records',
-    data: JSON.stringify([
-      {
-        id: 'focus-1',
-        mode: 'focus',
-        startTime: Date.now() - 3600000,
-        endTime: Date.now() - 2100000,
-        duration: 1500,
-        elapsed: 1500,
-        completionType: 'completed'
-      }
-    ]),
-    data_format: 'json',
+    data: encodeData('focus_records', _focusRecordsData),
+    data_format: 'protobuf',
     version: 1
   },
   {
     user_id: 'user-001',
     data_type: 'focus_settings',
-    data: JSON.stringify({
-      focusDuration: 1500,
-      shortBreakDuration: 300,
-      longBreakDuration: 900,
-      longBreakInterval: 4,
-      autoStartBreaks: false,
-      autoStartFocus: false,
-      notificationEnabled: true,
-      notificationSound: true
-    }),
-    data_format: 'json',
+    data: encodeData('focus_settings', _focusSettingsData),
+    data_format: 'protobuf',
     version: 2
   }
 ]

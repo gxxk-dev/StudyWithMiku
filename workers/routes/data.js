@@ -6,91 +6,52 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { encode, decode } from 'cbor-x'
 import { ERROR_CODES } from '../constants.js'
 import { dataRateLimit } from '../middleware/rateLimit.js'
 import { requireAuth } from '../middleware/auth.js'
 import { dataTypeParamSchema } from '../schemas/auth.js'
-import { decompressData } from '../../shared/cbor/index.js'
+import { decodeSyncRequest, encodeSyncResponse } from '../../shared/proto/index.js'
 import {
   getUserData,
   updateUserData,
   checkUserQuota,
   getDataVersion
 } from '../services/userData.js'
-import { CBOR_PROTOCOL_VERSION } from '../utils/cborServer.js'
 
-/** 同步协议版本 */
-const SYNC_PROTOCOL_VERSION = 1
-
-/** CBOR Content-Type */
-const CBOR_CONTENT_TYPE = 'application/cbor'
+const PROTOBUF_CONTENT_TYPE = 'application/x-protobuf'
 
 /**
- * 检查客户端是否接受 CBOR 响应
+ * 解析请求体（Protobuf）
  * @param {Object} c - Hono context
- * @returns {boolean}
- */
-const acceptsCbor = (c) => {
-  const accept = c.req.header('Accept') || ''
-  return accept.includes(CBOR_CONTENT_TYPE)
-}
-
-/**
- * 检查请求是否为 CBOR 格式
- * @param {Object} c - Hono context
- * @returns {boolean}
- */
-const isCborRequest = (c) => {
-  const contentType = c.req.header('Content-Type') || ''
-  return contentType.includes(CBOR_CONTENT_TYPE)
-}
-
-/**
- * 解析请求体（支持 JSON 和 CBOR）
- * @param {Object} c - Hono context
- * @param {string} dataType - 数据类型（用于 CBOR 解压）
+ * @param {string} dataType - 数据类型
  * @returns {Promise<{data: *, error?: string}>}
  */
 const parseRequestBody = async (c, dataType) => {
   try {
-    if (isCborRequest(c)) {
-      const buffer = await c.req.arrayBuffer()
-      const decoded = decode(new Uint8Array(buffer))
-      // 解压前端压缩的 data 字段（数字键 → 字符串键）
-      if (decoded && decoded.data !== undefined && decoded.data !== null) {
-        decoded.data = decompressData(dataType, decoded.data)
-      }
-      return { data: decoded }
-    }
-    return { data: await c.req.json() }
+    const buffer = await c.req.arrayBuffer()
+    const decoded = decodeSyncRequest(buffer, dataType)
+    return { data: decoded }
   } catch {
-    return { error: isCborRequest(c) ? 'Invalid CBOR' : 'Invalid JSON' }
+    return { error: 'Invalid Protobuf' }
   }
 }
 
 /**
- * 发送响应（支持 JSON 和 CBOR）
+ * 发送 Protobuf 响应
  * @param {Object} c - Hono context
  * @param {*} data - 响应数据
  * @param {number} status - HTTP 状态码
  * @returns {Response}
  */
 const sendResponse = (c, data, status = 200) => {
-  if (acceptsCbor(c)) {
-    const cborData = encode(data)
-    return new Response(cborData, {
-      status,
-      headers: {
-        'Content-Type': CBOR_CONTENT_TYPE,
-        'X-Sync-Protocol-Version': String(SYNC_PROTOCOL_VERSION),
-        'X-Cbor-Protocol-Version': String(CBOR_PROTOCOL_VERSION)
-      }
-    })
-  }
-  const response = c.json(data, status)
-  response.headers.set('X-Sync-Protocol-Version', String(SYNC_PROTOCOL_VERSION))
-  return response
+  const dataType = c.req.param('type') || null
+  const protobufData = encodeSyncResponse(data, dataType)
+  return new Response(protobufData, {
+    status,
+    headers: {
+      'Content-Type': PROTOBUF_CONTENT_TYPE
+    }
+  })
 }
 
 const data = new Hono()
@@ -104,7 +65,8 @@ const MAX_BODY_SIZE = 3 * 1024 * 1024
 const checkBodySize = async (c, next) => {
   const contentLength = c.req.header('Content-Length')
   if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
-    return c.json(
+    return sendResponse(
+      c,
       {
         error: 'Request body too large',
         code: ERROR_CODES.DATA_TOO_LARGE
@@ -175,14 +137,14 @@ data.put(
       return sendResponse(c, { error: 'Invalid data type', code: ERROR_CODES.INVALID_TYPE }, 400)
     }
 
-    // 解析请求体（支持 JSON 和 CBOR，CBOR 会自动解压 data 字段）
+    // 解析 Protobuf 请求体
     const parsed = await parseRequestBody(c, type)
     if (parsed.error) {
       return sendResponse(c, { error: parsed.error, code: ERROR_CODES.INVALID_JSON }, 400)
     }
 
     const { data: reqData, version = null } = parsed.data
-    if (reqData === undefined) {
+    if (reqData === undefined || reqData === null) {
       return sendResponse(
         c,
         { error: 'Missing data field', code: ERROR_CODES.VALIDATION_FAILED },

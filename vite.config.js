@@ -198,7 +198,7 @@ export default defineConfig(({ mode }) => {
             vendor: ['vue'],
             aplayer: ['aplayer'],
             html2canvas: ['html2canvas'],
-            'cbor-x': ['cbor-x']
+            protobuf: ['@bufbuild/protobuf']
           }
         }
       }

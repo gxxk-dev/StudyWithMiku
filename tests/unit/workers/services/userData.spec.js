@@ -12,6 +12,7 @@ import {
 } from '../../../../workers/services/userData.js'
 import { DATA_CONFIG, ERROR_CODES } from '../../../../workers/constants.js'
 import { createMockD1 } from '../../../setup/fixtures/workerMocks.js'
+import { encodeData } from '../../../../shared/proto/index.js'
 import {
   sampleUserData,
   createFocusRecordData,
@@ -226,6 +227,7 @@ describe('userData.js', () => {
 
     it('版本不匹配时应该返回冲突', async () => {
       // 使用独立用户避免测试间干扰
+      const settingsData = createFocusSettingsData()
       await mockDB
         .prepare(
           'INSERT INTO user_data (user_id, data_type, data, data_format, version) VALUES (?, ?, ?, ?, ?)'
@@ -233,8 +235,8 @@ describe('userData.js', () => {
         .bind(
           'user-conflict-test',
           DATA_CONFIG.TYPES.FOCUS_SETTINGS,
-          JSON.stringify(createFocusSettingsData()),
-          'json',
+          encodeData(DATA_CONFIG.TYPES.FOCUS_SETTINGS, settingsData),
+          'protobuf',
           5
         )
         .run()
@@ -264,8 +266,8 @@ describe('userData.js', () => {
         .bind(
           'user-merge-test',
           DATA_CONFIG.TYPES.FOCUS_RECORDS,
-          JSON.stringify(existingRecords),
-          'json',
+          encodeData(DATA_CONFIG.TYPES.FOCUS_RECORDS, existingRecords),
+          'protobuf',
           1
         )
         .run()

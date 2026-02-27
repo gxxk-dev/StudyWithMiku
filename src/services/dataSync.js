@@ -3,12 +3,16 @@
  * @module services/dataSync
  *
  * 封装用户数据的上传、下载、批量同步 API 调用
- * 支持 CBOR 和 JSON 两种格式
+ * 使用 Protobuf 二进制编码传输
  */
 
 import { DATA_API, AUTH_CONFIG } from '../config/constants.js'
 import { ERROR_TYPES } from './auth.js'
-import { CBOR_CONTENT_TYPE, createCborRequestInit, parseCborResponse } from '../utils/cborClient.js'
+import {
+  PROTOBUF_CONTENT_TYPE,
+  createProtobufRequestInit,
+  parseProtobufResponse
+} from '../utils/protobufClient.js'
 
 /**
  * 创建认证错误对象（从 auth.js 导入的辅助函数）
@@ -27,10 +31,10 @@ const createSyncError = (type, message, details = null) => {
 }
 
 /**
- * 发送 API 请求（带重试机制，支持 CBOR）
+ * 发送 API 请求（带重试机制）
  * @param {string} url - 请求 URL
  * @param {Object} options - fetch 选项
- * @param {string} dataType - 数据类型（用于 CBOR 解码）
+ * @param {string} dataType - 数据类型（用于 Protobuf 解码）
  * @param {number} retries - 剩余重试次数
  * @returns {Promise<any>} 响应数据
  */
@@ -44,14 +48,14 @@ const fetchWithRetry = async (
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Content-Type': CBOR_CONTENT_TYPE,
-        Accept: CBOR_CONTENT_TYPE,
+        'Content-Type': PROTOBUF_CONTENT_TYPE,
+        Accept: PROTOBUF_CONTENT_TYPE,
         ...options.headers
       }
     })
 
-    // 解析响应（支持 CBOR 和 JSON）
-    const data = await parseCborResponse(response, dataType)
+    // 解析 Protobuf 响应
+    const data = await parseProtobufResponse(response, dataType)
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -137,7 +141,7 @@ export const updateData = async (accessToken, dataType, data, version = null) =>
 
   validateDataType(dataType)
 
-  const cborInit = createCborRequestInit(dataType, { data, version })
+  const protobufInit = createProtobufRequestInit(dataType, { data, version })
 
   return fetchWithRetry(
     DATA_API.UPDATE_DATA(dataType),
@@ -145,9 +149,9 @@ export const updateData = async (accessToken, dataType, data, version = null) =>
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${accessToken}`,
-        ...cborInit.headers
+        ...protobufInit.headers
       },
-      body: cborInit.body
+      body: protobufInit.body
     },
     dataType
   )

@@ -92,7 +92,7 @@ export const tokenBlacklist = sqliteTable(
 /**
  * 用户数据表
  * @description version 用于冲突检测，复合主键
- * data 字段存储 CBOR 二进制数据，dataFormat 标识格式（用于迁移期间兼容）
+ * data 字段存储 Protobuf 二进制数据，dataFormat 标识格式
  */
 export const userData = sqliteTable(
   'user_data',
@@ -102,7 +102,7 @@ export const userData = sqliteTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     dataType: text('data_type').notNull(),
     data: blob('data').notNull(),
-    dataFormat: text('data_format').notNull().default('cbor'),
+    dataFormat: text('data_format').notNull().default('protobuf'),
     version: integer('version').notNull().default(1)
   },
   (table) => [primaryKey({ columns: [table.userId, table.dataType] })]

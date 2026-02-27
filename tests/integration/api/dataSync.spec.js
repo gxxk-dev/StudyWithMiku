@@ -112,7 +112,7 @@ describe('数据同步 API 集成测试', () => {
   })
 
   describe('下载数据', () => {
-    it('上传后下载数据一致（CBOR 编解码往返）', async () => {
+    it('上传后下载数据一致（Protobuf 编解码往返）', async () => {
       const records = [
         {
           id: 'r1',

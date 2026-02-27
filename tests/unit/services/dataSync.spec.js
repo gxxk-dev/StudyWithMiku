@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-vi.mock('@/utils/cborClient.js', () => ({
-  CBOR_CONTENT_TYPE: 'application/cbor',
-  createCborRequestInit: vi.fn((_dataType, _body) => ({
-    headers: { 'Content-Type': 'application/cbor', Accept: 'application/cbor' },
+vi.mock('@/utils/protobufClient.js', () => ({
+  PROTOBUF_CONTENT_TYPE: 'application/x-protobuf',
+  createProtobufRequestInit: vi.fn((_dataType, _body) => ({
+    headers: { 'Content-Type': 'application/x-protobuf', Accept: 'application/x-protobuf' },
     body: new Uint8Array([1, 2, 3])
   })),
-  parseCborResponse: vi.fn(async (response) => response.json())
+  parseProtobufResponse: vi.fn(async (response) => response.json())
 }))
 
 import { getData, updateData, deleteData, hasData } from '@/services/dataSync.js'
 import { ERROR_TYPES } from '@/services/auth.js'
-import { createCborRequestInit } from '@/utils/cborClient.js'
+import { createProtobufRequestInit } from '@/utils/protobufClient.js'
 
 describe('dataSync service', () => {
   /** @type {ReturnType<typeof vi.fn>} */
@@ -49,7 +49,7 @@ describe('dataSync service', () => {
   // ── getData ──────────────────────────────────────────────
 
   describe('getData', () => {
-    it('sends GET with Bearer token and CBOR accept header', async () => {
+    it('sends GET with Bearer token and Protobuf accept header', async () => {
       fetchMock.mockReturnValueOnce(jsonOk({ data: [1, 2, 3] }))
 
       const result = await getData('at', VALID_TYPE)
@@ -95,7 +95,7 @@ describe('dataSync service', () => {
   // ── updateData ───────────────────────────────────────────
 
   describe('updateData', () => {
-    it('sends PUT with CBOR body via createCborRequestInit', async () => {
+    it('sends PUT with Protobuf body via createProtobufRequestInit', async () => {
       fetchMock.mockReturnValueOnce(jsonOk({ version: 2 }))
 
       const data = { records: [{ id: 1 }] }
@@ -105,7 +105,7 @@ describe('dataSync service', () => {
       expect(url).toContain(`/api/data/${VALID_TYPE}`)
       expect(opts.method).toBe('PUT')
       expect(opts.headers.Authorization).toBe('Bearer at')
-      expect(createCborRequestInit).toHaveBeenCalled()
+      expect(createProtobufRequestInit).toHaveBeenCalled()
       expect(result).toEqual({ version: 2 })
     })
 
@@ -114,9 +114,8 @@ describe('dataSync service', () => {
 
       await updateData('at', VALID_TYPE, { x: 1 }, 2)
 
-      expect(createCborRequestInit).toHaveBeenCalled()
-      const callArgs = createCborRequestInit.mock.calls[0]
-      // version should be part of the data passed to createCborRequestInit
+      expect(createProtobufRequestInit).toHaveBeenCalled()
+      const callArgs = createProtobufRequestInit.mock.calls[0]
       expect(callArgs).toBeDefined()
     })
 
@@ -132,7 +131,7 @@ describe('dataSync service', () => {
       })
     })
 
-    it('sends PUT with CBOR body', async () => {
+    it('sends PUT with Protobuf body', async () => {
       fetchMock.mockReturnValueOnce(jsonOk({ success: true, version: 1 }))
 
       await updateData('at', VALID_TYPE, { x: 1 })
