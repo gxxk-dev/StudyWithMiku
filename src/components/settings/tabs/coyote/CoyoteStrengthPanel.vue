@@ -4,12 +4,17 @@ import { Icon } from '@iconify/vue'
 import { useCoyote } from '../../../../composables/useCoyote.js'
 import { CoyoteConnectionState } from '../../../../composables/coyote/constants.js'
 
-const { connectionState, strengthA, strengthB, service } = useCoyote()
+const { connectionState, strengthA, strengthB, strengthLimitA, strengthLimitB, settings, service } =
+  useCoyote()
 
 const isBound = computed(() => connectionState.value === CoyoteConnectionState.BOUND)
 
-const strengthAPercent = computed(() => (strengthA.value / 200) * 100)
-const strengthBPercent = computed(() => (strengthB.value / 200) * 100)
+const strengthAPercent = computed(() =>
+  strengthLimitA.value > 0 ? (strengthA.value / strengthLimitA.value) * 100 : 0
+)
+const strengthBPercent = computed(() =>
+  strengthLimitB.value > 0 ? (strengthB.value / strengthLimitB.value) * 100 : 0
+)
 
 const getBarColor = (value) => {
   if (value <= 60) return '#4caf50'
@@ -18,16 +23,17 @@ const getBarColor = (value) => {
 }
 
 const adjustStrength = (channel, delta) => {
+  const max = settings.value.maxStrength
   if (delta > 0) {
-    service.increaseStrength(channel, Math.abs(delta), 200)
+    service.increaseStrength(channel, Math.abs(delta), max)
   } else {
-    service.decreaseStrength(channel, Math.abs(delta), 200)
+    service.decreaseStrength(channel, Math.abs(delta), max)
   }
 }
 
 const sendTestPulse = (channel) => {
-  // 发送 10 条默认脉冲（1 秒）
-  const testPatterns = Array(10).fill('64320a0a')
+  // 发送 10 条默认脉冲（1 秒）: freq=100, int=50
+  const testPatterns = Array(10).fill('6464646432323232')
   service.sendPulse(channel, testPatterns)
 }
 </script>
@@ -51,7 +57,7 @@ const sendTestPulse = (channel) => {
           }"
         />
       </div>
-      <span class="strength-value">{{ strengthA }}/200</span>
+      <span class="strength-value">{{ strengthA }}/{{ strengthLimitA }}</span>
     </div>
     <div class="adjust-buttons">
       <button class="adj-btn" @click="adjustStrength('A', -10)">-10</button>
@@ -72,7 +78,7 @@ const sendTestPulse = (channel) => {
           }"
         />
       </div>
-      <span class="strength-value">{{ strengthB }}/200</span>
+      <span class="strength-value">{{ strengthB }}/{{ strengthLimitB }}</span>
     </div>
     <div class="adjust-buttons">
       <button class="adj-btn" @click="adjustStrength('B', -10)">-10</button>

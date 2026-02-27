@@ -1,6 +1,6 @@
 /**
  * 音频文件转 DG-Lab 波形 hex 数据服务
- * 使用 Web Audio API 解码音频，转换为 DG-Lab 8 字节 hex 格式
+ * 使用 Web Audio API 解码音频，转换为 DG-Lab V3 16 字符 hex 格式
  * 原始音频存储在 OPFS 独立子目录中
  */
 
@@ -21,11 +21,11 @@ const getWaveformDir = async () => {
 }
 
 /**
- * 将振幅（0-1）映射为 DG-Lab 8 字节 hex
- * 格式：每条 hex 包含频率和强度参数
- * 4 字节频率 (10-240) + 4 字节强度 (0-100)
+ * 将振幅（0-1）映射为 DG-Lab V3 16 字符 hex
+ * 格式：4 频率字节 + 4 强度字节 = 16 hex 字符
+ * 每个频率/强度字节值相同（4 脉冲子通道统一）
  * @param {number} amplitude - 归一化振幅 0-1
- * @returns {string} hex 字符串
+ * @returns {string} 16 字符 hex 字符串
  */
 const amplitudeToHex = (amplitude) => {
   const clamped = Math.max(0, Math.min(1, amplitude))
@@ -33,11 +33,10 @@ const amplitudeToHex = (amplitude) => {
   const freq = Math.round(10 + clamped * 230)
   // 强度：跟随振幅 (0-100)
   const intensity = Math.round(clamped * 100)
-  // 编码为 4 字节 hex: freq(2 bytes) + intensity(2 bytes)
-  const freqHex = freq.toString(16).padStart(2, '0')
-  const intensityHex = intensity.toString(16).padStart(2, '0')
-  // DG-Lab 格式: 频率高+低 + 强度高+低（重复以填充 8 字节）
-  return `${freqHex}${intensityHex}${freqHex}${intensityHex}`
+  const fh = freq.toString(16).padStart(2, '0')
+  const ih = intensity.toString(16).padStart(2, '0')
+  // V3: 4 频率字节 + 4 强度字节 = 16 hex 字符
+  return `${fh}${fh}${fh}${fh}${ih}${ih}${ih}${ih}`
 }
 
 /**

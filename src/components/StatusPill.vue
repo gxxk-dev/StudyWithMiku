@@ -43,6 +43,18 @@
 
       <span class="status-divider"></span>
 
+      <!-- 郊狼设备指示 -->
+      <template v-if="coyoteBound">
+        <div class="coyote-indicator" :title="`A:${coyoteStrengthA} B:${coyoteStrengthB}`">
+          <Icon icon="lucide:zap" width="14" height="14" class="coyote-icon" />
+          <span class="coyote-strength">{{ coyoteStrengthA }}</span>
+        </div>
+        <button class="emergency-btn" title="紧急停止" @click.stop="handleEmergencyStop">
+          <Icon icon="lucide:octagon" width="14" height="14" />
+        </button>
+        <span class="status-divider"></span>
+      </template>
+
       <!-- 设置图标 -->
       <div class="settings-icon" @click.stop="$emit('open-settings')">
         <Icon icon="lucide:settings" width="18" height="18" />
@@ -55,6 +67,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useFocus, FocusMode } from '../composables/useFocus.js'
+import { useCoyote } from '../composables/useCoyote.js'
+import { CoyoteConnectionState } from '../composables/coyote/constants.js'
 import { onlineServer } from '../services/onlineServer.js'
 import { getConfig } from '../services/runtimeConfig.js'
 
@@ -70,6 +84,23 @@ defineProps({
 })
 
 defineEmits(['open-settings', 'open-focus-summary', 'mouseenter', 'mouseleave'])
+
+// 郊狼设备状态
+const {
+  connectionState: coyoteState,
+  strengthA: coyoteStrengthA,
+  strengthB: coyoteStrengthB,
+  emergencyStop: coyoteEmergencyStop,
+  settings: coyoteSettings
+} = useCoyote()
+
+const coyoteBound = computed(
+  () => coyoteSettings.value.enabled && coyoteState.value === CoyoteConnectionState.BOUND
+)
+
+const handleEmergencyStop = () => {
+  coyoteEmergencyStop()
+}
 
 // 在线人数
 const onlineCount = onlineServer.onlineCount
@@ -330,6 +361,40 @@ $glass-border: rgba(255, 255, 255, 0.2);
   }
 }
 
+.coyote-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #f59e0b;
+}
+
+.coyote-icon {
+  flex-shrink: 0;
+}
+
+.coyote-strength {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.emergency-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem;
+  border: none;
+  border-radius: 3px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.4);
+    color: #ff6b6b;
+  }
+}
+
 .settings-icon {
   display: flex;
   align-items: center;
@@ -360,6 +425,10 @@ $glass-border: rgba(255, 255, 255, 0.2);
   .online-indicator + .status-divider,
   .system-time,
   .system-time + .status-divider {
+    display: none;
+  }
+
+  .coyote-strength {
     display: none;
   }
 }

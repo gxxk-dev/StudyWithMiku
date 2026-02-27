@@ -16,6 +16,8 @@ vi.mock('@/services/coyoteService.js', async () => {
   const lastError = ref(null)
   const strengthA = ref(0)
   const strengthB = ref(0)
+  const strengthLimitA = ref(200)
+  const strengthLimitB = ref(200)
 
   return {
     coyoteService: {
@@ -25,6 +27,8 @@ vi.mock('@/services/coyoteService.js', async () => {
       lastError: readonly(lastError),
       strengthA: readonly(strengthA),
       strengthB: readonly(strengthB),
+      strengthLimitA: readonly(strengthLimitA),
+      strengthLimitB: readonly(strengthLimitB),
       connect: vi.fn().mockResolvedValue(true),
       disconnect: vi.fn(),
       setStrength: vi.fn(),

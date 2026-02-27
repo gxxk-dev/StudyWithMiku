@@ -135,7 +135,11 @@ const handleServerInput = (e) => {
         <!-- 二维码 -->
         <div v-if="qrDataUrl" class="qr-container">
           <img :src="qrDataUrl" alt="DG-Lab 配对二维码" class="qr-image" />
-          <p class="status-hint">请在 DG-Lab App 中扫描此二维码配对</p>
+          <ol class="pairing-steps">
+            <li>打开 DG-Lab App，选择「Socket 控制」</li>
+            <li>确保 Coyote 已通过蓝牙连接</li>
+            <li>点击「连接服务器」旁的相机图标，扫描上方二维码</li>
+          </ol>
         </div>
       </div>
 
@@ -285,11 +289,17 @@ const handleServerInput = (e) => {
   border-radius: 6px;
 }
 
-.status-hint {
+.pairing-steps {
   margin: 0;
-  color: rgba(255, 255, 255, 0.5);
+  padding-left: 1.4em;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.75rem;
-  text-align: center;
+  text-align: left;
+  line-height: 1.8;
+}
+
+.pairing-steps li {
+  margin-bottom: 2px;
 }
 
 .button-row {

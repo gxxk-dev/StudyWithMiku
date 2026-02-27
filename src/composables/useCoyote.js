@@ -232,6 +232,8 @@ export const useCoyote = () => {
     targetId: coyoteService.targetId,
     strengthA: coyoteService.strengthA,
     strengthB: coyoteService.strengthB,
+    strengthLimitA: coyoteService.strengthLimitA,
+    strengthLimitB: coyoteService.strengthLimitB,
     lastError: coyoteService.lastError,
 
     // 连接

@@ -10,7 +10,8 @@ import {
   HookTrigger,
   HookActionType,
   COYOTE_DEFAULTS,
-  COYOTE_STORAGE_KEYS
+  COYOTE_STORAGE_KEYS,
+  BIND_ERROR_MESSAGES
 } from '@/composables/coyote/constants.js'
 
 describe('coyote/constants', () => {
@@ -57,6 +58,28 @@ describe('coyote/constants', () => {
       expect(COYOTE_STORAGE_KEYS.HOOKS).toBe('swm_coyote_hooks')
       expect(COYOTE_STORAGE_KEYS.UNLOCKED).toBe('swm_coyote_unlocked')
       expect(COYOTE_STORAGE_KEYS.CONFIRMED).toBe('swm_coyote_confirmed')
+    })
+  })
+
+  describe('绑定错误码', () => {
+    it('BIND_ERROR_MESSAGES 应该包含所有已知错误码', () => {
+      expect(BIND_ERROR_MESSAGES[209]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[210]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[211]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[400]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[401]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[402]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[403]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[404]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[405]).toBeDefined()
+      expect(BIND_ERROR_MESSAGES[500]).toBeDefined()
+    })
+
+    it('BIND_ERROR_MESSAGES 所有值应该是字符串', () => {
+      Object.values(BIND_ERROR_MESSAGES).forEach((msg) => {
+        expect(typeof msg).toBe('string')
+        expect(msg.length).toBeGreaterThan(0)
+      })
     })
   })
 })

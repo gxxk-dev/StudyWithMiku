@@ -70,6 +70,22 @@ export const COYOTE_DEFAULTS = {
 }
 
 /**
+ * WebSocket 绑定错误码映射
+ */
+export const BIND_ERROR_MESSAGES = {
+  209: '对端已断开连接',
+  210: '二维码中的 clientId 无效',
+  211: '连接已建立但 APP 尚未发送绑定',
+  400: '该 ID 已绑定到其他客户端',
+  401: '目标客户端不存在',
+  402: '发送端与接收端未绑定',
+  403: '消息 JSON 格式无效',
+  404: '接收端离线',
+  405: '消息超过 1950 字符限制',
+  500: '服务器内部错误'
+}
+
+/**
  * 存储键名
  */
 export const COYOTE_STORAGE_KEYS = {

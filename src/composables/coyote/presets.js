@@ -16,7 +16,7 @@ export const PRESETS = [
       action: {
         type: HookActionType.PULSE,
         channel: 'A',
-        patterns: Array(30).fill('64640a0a'),
+        patterns: Array(30).fill('6464646464646464'),
         durationMs: 3000
       }
     }
@@ -31,7 +31,7 @@ export const PRESETS = [
       action: {
         type: HookActionType.PULSE,
         channel: 'A',
-        patterns: Array(50).fill('c8640a0a'),
+        patterns: Array(50).fill('c8c8c8c864646464'),
         durationMs: 5000
       }
     }

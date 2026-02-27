@@ -7,7 +7,8 @@ import { ref, readonly } from 'vue'
 import {
   CoyoteConnectionState,
   CoyoteChannel,
-  StrengthMode
+  StrengthMode,
+  BIND_ERROR_MESSAGES
 } from '../composables/coyote/constants.js'
 
 // 协议常量
@@ -15,7 +16,7 @@ const HEARTBEAT_INTERVAL = 20000
 const CONNECTION_TIMEOUT = 5000
 const MAX_RECONNECT_ATTEMPTS = 10
 const MAX_MESSAGE_LENGTH = 1950
-const MAX_PULSE_PER_MESSAGE = 100
+const MAX_PULSE_PER_MESSAGE = 80
 const RECONNECT_BASE_DELAY = 1000
 const RECONNECT_MAX_DELAY = 30000
 
@@ -26,6 +27,8 @@ const targetId = ref('')
 const lastError = ref(null)
 const strengthA = ref(0)
 const strengthB = ref(0)
+const strengthLimitA = ref(200)
+const strengthLimitB = ref(200)
 
 // 内部状态
 let ws = null
@@ -87,7 +90,11 @@ const sendMessage = (msg) => {
 const startHeartbeat = () => {
   if (heartbeatInterval) clearInterval(heartbeatInterval)
   heartbeatInterval = setInterval(() => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (
+      ws &&
+      ws.readyState === WebSocket.OPEN &&
+      connectionState.value === CoyoteConnectionState.BOUND
+    ) {
       sendMessage({
         type: 'heartbeat',
         clientId: clientId.value,
@@ -141,6 +148,13 @@ const handleMessage = (event) => {
           connectionState.value = CoyoteConnectionState.BOUND
           reconnectAttempts = 0
           console.log('[CoyoteService] 设备已绑定:', data.targetId)
+        } else if (data.message && data.message !== '200' && data.targetId) {
+          // 绑定错误码
+          const code = parseInt(data.message)
+          const errorMsg = BIND_ERROR_MESSAGES[code] || `绑定失败（错误码 ${data.message}）`
+          lastError.value = errorMsg
+          connectionState.value = CoyoteConnectionState.ERROR
+          console.warn('[CoyoteService] 绑定错误:', data.message, errorMsg)
         }
         break
 
@@ -152,7 +166,7 @@ const handleMessage = (event) => {
         break
 
       case 'msg':
-        // 解析强度反馈: strength-{channel}+{value}
+        // 解析强度反馈: strength-{strengthA}+{strengthB}+{limitA}+{limitB}
         if (data.message && data.message.startsWith('strength-')) {
           parseStrengthFeedback(data.message)
         }
@@ -160,6 +174,17 @@ const handleMessage = (event) => {
 
       case 'heartbeat':
         // 心跳响应，无需处理
+        break
+
+      case 'error':
+        // 服务器错误消息
+        lastError.value = data.message || '服务器错误'
+        console.warn('[CoyoteService] 服务器错误:', data.message)
+        break
+
+      case 'feedback':
+        // APP 端反馈消息（如按钮操作），记录日志
+        console.debug('[CoyoteService] 收到 feedback:', data.message)
         break
 
       default:
@@ -172,15 +197,16 @@ const handleMessage = (event) => {
 
 /**
  * 解析强度反馈消息
+ * 格式: strength-{strengthA}+{strengthB}+{limitA}+{limitB}
  * @param {string} message - 强度消息
  */
 const parseStrengthFeedback = (message) => {
-  const match = message.match(/strength-(\d)\+(\d+)/)
+  const match = message.match(/^strength-(\d+)\+(\d+)\+(\d+)\+(\d+)$/)
   if (!match) return
-  const channel = parseInt(match[1])
-  const value = parseInt(match[2])
-  if (channel === 1) strengthA.value = value
-  else if (channel === 2) strengthB.value = value
+  strengthA.value = parseInt(match[1])
+  strengthB.value = parseInt(match[2])
+  strengthLimitA.value = parseInt(match[3])
+  strengthLimitB.value = parseInt(match[4])
 }
 
 /**
@@ -195,11 +221,12 @@ const channelToNumber = (channel) => {
 /**
  * 限制强度值到安全范围
  * @param {number} value - 强度值
- * @param {number} maxStrength - 最大强度上限
+ * @param {number} maxStrength - 用户设置的最大强度上限
+ * @param {number} [deviceLimit=200] - 设备端强度上限
  * @returns {number}
  */
-const clampStrength = (value, maxStrength) => {
-  return Math.max(0, Math.min(value, maxStrength, 200))
+const clampStrength = (value, maxStrength, deviceLimit = 200) => {
+  return Math.max(0, Math.min(value, maxStrength, deviceLimit))
 }
 
 // === 公共 API ===
@@ -283,6 +310,8 @@ const disconnect = () => {
   targetId.value = ''
   strengthA.value = 0
   strengthB.value = 0
+  strengthLimitA.value = 200
+  strengthLimitB.value = 200
   console.debug('[CoyoteService] 已断开连接')
 }
 
@@ -294,8 +323,9 @@ const disconnect = () => {
  */
 const setStrength = (channel, value, maxStrength) => {
   if (connectionState.value !== CoyoteConnectionState.BOUND) return
-  const clamped = clampStrength(value, maxStrength)
   const ch = channelToNumber(channel)
+  const deviceLimit = ch === 1 ? strengthLimitA.value : strengthLimitB.value
+  const clamped = clampStrength(value, maxStrength, deviceLimit)
   sendMessage({
     type: 'msg',
     clientId: clientId.value,
@@ -314,7 +344,9 @@ const increaseStrength = (channel, value, maxStrength) => {
   if (connectionState.value !== CoyoteConnectionState.BOUND) return
   const ch = channelToNumber(channel)
   const currentVal = ch === 1 ? strengthA.value : strengthB.value
-  const clamped = clampStrength(value, maxStrength - currentVal)
+  const deviceLimit = ch === 1 ? strengthLimitA.value : strengthLimitB.value
+  const effectiveMax = Math.min(maxStrength, deviceLimit)
+  const clamped = clampStrength(value, effectiveMax - currentVal)
   if (clamped <= 0) return
   sendMessage({
     type: 'msg',
@@ -330,10 +362,11 @@ const increaseStrength = (channel, value, maxStrength) => {
  * @param {number} value - 减少值
  * @param {number} maxStrength - 最大强度上限
  */
-const decreaseStrength = (channel, value, _maxStrength) => {
+const decreaseStrength = (channel, value, maxStrength) => {
   if (connectionState.value !== CoyoteConnectionState.BOUND) return
-  const clamped = Math.max(0, Math.min(value, 200))
   const ch = channelToNumber(channel)
+  const deviceLimit = ch === 1 ? strengthLimitA.value : strengthLimitB.value
+  const clamped = clampStrength(value, maxStrength, deviceLimit)
   sendMessage({
     type: 'msg',
     clientId: clientId.value,
@@ -412,6 +445,8 @@ export const coyoteService = {
   lastError: readonly(lastError),
   strengthA: readonly(strengthA),
   strengthB: readonly(strengthB),
+  strengthLimitA: readonly(strengthLimitA),
+  strengthLimitB: readonly(strengthLimitB),
 
   // 连接
   connect,
