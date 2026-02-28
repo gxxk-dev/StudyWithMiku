@@ -107,3 +107,26 @@ export const userData = sqliteTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.dataType] })]
 )
+
+/**
+ * Push 推送订阅表
+ * @description 存储浏览器推送订阅信息
+ */
+export const pushSubscriptions = sqliteTable(
+  'push_subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: integer('created_at').notNull(),
+    userAgent: text('user_agent')
+  },
+  (table) => [
+    index('idx_push_subs_user_id').on(table.userId),
+    uniqueIndex('idx_push_subs_endpoint').on(table.endpoint)
+  ]
+)

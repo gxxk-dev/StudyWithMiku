@@ -36,6 +36,7 @@
     "@fontsource/fira-code": "^5.2.7",
     "@hono/zod-validator": "^0.7.6",
     "@iconify/vue": "^5.0.0",
+    "@pushforge/builder": "^2.0.1",
     "@simplewebauthn/server": "^13.2.2",
     "@vueuse/core": "^10.1.2",
     "aplayer": "^1.10.1",

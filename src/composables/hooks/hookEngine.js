@@ -1,19 +1,19 @@
 /**
  * 钩子引擎 — 纯函数模块
- * 负责钩子匹配、事件映射和动作执行
+ * 负责钩子匹配、事件映射和 provider 调度
  */
 
 import { FocusMode } from '../focus/constants.js'
-import { HookTrigger, HookActionType, CoyoteChannel } from './constants.js'
+import { HookTrigger } from './constants.js'
+import { providerRegistry } from './providerRegistry.js'
 
 /**
  * 将 focus 事件映射为 HookTrigger
  * @param {string} action - 事件动作 (start/pause/resume/cancel/skip/complete/tick)
  * @param {string} mode - 番茄钟模式 (focus/shortBreak/longBreak)
- * @param {string} [completionType] - 完成类型
  * @returns {string|null} HookTrigger 值
  */
-export const mapTransitionToTrigger = (action, mode, _completionType) => {
+export const mapTransitionToTrigger = (action, mode) => {
   const isFocus = mode === FocusMode.FOCUS
   const isBreak = mode === FocusMode.SHORT_BREAK || mode === FocusMode.LONG_BREAK
 
@@ -57,12 +57,10 @@ export const evaluateHooks = (hooks, trigger, context = {}) => {
     if (!hook.enabled) return false
     if (hook.trigger !== trigger) return false
 
-    // tick 类型：检查间隔条件
     if (trigger === HookTrigger.FOCUS_TICK || trigger === HookTrigger.BREAK_TICK) {
       const interval = hook.tickInterval || 0
       if (interval <= 0) return false
       const elapsed = context.elapsed || 0
-      // 仅在整数倍时触发
       if (elapsed === 0 || elapsed % interval !== 0) return false
     }
 
@@ -71,43 +69,20 @@ export const evaluateHooks = (hooks, trigger, context = {}) => {
 }
 
 /**
- * 执行钩子动作
- * @param {Object} hook - 钩子对象
- * @param {Object} service - coyoteService 实例
- * @param {number} maxStrength - 最大强度上限
+ * 将匹配的钩子分发到对应的 provider 执行
+ * @param {Array} matchedHooks - 匹配的钩子列表
+ * @param {Object} context - 事件上下文
  */
-export const executeAction = (hook, service, maxStrength) => {
-  const action = hook.action
-  if (!action) return
+export const dispatchToProviders = (matchedHooks, context) => {
+  matchedHooks.forEach((hook) => {
+    const provider = providerRegistry.get(hook.provider)
+    if (!provider) return
+    if (provider.isAvailable && !provider.isAvailable()) return
 
-  const channels =
-    action.channel === 'both'
-      ? [CoyoteChannel.A, CoyoteChannel.B]
-      : [action.channel || CoyoteChannel.A]
-
-  const value = Math.max(0, Math.min(action.value || 0, maxStrength))
-
-  switch (action.type) {
-    case HookActionType.STRENGTH_SET:
-      channels.forEach((ch) => service.setStrength(ch, value, maxStrength))
-      break
-
-    case HookActionType.STRENGTH_INCREASE:
-      channels.forEach((ch) => service.increaseStrength(ch, value, maxStrength))
-      break
-
-    case HookActionType.STRENGTH_DECREASE:
-      channels.forEach((ch) => service.decreaseStrength(ch, value, maxStrength))
-      break
-
-    case HookActionType.PULSE:
-      if (action.patterns && action.patterns.length > 0) {
-        channels.forEach((ch) => service.sendPulse(ch, action.patterns))
-      }
-      break
-
-    case HookActionType.CLEAR:
-      channels.forEach((ch) => service.clearChannel(ch))
-      break
-  }
+    try {
+      provider.execute(hook, context)
+    } catch (err) {
+      console.error(`[hookEngine] provider "${hook.provider}" 执行失败:`, hook.name, err)
+    }
+  })
 }

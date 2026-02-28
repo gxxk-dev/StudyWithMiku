@@ -153,9 +153,7 @@ export const focusSettingsSchema = z.object({
   longBreakDuration: z.number().int().min(0).max(3600),
   longBreakInterval: z.number().int().min(1).max(10),
   autoStartBreaks: z.boolean(),
-  autoStartFocus: z.boolean(),
-  notificationEnabled: z.boolean(),
-  notificationSound: z.boolean()
+  autoStartFocus: z.boolean()
 })
 
 /**
@@ -213,6 +211,32 @@ export const shareConfigSchema = z
   })
 
 /**
+ * Hook action 验证（宽松，允许各种 provider 的 action 字段）
+ */
+const hookActionSchema = z.object({}).passthrough()
+
+/**
+ * Hook 验证
+ */
+const hookSchema = z.object({
+  id: z.string().max(100),
+  enabled: z.boolean(),
+  name: z.string().max(100),
+  provider: z.enum(['notification', 'sound', 'push', 'estim']),
+  trigger: z.string().max(50),
+  tickInterval: z.number().int().min(0).max(86400).optional().default(0),
+  builtIn: z.boolean().optional().default(false),
+  action: hookActionSchema.optional().default({})
+})
+
+/**
+ * Hook 设置验证
+ */
+export const hookSettingsSchema = z.object({
+  hooks: z.array(hookSchema).max(100)
+})
+
+/**
  * 各数据类型对应的 Schema 映射
  * @type {Object<string, z.ZodSchema>}
  */
@@ -221,7 +245,8 @@ export const dataTypeSchemas = {
   [DATA_CONFIG.TYPES.FOCUS_SETTINGS]: focusSettingsSchema,
   [DATA_CONFIG.TYPES.PLAYLISTS]: playlistsDataSchema,
   [DATA_CONFIG.TYPES.USER_SETTINGS]: userSettingsSchema,
-  [DATA_CONFIG.TYPES.SHARE_CONFIG]: shareConfigSchema
+  [DATA_CONFIG.TYPES.SHARE_CONFIG]: shareConfigSchema,
+  [DATA_CONFIG.TYPES.HOOK_SETTINGS]: hookSettingsSchema
 }
 
 /**
@@ -245,6 +270,7 @@ export const dataTypeParamSchema = z.object({
     DATA_CONFIG.TYPES.FOCUS_SETTINGS,
     DATA_CONFIG.TYPES.PLAYLISTS,
     DATA_CONFIG.TYPES.USER_SETTINGS,
-    DATA_CONFIG.TYPES.SHARE_CONFIG
+    DATA_CONFIG.TYPES.SHARE_CONFIG,
+    DATA_CONFIG.TYPES.HOOK_SETTINGS
   ])
 })

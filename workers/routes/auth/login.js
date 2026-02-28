@@ -115,7 +115,7 @@ login.post('/verify', authRateLimit, zValidator('json', loginVerifySchema), asyn
   })
 
   // 验证认证响应
-  const origin = c.req.header('Origin') || `https://${c.env.WEBAUTHN_RP_ID}`
+  const origin = c.req.header('Origin') || new URL(c.req.url).origin
   const verification = await verifyAuthentication({
     response,
     expectedChallenge: challengeData.challenge,

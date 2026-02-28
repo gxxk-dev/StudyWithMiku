@@ -5,7 +5,7 @@ import { useFocus } from '../../../composables/useFocus.js'
 import { usePlaylistManager } from '../../../composables/usePlaylistManager.js'
 import { generateShareUrl } from '../../../composables/useUrlParams.js'
 
-const { settings, updateSettings, requestNotificationPermission } = useFocus()
+const { settings, updateSettings } = useFocus()
 
 // 歌单管理
 const { currentPlaylist } = usePlaylistManager()
@@ -56,13 +56,6 @@ const focusMinutes = computed(() => Math.round(settings.value.focusDuration / 60
 const shortBreakMinutes = computed(() => Math.round(settings.value.shortBreakDuration / 60))
 const longBreakMinutes = computed(() => Math.round(settings.value.longBreakDuration / 60))
 
-// 通知权限状态
-const notificationSupported = computed(() => 'Notification' in window)
-const notificationPermission = computed(() => {
-  if (!notificationSupported.value) return 'unsupported'
-  return Notification.permission
-})
-
 // Slider 填充百分比计算
 const focusFillPercent = computed(() => ((focusMinutes.value - 1) / (120 - 1)) * 100)
 const shortBreakFillPercent = computed(() => (shortBreakMinutes.value / 30) * 100)
@@ -97,22 +90,6 @@ const handleAutoStartBreaks = (e) => {
 
 const handleAutoStartFocus = (e) => {
   updateSettings({ autoStartFocus: e.target.checked })
-}
-
-const handleNotificationEnabled = async (e) => {
-  const enabled = e.target.checked
-  if (enabled && notificationPermission.value === 'default') {
-    const result = await requestNotificationPermission()
-    if (!result.success) {
-      e.target.checked = false
-      return
-    }
-  }
-  updateSettings({ notificationEnabled: enabled })
-}
-
-const handleNotificationSound = (e) => {
-  updateSettings({ notificationSound: e.target.checked })
 }
 </script>
 
@@ -277,59 +254,7 @@ const handleNotificationSound = (e) => {
       </div>
     </div>
 
-    <!-- Section 3: 通知 -->
-    <div class="settings-section">
-      <h3 class="section-title">
-        <Icon icon="lucide:bell" width="18" height="18" />
-        <span>通知</span>
-      </h3>
-
-      <!-- 权限警告横幅 -->
-      <div v-if="notificationPermission === 'denied'" class="permission-banner warning">
-        <Icon icon="lucide:alert-triangle" width="16" height="16" />
-        <span>通知权限已被拒绝，请在浏览器设置中允许通知</span>
-      </div>
-      <div v-else-if="!notificationSupported" class="permission-banner info">
-        <Icon icon="lucide:info" width="16" height="16" />
-        <span>当前浏览器不支持桌面通知</span>
-      </div>
-
-      <!-- 桌面通知 -->
-      <div class="setting-item row">
-        <div class="setting-info">
-          <span class="setting-label">桌面通知</span>
-          <span class="setting-hint">计时结束时发送系统通知</span>
-        </div>
-        <label class="toggle">
-          <input
-            type="checkbox"
-            :checked="settings.notificationEnabled"
-            :disabled="notificationPermission === 'denied' || !notificationSupported"
-            @change="handleNotificationEnabled"
-          />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <!-- 通知提示音 -->
-      <div class="setting-item row">
-        <div class="setting-info">
-          <span class="setting-label">通知提示音</span>
-          <span class="setting-hint">通知时播放提示音</span>
-        </div>
-        <label class="toggle">
-          <input
-            type="checkbox"
-            :checked="settings.notificationSound"
-            :disabled="!settings.notificationEnabled"
-            @change="handleNotificationSound"
-          />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Section 4: 分享配置 -->
+    <!-- Section 3: 分享配置 -->
     <div class="settings-section">
       <h3 class="section-title">
         <Icon icon="lucide:share-2" width="18" height="18" />

@@ -144,9 +144,7 @@ describe('Protobuf Roundtrip', () => {
         longBreakDuration: 900,
         longBreakInterval: 4,
         autoStartBreaks: false,
-        autoStartFocus: true,
-        notificationEnabled: true,
-        notificationSound: false
+        autoStartFocus: true
       }
 
       const binary = encodeData(DATA_TYPES.FOCUS_SETTINGS, settings)
@@ -162,9 +160,7 @@ describe('Protobuf Roundtrip', () => {
         longBreakDuration: 0,
         longBreakInterval: 0,
         autoStartBreaks: false,
-        autoStartFocus: false,
-        notificationEnabled: false,
-        notificationSound: false
+        autoStartFocus: false
       }
 
       const binary = encodeData(DATA_TYPES.FOCUS_SETTINGS, settings)
@@ -340,9 +336,7 @@ describe('Protobuf Roundtrip', () => {
         longBreakDuration: 900,
         longBreakInterval: 4,
         autoStartBreaks: false,
-        autoStartFocus: false,
-        notificationEnabled: true,
-        notificationSound: true
+        autoStartFocus: false
       }
 
       const binary = encodeSyncRequest(DATA_TYPES.FOCUS_SETTINGS, settings, null)
@@ -360,9 +354,7 @@ describe('Protobuf Roundtrip', () => {
         longBreakDuration: 900,
         longBreakInterval: 4,
         autoStartBreaks: false,
-        autoStartFocus: false,
-        notificationEnabled: true,
-        notificationSound: true
+        autoStartFocus: false
       }
 
       const responseObj = {
@@ -388,9 +380,7 @@ describe('Protobuf Roundtrip', () => {
         longBreakDuration: 900,
         longBreakInterval: 4,
         autoStartBreaks: false,
-        autoStartFocus: false,
-        notificationEnabled: true,
-        notificationSound: true
+        autoStartFocus: false
       }
 
       const responseObj = {
@@ -422,6 +412,195 @@ describe('Protobuf Roundtrip', () => {
       expect(decoded.success).toBe(true)
       expect(decoded.version).toBe(2)
       expect(decoded.data).toBeNull()
+    })
+  })
+
+  describe('hook_settings', () => {
+    it('通知 hook 往返保持一致', () => {
+      const data = {
+        hooks: [
+          {
+            id: 'hook-1',
+            enabled: true,
+            name: '专注完成通知',
+            provider: 'notification',
+            trigger: 'focus_completed',
+            tickInterval: 0,
+            builtIn: true,
+            action: {
+              title: '专注完成！',
+              body: '休息一下吧'
+            }
+          }
+        ]
+      }
+
+      const binary = encodeData(DATA_TYPES.HOOK_SETTINGS, data)
+      expect(binary).toBeInstanceOf(Uint8Array)
+      const decoded = decodeData(DATA_TYPES.HOOK_SETTINGS, binary)
+
+      expect(decoded).toEqual(data)
+    })
+
+    it('音效 hook 往返保持一致', () => {
+      const data = {
+        hooks: [
+          {
+            id: 'hook-2',
+            enabled: true,
+            name: '专注完成提示音',
+            provider: 'sound',
+            trigger: 'focus_completed',
+            tickInterval: 0,
+            builtIn: true,
+            action: {
+              soundId: 'chime',
+              volume: 1.0
+            }
+          }
+        ]
+      }
+
+      const binary = encodeData(DATA_TYPES.HOOK_SETTINGS, data)
+      const decoded = decodeData(DATA_TYPES.HOOK_SETTINGS, binary)
+
+      expect(decoded.hooks).toHaveLength(1)
+      expect(decoded.hooks[0].action.soundId).toBe('chime')
+      // float32 精度：使用 toBeCloseTo
+      expect(decoded.hooks[0].action.volume).toBeCloseTo(1.0, 5)
+    })
+
+    it('推送 hook 往返保持一致', () => {
+      const data = {
+        hooks: [
+          {
+            id: 'hook-3',
+            enabled: false,
+            name: '专注完成推送',
+            provider: 'push',
+            trigger: 'focus_completed',
+            tickInterval: 0,
+            builtIn: false,
+            action: {
+              title: '专注完成',
+              body: '做得好！'
+            }
+          }
+        ]
+      }
+
+      const binary = encodeData(DATA_TYPES.HOOK_SETTINGS, data)
+      const decoded = decodeData(DATA_TYPES.HOOK_SETTINGS, binary)
+
+      expect(decoded).toEqual(data)
+    })
+
+    it('电刺激 hook 往返保持一致', () => {
+      const data = {
+        hooks: [
+          {
+            id: 'hook-4',
+            enabled: true,
+            name: '暂停惩罚',
+            provider: 'estim',
+            trigger: 'focus_pause',
+            tickInterval: 0,
+            builtIn: false,
+            action: {
+              type: 'strength_increase',
+              channel: 'A',
+              value: 10,
+              patterns: [],
+              durationMs: 0
+            }
+          }
+        ]
+      }
+
+      const binary = encodeData(DATA_TYPES.HOOK_SETTINGS, data)
+      const decoded = decodeData(DATA_TYPES.HOOK_SETTINGS, binary)
+
+      expect(decoded).toEqual(data)
+    })
+
+    it('多个 hook 混合往返保持一致', () => {
+      const data = {
+        hooks: [
+          {
+            id: 'h1',
+            enabled: true,
+            name: '通知',
+            provider: 'notification',
+            trigger: 'focus_completed',
+            tickInterval: 0,
+            builtIn: true,
+            action: { title: '', body: '' }
+          },
+          {
+            id: 'h2',
+            enabled: true,
+            name: '提示音',
+            provider: 'sound',
+            trigger: 'break_completed',
+            tickInterval: 0,
+            builtIn: true,
+            action: { soundId: 'ding', volume: 1.0 }
+          },
+          {
+            id: 'h3',
+            enabled: false,
+            name: '电刺激',
+            provider: 'estim',
+            trigger: 'focus_tick',
+            tickInterval: 300,
+            builtIn: false,
+            action: {
+              type: 'pulse',
+              channel: 'both',
+              value: 0,
+              patterns: ['aabb', 'ccdd'],
+              durationMs: 5000
+            }
+          }
+        ]
+      }
+
+      const binary = encodeData(DATA_TYPES.HOOK_SETTINGS, data)
+      const decoded = decodeData(DATA_TYPES.HOOK_SETTINGS, binary)
+
+      expect(decoded).toEqual(data)
+    })
+
+    it('空 hooks 列表往返保持一致', () => {
+      const data = { hooks: [] }
+
+      const binary = encodeData(DATA_TYPES.HOOK_SETTINGS, data)
+      const decoded = decodeData(DATA_TYPES.HOOK_SETTINGS, binary)
+
+      expect(decoded).toEqual(data)
+    })
+
+    it('hook_settings SyncRequest 编解码往返', () => {
+      const data = {
+        hooks: [
+          {
+            id: 'sync-test',
+            enabled: true,
+            name: 'Test Hook',
+            provider: 'notification',
+            trigger: 'focus_start',
+            tickInterval: 0,
+            builtIn: false,
+            action: { title: 'Start!', body: '' }
+          }
+        ]
+      }
+
+      const binary = encodeSyncRequest(DATA_TYPES.HOOK_SETTINGS, data, 3)
+      const decoded = decodeSyncRequest(binary, DATA_TYPES.HOOK_SETTINGS)
+
+      expect(decoded.version).toBe(3)
+      expect(decoded.data).toEqual(data)
     })
   })
 })

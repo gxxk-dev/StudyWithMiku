@@ -17,6 +17,8 @@ import { useToast } from '../composables/useToast.js'
 import { useAuth } from '../composables/useAuth.js'
 import { useDataSync } from '../composables/useDataSync.js'
 import { useCoyote } from '../composables/useCoyote.js'
+import { useHooks } from '../composables/hooks/useHooks.js'
+import { providerRegistry } from '../composables/hooks/providerRegistry.js'
 import * as localAudioStorage from '../services/localAudioStorage.js'
 import * as playlistImportExport from '../services/playlistImportExport.js'
 import * as exportUtils from '../utils/exportUtils.js'
@@ -24,7 +26,7 @@ import * as authStorage from '../utils/authStorage.js'
 import { onlineServer } from '../services/onlineServer.js'
 import { runtimeConfigService } from '../services/runtimeConfig.js'
 import { createHelpSystem } from './help/index.js'
-import { COYOTE_STORAGE_KEYS } from '../composables/coyote/constants.js'
+import { HOOKS_STORAGE_KEYS } from '../composables/hooks/constants.js'
 import { safeLocalStorageSet, safeLocalStorageRemove } from '../utils/storage.js'
 
 // 初始化 playlistManager
@@ -36,16 +38,30 @@ const toastApi = useToast()
 toastApi.show = toastApi.showToast
 toastApi.confirm = toastApi.showConfirm
 
-// 初始化 coyote（添加 unlock/lock 便捷方法）
+// 初始化 coyote（连接调试用）
 const coyoteApi = useCoyote()
-coyoteApi.unlock = () => {
-  safeLocalStorageSet(COYOTE_STORAGE_KEYS.UNLOCKED, 'true')
-  toastApi.show('success', 'DG-Lab Tab 已解锁，请刷新页面')
+
+// 初始化 hooks（添加 estim unlock/lock）
+const hooksApi = useHooks()
+hooksApi.estim = {
+  unlock: () => {
+    safeLocalStorageSet(HOOKS_STORAGE_KEYS.ESTIM_UNLOCKED, 'true')
+    import('../composables/hooks/providers/estim.js').then(({ estimProvider }) => {
+      if (!providerRegistry.has('estim')) {
+        providerRegistry.register(estimProvider)
+      }
+    })
+    toastApi.show('success', '电刺激 Provider 已解锁，请刷新页面')
+  },
+  lock: () => {
+    safeLocalStorageRemove(HOOKS_STORAGE_KEYS.ESTIM_UNLOCKED)
+    providerRegistry.unregister('estim')
+    toastApi.show('info', '电刺激 Provider 已锁定，请刷新页面')
+  }
 }
-coyoteApi.lock = () => {
-  safeLocalStorageRemove(COYOTE_STORAGE_KEYS.UNLOCKED)
-  toastApi.show('info', 'DG-Lab Tab 已锁定，请刷新页面')
-}
+// 保持旧的 unlock/lock 入口兼容
+coyoteApi.unlock = hooksApi.estim.unlock
+coyoteApi.lock = hooksApi.estim.lock
 
 // 创建 swm_dev 对象
 const swm_dev = {
@@ -62,7 +78,8 @@ const swm_dev = {
   authStorage,
   server: onlineServer,
   config: runtimeConfigService,
-  coyote: coyoteApi
+  coyote: coyoteApi,
+  hooks: hooksApi
 }
 
 // 创建帮助系统并注入

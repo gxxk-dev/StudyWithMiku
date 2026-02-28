@@ -237,46 +237,11 @@ const handleComplete = () => {
     switchToNextMode()
   }
 
-  // 发送通知
-  sendNotification()
-
   // 自动开始下一个阶段
   if (mode.value === FocusMode.FOCUS && settings.value.autoStartFocus) {
     startSession()
   } else if (mode.value !== FocusMode.FOCUS && settings.value.autoStartBreaks) {
     startSession()
-  }
-}
-
-/**
- * 发送通知
- */
-const sendNotification = () => {
-  if (!settings.value.notificationEnabled) {
-    return
-  }
-
-  if (!('Notification' in window)) {
-    return
-  }
-
-  if (Notification.permission !== 'granted') {
-    return
-  }
-
-  const title = mode.value === FocusMode.FOCUS ? 'Focus session completed!' : 'Break time is over!'
-
-  const body =
-    mode.value === FocusMode.FOCUS ? 'Great job! Time for a break.' : 'Ready to focus again?'
-
-  try {
-    new Notification(title, {
-      body,
-      icon: '/favicon.ico',
-      tag: 'focus-notification'
-    })
-  } catch {
-    // 忽略通知错误
   }
 }
 
@@ -549,26 +514,6 @@ export const useSession = () => {
     return { success: true }
   }
 
-  /**
-   * 请求通知权限
-   */
-  const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
-      return { success: false, error: 'Notifications not supported' }
-    }
-
-    if (Notification.permission === 'granted') {
-      return { success: true, permission: 'granted' }
-    }
-
-    if (Notification.permission === 'denied') {
-      return { success: false, permission: 'denied', error: 'Notifications denied' }
-    }
-
-    const permission = await Notification.requestPermission()
-    return { success: permission === 'granted', permission }
-  }
-
   // 清理（仅在组件上下文中注册）
   if (getCurrentInstance()) {
     onUnmounted(() => {
@@ -609,10 +554,7 @@ export const useSession = () => {
     // 中断恢复
     checkInterruptedSession,
     resumeInterruptedSession,
-    discardInterruptedSession,
-
-    // 通知
-    requestNotificationPermission
+    discardInterruptedSession
   }
 }
 

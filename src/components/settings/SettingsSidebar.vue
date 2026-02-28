@@ -18,7 +18,6 @@
 <script setup>
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'
-import { safeLocalStorageGet } from '../../utils/storage.js'
 
 const props = defineProps({
   activeTab: {
@@ -44,7 +43,7 @@ const navItems = [
   { id: 'media', icon: 'lucide:music', label: '媒体' },
   { id: 'account', icon: 'lucide:user', label: '账号' },
   { id: 'stats', icon: 'lucide:bar-chart-3', label: '统计' },
-  { id: 'coyote', icon: 'lucide:zap', label: 'DG-Lab', devOnly: true },
+  { id: 'hooks', icon: 'lucide:webhook', label: '钩子' },
   { id: 'cache', icon: 'lucide:hard-drive', label: '缓存', pwaOnly: true },
   { id: 'about', icon: 'lucide:info', label: '关于' }
 ]
@@ -52,7 +51,6 @@ const navItems = [
 const visibleNavItems = computed(() => {
   return navItems.filter((item) => {
     if (item.pwaOnly && !props.isPWA) return false
-    if (item.devOnly && safeLocalStorageGet('swm_coyote_unlocked') !== 'true') return false
     return true
   })
 })

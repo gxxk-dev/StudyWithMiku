@@ -180,7 +180,8 @@ export default defineConfig(({ mode }) => {
           maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
           cleanupOutdatedCaches: true, // 自动清理旧版本缓存
           skipWaiting: true, // SW 更新后立即激活
-          clientsClaim: true // SW 激活后立即控制所有页面
+          clientsClaim: true, // SW 激活后立即控制所有页面
+          importScripts: ['/sw-push.js'] // Web Push 事件处理
         },
         devOptions: {
           enabled: false,

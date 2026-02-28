@@ -4,6 +4,30 @@ import "google/protobuf/timestamp.proto";
 
 // --- Enums ---
 
+enum HookTrigger {
+  HOOK_TRIGGER_UNSPECIFIED = 0;
+  HOOK_FOCUS_START = 1;
+  HOOK_FOCUS_PAUSE = 2;
+  HOOK_FOCUS_RESUME = 3;
+  HOOK_FOCUS_COMPLETED = 4;
+  HOOK_FOCUS_CANCELLED = 5;
+  HOOK_FOCUS_SKIPPED = 6;
+  HOOK_BREAK_START = 7;
+  HOOK_BREAK_COMPLETED = 8;
+  HOOK_BREAK_CANCELLED = 9;
+  HOOK_BREAK_SKIPPED = 10;
+  HOOK_FOCUS_TICK = 11;
+  HOOK_BREAK_TICK = 12;
+}
+
+enum HookProvider {
+  HOOK_PROVIDER_UNSPECIFIED = 0;
+  PROVIDER_NOTIFICATION = 1;
+  PROVIDER_SOUND = 2;
+  PROVIDER_PUSH = 3;
+  PROVIDER_ESTIM = 4;
+}
+
 enum FocusMode {
   FOCUS_MODE_UNSPECIFIED = 0;
   FOCUS = 1;
@@ -58,8 +82,7 @@ message FocusSettings {
   int32 long_break_interval = 4;
   bool auto_start_breaks = 5;
   bool auto_start_focus = 6;
-  bool notification_enabled = 7;
-  bool notification_sound = 8;
+  reserved 7, 8;
 }
 
 message Song {
@@ -112,6 +135,56 @@ message ShareConfig {
 
 // --- Wire Protocol ---
 
+// Provider-specific action messages
+message NotificationAction {
+  string title = 1;
+  string body = 2;
+  optional string tag = 3;
+}
+
+message SoundAction {
+  string sound_id = 1;
+  float volume = 2;
+}
+
+message PushAction {
+  string title = 1;
+  string body = 2;
+}
+
+message EstimAction {
+  string type = 1;
+  string channel = 2;
+  int32 value = 3;
+  repeated string patterns = 4;
+  int32 duration_ms = 5;
+  optional string audio_file_id = 6;
+}
+
+message HookAction {
+  oneof action {
+    NotificationAction notification = 1;
+    SoundAction sound = 2;
+    PushAction push = 3;
+    EstimAction estim = 4;
+  }
+}
+
+message Hook {
+  string id = 1;
+  bool enabled = 2;
+  string name = 3;
+  HookProvider provider = 4;
+  HookTrigger trigger = 5;
+  int32 tick_interval = 6;
+  bool built_in = 7;
+  HookAction action = 8;
+}
+
+message HookSettings {
+  repeated Hook hooks = 1;
+}
+
 message SyncRequest {
   optional int32 version = 1;
   oneof data {
@@ -120,6 +193,7 @@ message SyncRequest {
     Playlists playlists = 12;
     UserSettings user_settings = 13;
     ShareConfig share_config = 14;
+    HookSettings hook_settings = 15;
   }
 }
 
@@ -138,6 +212,7 @@ message SyncResponse {
     Playlists playlists = 12;
     UserSettings user_settings = 13;
     ShareConfig share_config = 14;
+    HookSettings hook_settings = 15;
   }
   oneof server_data {
     FocusRecords server_focus_records = 20;
@@ -145,5 +220,6 @@ message SyncResponse {
     Playlists server_playlists = 22;
     UserSettings server_user_settings = 23;
     ShareConfig server_share_config = 24;
+    HookSettings server_hook_settings = 25;
   }
 }

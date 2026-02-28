@@ -28,9 +28,7 @@ describe('protobufClient', () => {
         longBreakDuration: 900,
         longBreakInterval: 4,
         autoStartBreaks: false,
-        autoStartFocus: false,
-        notificationEnabled: true,
-        notificationSound: true
+        autoStartFocus: false
       }
 
       const binary = encodeToProtobuf(DATA_TYPES.FOCUS_SETTINGS, settings)
@@ -50,9 +48,7 @@ describe('protobufClient', () => {
           longBreakDuration: 900,
           longBreakInterval: 4,
           autoStartBreaks: false,
-          autoStartFocus: false,
-          notificationEnabled: true,
-          notificationSound: true
+          autoStartFocus: false
         },
         version: 1
       }
@@ -73,9 +69,7 @@ describe('protobufClient', () => {
         longBreakDuration: 900,
         longBreakInterval: 4,
         autoStartBreaks: false,
-        autoStartFocus: false,
-        notificationEnabled: true,
-        notificationSound: true
+        autoStartFocus: false
       }
 
       const responseBinary = encodeSyncResponse(

@@ -40,9 +40,7 @@ export const DEFAULT_SETTINGS = {
   longBreakDuration: 15 * 60,
   longBreakInterval: 4,
   autoStartBreaks: false,
-  autoStartFocus: false,
-  notificationEnabled: true,
-  notificationSound: true
+  autoStartFocus: false
 }
 
 /**

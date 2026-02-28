@@ -204,7 +204,8 @@ export const AUTH_CONFIG = {
     FOCUS_SETTINGS: 'focus_settings',
     PLAYLISTS: 'playlists',
     USER_SETTINGS: 'user_settings',
-    SHARE_CONFIG: 'share_config'
+    SHARE_CONFIG: 'share_config',
+    HOOK_SETTINGS: 'hook_settings'
   },
   // 支持的 OAuth Provider（从注册表导入）
   OAUTH_PROVIDERS: OAUTH_PROVIDER_KEYS

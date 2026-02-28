@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { OnlineCounter } from './online-counter.js'
 import { AuthChallenge } from './auth-challenge.js'
 import { RateLimiter } from './rate-limiter.js'
+import { FocusNotifier } from './focus-notifier.js'
 import { corsGuard, handleCorsOptions } from './middleware/cors.js'
 import { securityHeaders } from './middleware/securityHeaders.js'
 import { envDefaults } from './middleware/envDefaults.js'
@@ -9,6 +10,7 @@ import { getCounterStub } from './services/counter.js'
 import authRoutes from './routes/auth/index.js'
 import oauthRoutes from './routes/oauth.js'
 import dataRoutes from './routes/data.js'
+import pushRoutes from './routes/push.js'
 
 const app = new Hono()
 
@@ -69,5 +71,8 @@ app.route('/oauth', oauthRoutes)
 // 数据同步路由
 app.route('/api/data', dataRoutes)
 
+// Push 推送路由
+app.route('/api/push', pushRoutes)
+
 export default app
-export { OnlineCounter, AuthChallenge, RateLimiter }
+export { OnlineCounter, AuthChallenge, RateLimiter, FocusNotifier }

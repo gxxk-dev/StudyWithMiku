@@ -41,7 +41,7 @@ import TabStats from './settings/tabs/TabStats.vue'
 import TabCache from './settings/tabs/TabPWA.vue'
 import TabAbout from './settings/tabs/TabAbout.vue'
 import TabChangelog from './settings/tabs/TabChangelog.vue'
-import TabCoyote from './settings/tabs/TabCoyote.vue'
+import TabHooks from './settings/tabs/TabHooks.vue'
 
 defineProps({
   isOpen: {
@@ -61,7 +61,7 @@ const tabComponents = {
   media: TabMedia,
   account: TabAccount,
   stats: TabStats,
-  coyote: TabCoyote,
+  hooks: TabHooks,
   cache: TabCache,
   about: TabAbout,
   changelog: TabChangelog

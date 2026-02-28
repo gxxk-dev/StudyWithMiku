@@ -16,6 +16,7 @@ import {
 } from '../utils/exportUtils.js'
 import { ExportFormat, FocusState, FocusMode } from './focus/constants.js'
 import { focusEventBus } from './focus/eventBus.js'
+import { useHooks } from './hooks/useHooks.js'
 
 // 重新导出常量
 export {
@@ -67,6 +68,9 @@ export const useFocus = () => {
   // 初始化事件总线（仅一次）
   if (!eventBusInitialized) {
     eventBusInitialized = true
+
+    // 初始化 hook 系统（确保 providers 已注册并订阅 eventBus）
+    useHooks()
 
     // 检测 handleComplete（内部完成，不经过 facade 的操作方法）
     watch(session.state, (newState, oldState) => {
@@ -280,9 +284,6 @@ export const useFocus = () => {
     checkInterruptedSession: session.checkInterruptedSession,
     resumeInterruptedSession: session.resumeInterruptedSession,
     discardInterruptedSession: session.discardInterruptedSession,
-
-    // ============ 通知 ============
-    requestNotificationPermission: session.requestNotificationPermission,
 
     // ============ 记录 ============
     records: recordsModule.records,

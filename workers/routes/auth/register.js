@@ -144,7 +144,7 @@ register.post('/verify', authRateLimit, zValidator('json', registerVerifySchema)
   }
 
   // 验证注册响应
-  const origin = c.req.header('Origin') || `https://${c.env.WEBAUTHN_RP_ID}`
+  const origin = c.req.header('Origin') || new URL(c.req.url).origin
   const verification = await verifyRegistration({
     response,
     expectedChallenge: challengeData.challenge,

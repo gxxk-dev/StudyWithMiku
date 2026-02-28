@@ -6,12 +6,20 @@ import {
   PlaylistsSchema,
   UserSettingsSchema,
   ShareConfigSchema,
+  HookSettingsSchema,
+  HookActionSchema,
+  NotificationActionSchema,
+  SoundActionSchema,
+  PushActionSchema,
+  EstimActionSchema,
   SyncRequestSchema,
   SyncResponseSchema,
   FocusMode,
   CompletionType,
   PlaylistMode,
-  PlaylistSource
+  PlaylistSource,
+  HookTrigger as ProtoHookTrigger,
+  HookProvider as ProtoHookProvider
 } from './gen/studymiku_pb.js'
 
 export const PROTOBUF_PROTOCOL_VERSION = 1
@@ -21,7 +29,8 @@ export const DATA_TYPES = {
   FOCUS_SETTINGS: 'focus_settings',
   PLAYLISTS: 'playlists',
   USER_SETTINGS: 'user_settings',
-  SHARE_CONFIG: 'share_config'
+  SHARE_CONFIG: 'share_config',
+  HOOK_SETTINGS: 'hook_settings'
 }
 
 // --- Enum mappings: JS string <-> Proto number ---
@@ -78,6 +87,52 @@ const PLAYLIST_SOURCE_FROM_PROTO = {
   [PlaylistSource.LOCAL]: 'local'
 }
 
+// --- Hook enum mappings ---
+
+const HOOK_TRIGGER_TO_PROTO = {
+  focus_start: ProtoHookTrigger.HOOK_FOCUS_START,
+  focus_pause: ProtoHookTrigger.HOOK_FOCUS_PAUSE,
+  focus_resume: ProtoHookTrigger.HOOK_FOCUS_RESUME,
+  focus_completed: ProtoHookTrigger.HOOK_FOCUS_COMPLETED,
+  focus_cancelled: ProtoHookTrigger.HOOK_FOCUS_CANCELLED,
+  focus_skipped: ProtoHookTrigger.HOOK_FOCUS_SKIPPED,
+  break_start: ProtoHookTrigger.HOOK_BREAK_START,
+  break_completed: ProtoHookTrigger.HOOK_BREAK_COMPLETED,
+  break_cancelled: ProtoHookTrigger.HOOK_BREAK_CANCELLED,
+  break_skipped: ProtoHookTrigger.HOOK_BREAK_SKIPPED,
+  focus_tick: ProtoHookTrigger.HOOK_FOCUS_TICK,
+  break_tick: ProtoHookTrigger.HOOK_BREAK_TICK
+}
+
+const HOOK_TRIGGER_FROM_PROTO = {
+  [ProtoHookTrigger.HOOK_FOCUS_START]: 'focus_start',
+  [ProtoHookTrigger.HOOK_FOCUS_PAUSE]: 'focus_pause',
+  [ProtoHookTrigger.HOOK_FOCUS_RESUME]: 'focus_resume',
+  [ProtoHookTrigger.HOOK_FOCUS_COMPLETED]: 'focus_completed',
+  [ProtoHookTrigger.HOOK_FOCUS_CANCELLED]: 'focus_cancelled',
+  [ProtoHookTrigger.HOOK_FOCUS_SKIPPED]: 'focus_skipped',
+  [ProtoHookTrigger.HOOK_BREAK_START]: 'break_start',
+  [ProtoHookTrigger.HOOK_BREAK_COMPLETED]: 'break_completed',
+  [ProtoHookTrigger.HOOK_BREAK_CANCELLED]: 'break_cancelled',
+  [ProtoHookTrigger.HOOK_BREAK_SKIPPED]: 'break_skipped',
+  [ProtoHookTrigger.HOOK_FOCUS_TICK]: 'focus_tick',
+  [ProtoHookTrigger.HOOK_BREAK_TICK]: 'break_tick'
+}
+
+const HOOK_PROVIDER_TO_PROTO = {
+  notification: ProtoHookProvider.PROVIDER_NOTIFICATION,
+  sound: ProtoHookProvider.PROVIDER_SOUND,
+  push: ProtoHookProvider.PROVIDER_PUSH,
+  estim: ProtoHookProvider.PROVIDER_ESTIM
+}
+
+const HOOK_PROVIDER_FROM_PROTO = {
+  [ProtoHookProvider.PROVIDER_NOTIFICATION]: 'notification',
+  [ProtoHookProvider.PROVIDER_SOUND]: 'sound',
+  [ProtoHookProvider.PROVIDER_PUSH]: 'push',
+  [ProtoHookProvider.PROVIDER_ESTIM]: 'estim'
+}
+
 // --- Timestamp conversion ---
 
 export const msToTimestamp = (ms) => {
@@ -97,7 +152,8 @@ const DATA_TYPE_SCHEMAS = {
   [DATA_TYPES.FOCUS_SETTINGS]: FocusSettingsSchema,
   [DATA_TYPES.PLAYLISTS]: PlaylistsSchema,
   [DATA_TYPES.USER_SETTINGS]: UserSettingsSchema,
-  [DATA_TYPES.SHARE_CONFIG]: ShareConfigSchema
+  [DATA_TYPES.SHARE_CONFIG]: ShareConfigSchema,
+  [DATA_TYPES.HOOK_SETTINGS]: HookSettingsSchema
 }
 
 const DATA_TYPE_ONEOF_FIELD = {
@@ -105,7 +161,8 @@ const DATA_TYPE_ONEOF_FIELD = {
   [DATA_TYPES.FOCUS_SETTINGS]: 'focusSettings',
   [DATA_TYPES.PLAYLISTS]: 'playlists',
   [DATA_TYPES.USER_SETTINGS]: 'userSettings',
-  [DATA_TYPES.SHARE_CONFIG]: 'shareConfig'
+  [DATA_TYPES.SHARE_CONFIG]: 'shareConfig',
+  [DATA_TYPES.HOOK_SETTINGS]: 'hookSettings'
 }
 
 const SERVER_DATA_ONEOF_FIELD = {
@@ -113,7 +170,8 @@ const SERVER_DATA_ONEOF_FIELD = {
   [DATA_TYPES.FOCUS_SETTINGS]: 'serverFocusSettings',
   [DATA_TYPES.PLAYLISTS]: 'serverPlaylists',
   [DATA_TYPES.USER_SETTINGS]: 'serverUserSettings',
-  [DATA_TYPES.SHARE_CONFIG]: 'serverShareConfig'
+  [DATA_TYPES.SHARE_CONFIG]: 'serverShareConfig',
+  [DATA_TYPES.HOOK_SETTINGS]: 'serverHookSettings'
 }
 
 // --- JS -> Proto conversion (per data type) ---
@@ -140,9 +198,7 @@ const jsToProtoFocusSettings = (s) => ({
   longBreakDuration: s.longBreakDuration ?? 0,
   longBreakInterval: s.longBreakInterval ?? 0,
   autoStartBreaks: s.autoStartBreaks ?? false,
-  autoStartFocus: s.autoStartFocus ?? false,
-  notificationEnabled: s.notificationEnabled ?? false,
-  notificationSound: s.notificationSound ?? false
+  autoStartFocus: s.autoStartFocus ?? false
 })
 
 const jsToProtoSong = (s) => ({
@@ -196,12 +252,86 @@ const jsToProtoShareConfig = (c) => ({
   hitokotoCategories: c.hitokotoCategories ?? c.hitokoto_categories ?? []
 })
 
+// --- Hook JS -> Proto conversion ---
+
+const jsToProtoHookAction = (provider, action) => {
+  if (!action) return undefined
+  switch (provider) {
+    case 'notification':
+      return {
+        action: {
+          case: 'notification',
+          value: create(NotificationActionSchema, {
+            title: action.title || '',
+            body: action.body || '',
+            tag: action.tag
+          })
+        }
+      }
+    case 'sound':
+      return {
+        action: {
+          case: 'sound',
+          value: create(SoundActionSchema, {
+            soundId: action.soundId || '',
+            volume: action.volume ?? 1.0
+          })
+        }
+      }
+    case 'push':
+      return {
+        action: {
+          case: 'push',
+          value: create(PushActionSchema, {
+            title: action.title || '',
+            body: action.body || ''
+          })
+        }
+      }
+    case 'estim':
+      return {
+        action: {
+          case: 'estim',
+          value: create(EstimActionSchema, {
+            type: action.type || '',
+            channel: action.channel || '',
+            value: action.value ?? 0,
+            patterns: action.patterns || [],
+            durationMs: action.durationMs ?? 0,
+            audioFileId: action.audioFileId
+          })
+        }
+      }
+    default:
+      return undefined
+  }
+}
+
+const jsToProtoHook = (h) => {
+  const hookAction = jsToProtoHookAction(h.provider, h.action)
+  return {
+    id: h.id || '',
+    enabled: h.enabled ?? true,
+    name: h.name || '',
+    provider: HOOK_PROVIDER_TO_PROTO[h.provider] ?? ProtoHookProvider.HOOK_PROVIDER_UNSPECIFIED,
+    trigger: HOOK_TRIGGER_TO_PROTO[h.trigger] ?? ProtoHookTrigger.HOOK_TRIGGER_UNSPECIFIED,
+    tickInterval: h.tickInterval ?? 0,
+    builtIn: h.builtIn ?? false,
+    action: hookAction ? create(HookActionSchema, hookAction) : undefined
+  }
+}
+
+const jsToProtoHookSettings = (s) => ({
+  hooks: (Array.isArray(s.hooks) ? s.hooks : Array.isArray(s) ? s : []).map(jsToProtoHook)
+})
+
 const JS_TO_PROTO = {
   [DATA_TYPES.FOCUS_RECORDS]: jsToProtoFocusRecords,
   [DATA_TYPES.FOCUS_SETTINGS]: jsToProtoFocusSettings,
   [DATA_TYPES.PLAYLISTS]: jsToProtoPlaylists,
   [DATA_TYPES.USER_SETTINGS]: jsToProtoUserSettings,
-  [DATA_TYPES.SHARE_CONFIG]: jsToProtoShareConfig
+  [DATA_TYPES.SHARE_CONFIG]: jsToProtoShareConfig,
+  [DATA_TYPES.HOOK_SETTINGS]: jsToProtoHookSettings
 }
 
 // --- Proto -> JS conversion (per data type) ---
@@ -231,9 +361,7 @@ const protoToJsFocusSettings = (s) => ({
   longBreakDuration: s.longBreakDuration,
   longBreakInterval: s.longBreakInterval,
   autoStartBreaks: s.autoStartBreaks,
-  autoStartFocus: s.autoStartFocus,
-  notificationEnabled: s.notificationEnabled,
-  notificationSound: s.notificationSound
+  autoStartFocus: s.autoStartFocus
 })
 
 const protoToJsSong = (s) => {
@@ -296,12 +424,54 @@ const protoToJsShareConfig = (c) => ({
   hitokotoCategories: c.hitokotoCategories ?? []
 })
 
+// --- Hook Proto -> JS conversion ---
+
+const protoToJsHookAction = (provider, actionMsg) => {
+  if (!actionMsg || !actionMsg.action?.value) return {}
+  const val = actionMsg.action.value
+  switch (actionMsg.action.case) {
+    case 'notification':
+      return { title: val.title, body: val.body, tag: val.tag || undefined }
+    case 'sound':
+      return { soundId: val.soundId, volume: val.volume }
+    case 'push':
+      return { title: val.title, body: val.body }
+    case 'estim':
+      return {
+        type: val.type,
+        channel: val.channel,
+        value: val.value,
+        patterns: val.patterns || [],
+        durationMs: val.durationMs,
+        audioFileId: val.audioFileId || undefined
+      }
+    default:
+      return {}
+  }
+}
+
+const protoToJsHook = (h) => ({
+  id: h.id,
+  enabled: h.enabled,
+  name: h.name,
+  provider: HOOK_PROVIDER_FROM_PROTO[h.provider] ?? null,
+  trigger: HOOK_TRIGGER_FROM_PROTO[h.trigger] ?? null,
+  tickInterval: h.tickInterval,
+  builtIn: h.builtIn,
+  action: protoToJsHookAction(h.provider, h.action)
+})
+
+const protoToJsHookSettings = (msg) => ({
+  hooks: (msg.hooks || []).map(protoToJsHook)
+})
+
 const PROTO_TO_JS = {
   [DATA_TYPES.FOCUS_RECORDS]: protoToJsFocusRecords,
   [DATA_TYPES.FOCUS_SETTINGS]: protoToJsFocusSettings,
   [DATA_TYPES.PLAYLISTS]: protoToJsPlaylists,
   [DATA_TYPES.USER_SETTINGS]: protoToJsUserSettings,
-  [DATA_TYPES.SHARE_CONFIG]: protoToJsShareConfig
+  [DATA_TYPES.SHARE_CONFIG]: protoToJsShareConfig,
+  [DATA_TYPES.HOOK_SETTINGS]: protoToJsHookSettings
 }
 
 // --- Public API: data-level encode/decode ---

@@ -102,7 +102,8 @@ export const DATA_CONFIG = {
     FOCUS_SETTINGS: 'focus_settings',
     PLAYLISTS: 'playlists',
     USER_SETTINGS: 'user_settings',
-    SHARE_CONFIG: 'share_config'
+    SHARE_CONFIG: 'share_config',
+    HOOK_SETTINGS: 'hook_settings'
   },
   /** 各类型数据大小限制 (字节) */
   MAX_SIZE: {
@@ -110,7 +111,8 @@ export const DATA_CONFIG = {
     focus_settings: 1024,
     playlists: 200 * 1024,
     user_settings: 1024,
-    share_config: 10 * 1024
+    share_config: 10 * 1024,
+    hook_settings: 50 * 1024
   },
   /** 用户总存储配额 (字节) */
   USER_QUOTA: 5 * 1024 * 1024,
