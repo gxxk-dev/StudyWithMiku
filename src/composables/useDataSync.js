@@ -1,9 +1,7 @@
 /**
- * @fileoverview 数据同步管理
- * @module composables/useDataSync
- *
- * 单例模式 Composable，管理用户数据的上传、下载、冲突解决
+ * 数据同步管理 - 单例模式 Composable，管理用户数据的上传、下载、冲突解决
  * 支持离线队列和自动同步
+ * @module composables/useDataSync
  */
 
 import { ref, readonly, computed } from 'vue'

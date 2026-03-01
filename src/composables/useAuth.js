@@ -1,9 +1,7 @@
 /**
- * @fileoverview 认证状态管理
- * @module composables/useAuth
- *
- * 单例模式 Composable，管理全局认证状态
+ * 认证状态管理 - 单例模式 Composable，管理全局认证状态
  * 包括登录/登出/Token 刷新/设备管理等功能
+ * @module composables/useAuth
  */
 
 import { ref, readonly, computed } from 'vue'

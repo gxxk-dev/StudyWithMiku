@@ -1,5 +1,5 @@
 /**
- * @fileoverview 认证数据存储工具
+ * 认证数据存储工具 - 管理 Token、用户信息、设备标识的安全存储
  * @module utils/authStorage
  */
 

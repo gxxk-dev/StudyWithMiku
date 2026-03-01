@@ -23,11 +23,41 @@ const TARGET_FILES = {
   authStorage: 'src/utils/authStorage.js',
   server: 'src/services/onlineServer.js',
   config: 'src/services/runtimeConfig.js',
-  coyote: 'src/composables/useCoyote.js'
+  coyote: 'src/composables/useCoyote.js',
+  hooks: 'src/composables/hooks/useHooks.js'
 }
 
 // 函数级标签，用于区分模块描述和方法描述
 const FUNCTION_TAGS = ['param', 'returns', 'return', 'async', 'throws', 'example']
+
+// JS 关键字集合，防止误匹配为方法名
+const JS_KEYWORDS = new Set([
+  'if',
+  'else',
+  'for',
+  'while',
+  'do',
+  'switch',
+  'case',
+  'try',
+  'catch',
+  'finally',
+  'throw',
+  'return',
+  'break',
+  'continue',
+  'new',
+  'delete',
+  'typeof',
+  'instanceof',
+  'void',
+  'with',
+  'class',
+  'extends',
+  'super',
+  'yield',
+  'await'
+])
 
 /**
  * 判断 JSDoc 块是否包含函数级标签
@@ -133,7 +163,7 @@ function extractModuleHelp(content, moduleName) {
 
       for (const pattern of patterns) {
         const match = line.match(pattern)
-        if (match) {
+        if (match && !JS_KEYWORDS.has(match[1])) {
           funcName = match[1]
           break
         }

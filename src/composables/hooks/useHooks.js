@@ -178,6 +178,8 @@ export const useHooks = () => {
 
   /**
    * 获取指定 provider 类型的所有 hooks
+   * @param {string} providerId - Provider 标识符
+   * @returns {Object[]} 匹配的 hook 列表
    */
   const getHooksByProvider = (providerId) => {
     return hooks.value.filter((h) => h.provider === providerId)
@@ -196,6 +198,7 @@ export const useHooks = () => {
 
   /**
    * 获取用于云同步的数据
+   * @returns {{ hooks: Object[] }} 包含 hooks 数组的对象
    */
   const getHooksData = () => {
     return { hooks: hooks.value }

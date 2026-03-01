@@ -34,18 +34,32 @@ export const useCoyote = () => {
     initialized = true
   }
 
+  /**
+   * 连接到 DG-Lab WebSocket 服务器
+   * @returns {Promise<void>}
+   */
   const connect = () => {
     return coyoteService.connect(settings.value.serverUrl)
   }
 
+  /**
+   * 断开 WebSocket 连接
+   */
   const disconnect = () => {
     coyoteService.disconnect()
   }
 
+  /**
+   * 紧急停止（立即停止所有输出）
+   */
   const emergencyStop = () => {
     coyoteService.emergencyStop()
   }
 
+  /**
+   * 更新设备设置并持久化到 localStorage
+   * @param {Object} newSettings - 新设置（合并到现有设置）
+   */
   const updateSettings = (newSettings) => {
     settings.value = { ...settings.value, ...newSettings }
     persistSettings()
