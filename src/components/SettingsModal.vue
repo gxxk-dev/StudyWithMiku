@@ -17,11 +17,14 @@
 
           <!-- 右侧内容 -->
           <div class="content-area">
-            <component
-              :is="currentTabComponent"
-              @navigate="setActiveTab"
-              @request-merge="(e) => emit('request-merge', e)"
-            />
+            <Transition :name="transitionName">
+              <component
+                :is="currentTabComponent"
+                :key="activeTab"
+                @navigate="setActiveTab"
+                @request-merge="(e) => emit('request-merge', e)"
+              />
+            </Transition>
           </div>
         </div>
       </div>
@@ -55,6 +58,9 @@ const emit = defineEmits(['close', 'request-merge'])
 const { isPWA } = usePWA()
 
 const activeTab = ref('about')
+const slideDirection = ref('right')
+
+const tabOrder = ['focus', 'media', 'account', 'stats', 'hooks', 'cache', 'about', 'changelog']
 
 const tabComponents = {
   focus: TabFocus,
@@ -71,11 +77,12 @@ const currentTabComponent = computed(() => {
   return tabComponents[activeTab.value] || TabFocus
 })
 
-/**
- * 设置当前激活的 tab
- * @param {string} tab - tab 名称
- */
+const transitionName = computed(() => `tab-slide-${slideDirection.value}`)
+
 const setActiveTab = (tab) => {
+  const oldIndex = tabOrder.indexOf(activeTab.value)
+  const newIndex = tabOrder.indexOf(tab)
+  slideDirection.value = newIndex > oldIndex ? 'right' : 'left'
   activeTab.value = tab
 }
 
@@ -173,25 +180,67 @@ onUnmounted(() => {
 /* 内容区域 */
 .content-area {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.content-area > :deep(*) {
   overflow-y: auto;
+  height: 100%;
 }
 
 /* 滚动条样式 */
-.content-area::-webkit-scrollbar {
+.content-area > :deep(*)::-webkit-scrollbar {
   width: 6px;
 }
 
-.content-area::-webkit-scrollbar-track {
+.content-area > :deep(*)::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.content-area::-webkit-scrollbar-thumb {
+.content-area > :deep(*)::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
 
-.content-area::-webkit-scrollbar-thumb:hover {
+.content-area > :deep(*)::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tab 切换动画 */
+.tab-slide-right-enter-active,
+.tab-slide-right-leave-active,
+.tab-slide-left-enter-active,
+.tab-slide-left-leave-active {
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.tab-slide-right-leave-active,
+.tab-slide-left-leave-active {
+  position: absolute;
+  inset: 0;
+}
+
+.tab-slide-right-enter-from {
+  transform: translateX(30px);
+  opacity: 0;
+}
+
+.tab-slide-right-leave-to {
+  transform: translateX(-30px);
+  opacity: 0;
+}
+
+.tab-slide-left-enter-from {
+  transform: translateX(-30px);
+  opacity: 0;
+}
+
+.tab-slide-left-leave-to {
+  transform: translateX(30px);
+  opacity: 0;
 }
 
 /* 响应式 */
