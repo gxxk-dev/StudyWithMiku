@@ -16,13 +16,6 @@ const close = () => {
   emit('close')
 }
 
-// ESC 键关闭
-const onKeydown = (e) => {
-  if (e.key === 'Escape') {
-    close()
-  }
-}
-
 // 获取专注系统状态和方法
 const {
   mode,
@@ -132,7 +125,7 @@ const handleSkip = () => {
 <template>
   <Teleport to="body">
     <Transition name="modal-fade">
-      <div v-if="isOpen" class="modal-backdrop" @click.self="close" @keydown="onKeydown">
+      <div v-if="isOpen" class="modal-backdrop" @click.self="close">
         <div class="modal-container">
           <!-- 关闭按钮 -->
           <button class="close-btn" @click="close">

@@ -114,6 +114,7 @@ import { setSwUpdateCallback } from './utils/swCallback.js'
 import { useUrlParams } from './composables/useUrlParams.js'
 import { useToast } from './composables/useToast.js'
 import { useFocus } from './composables/useFocus.js'
+import { useKeyboardShortcuts } from './composables/useKeyboardShortcuts.js'
 import {
   useClipboardDetection,
   setupClipboardDetection,
@@ -198,7 +199,17 @@ const {
 } = useToast()
 
 // Focus 状态
-const { updateSettings: updateFocusSettings, start: startFocus } = useFocus()
+const {
+  updateSettings: updateFocusSettings,
+  start: startFocus,
+  pause,
+  resume,
+  skip,
+  cancel,
+  isIdle,
+  isRunning,
+  isPaused
+} = useFocus()
 
 // 剪贴板检测
 const { checkClipboard } = useClipboardDetection()
@@ -219,6 +230,23 @@ const {
 } = useUIInteraction()
 
 setModalCheckFn(() => settingsModalOpen.value || focusSummaryModalOpen.value)
+
+// 键盘快捷键
+useKeyboardShortcuts({
+  onTogglePause: () => {
+    if (isIdle.value) {
+      startFocus()
+    } else if (isRunning.value) {
+      pause()
+    } else if (isPaused.value) {
+      resume()
+    }
+  },
+  onSkip: skip,
+  onCancel: cancel,
+  isModalOpen: () => settingsModalOpen.value || focusSummaryModalOpen.value,
+  isIdle: () => isIdle.value
+})
 
 // 监听横屏提示显示状态，控制 Toast 计时器暂停/恢复
 const isOrientationPromptVisible = computed(() => orientationPromptRef.value?.showPrompt ?? false)
