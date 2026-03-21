@@ -5,8 +5,10 @@ import { providerRegistry } from '../../../composables/hooks/providerRegistry.js
 import ProviderStatus from './hooks/ProviderStatus.vue'
 import HookList from './hooks/HookList.vue'
 import EstimPanel from './hooks/EstimPanel.vue'
+import ButtplugPanel from './hooks/ButtplugPanel.vue'
 
 const hasEstim = computed(() => providerRegistry.has('estim'))
+const hasButtplug = computed(() => providerRegistry.has('buttplug'))
 </script>
 
 <template>
@@ -28,6 +30,9 @@ const hasEstim = computed(() => providerRegistry.has('estim'))
 
     <!-- Estim 专属面板（仅解锁后显示） -->
     <EstimPanel v-if="hasEstim" />
+
+    <!-- Buttplug.io 面板（仅解锁后显示） -->
+    <ButtplugPanel v-if="hasButtplug" />
   </div>
 </template>
 

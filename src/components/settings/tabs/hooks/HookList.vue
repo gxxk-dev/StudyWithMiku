@@ -3,7 +3,11 @@ import { ref, computed } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useHooks } from '../../../../composables/hooks/useHooks.js'
 import { TRIGGER_GROUPS } from '../../../../composables/hooks/constants.js'
-import { GENERAL_PRESETS, ESTIM_PRESETS } from '../../../../composables/hooks/presets.js'
+import {
+  GENERAL_PRESETS,
+  ESTIM_PRESETS,
+  BUTTPLUG_PRESETS
+} from '../../../../composables/hooks/presets.js'
 import { providerRegistry } from '../../../../composables/hooks/providerRegistry.js'
 import HookEditor from './HookEditor.vue'
 
@@ -35,6 +39,9 @@ const availablePresets = computed(() => {
   const presets = [...GENERAL_PRESETS]
   if (providerRegistry.has('estim')) {
     presets.push(...ESTIM_PRESETS)
+  }
+  if (providerRegistry.has('buttplug')) {
+    presets.push(...BUTTPLUG_PRESETS)
   }
   return presets
 })

@@ -59,6 +59,22 @@ hooksApi.estim = {
     toastApi.show('info', '电刺激 Provider 已锁定，请刷新页面')
   }
 }
+hooksApi.buttplug = {
+  unlock: () => {
+    safeLocalStorageSet(HOOKS_STORAGE_KEYS.BUTTPLUG_UNLOCKED, 'true')
+    import('../composables/hooks/providers/buttplug.js').then(({ buttplugProvider }) => {
+      if (!providerRegistry.has('buttplug')) {
+        providerRegistry.register(buttplugProvider)
+      }
+    })
+    toastApi.show('success', 'Buttplug.io Provider 已解锁，请刷新页面')
+  },
+  lock: () => {
+    safeLocalStorageRemove(HOOKS_STORAGE_KEYS.BUTTPLUG_UNLOCKED)
+    providerRegistry.unregister('buttplug')
+    toastApi.show('info', 'Buttplug.io Provider 已锁定，请刷新页面')
+  }
+}
 // 保持旧的 unlock/lock 入口兼容
 coyoteApi.unlock = hooksApi.estim.unlock
 coyoteApi.lock = hooksApi.estim.lock

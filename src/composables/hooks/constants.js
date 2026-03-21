@@ -27,7 +27,8 @@ export const HookProvider = {
   NOTIFICATION: 'notification',
   SOUND: 'sound',
   PUSH: 'push',
-  ESTIM: 'estim'
+  ESTIM: 'estim',
+  BUTTPLUG: 'buttplug'
 }
 
 /**
@@ -63,5 +64,6 @@ export const TRIGGER_GROUPS = [
  */
 export const HOOKS_STORAGE_KEYS = {
   HOOKS: 'swm_hooks',
-  ESTIM_UNLOCKED: 'swm_coyote_unlocked'
+  ESTIM_UNLOCKED: 'swm_coyote_unlocked',
+  BUTTPLUG_UNLOCKED: 'swm_buttplug_unlocked'
 }

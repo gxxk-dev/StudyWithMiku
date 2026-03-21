@@ -57,6 +57,19 @@ const registerEstimIfUnlocked = () => {
 }
 
 /**
+ * 条件注册 buttplug provider
+ */
+const registerButtplugIfUnlocked = () => {
+  if (safeLocalStorageGet(HOOKS_STORAGE_KEYS.BUTTPLUG_UNLOCKED) === 'true') {
+    if (!providerRegistry.has('buttplug')) {
+      import('./providers/buttplug.js').then(({ buttplugProvider }) => {
+        providerRegistry.register(buttplugProvider)
+      })
+    }
+  }
+}
+
+/**
  * 核心调度：处理 focus 事件
  */
 const handleFocusEvent = (action, context = {}) => {
@@ -100,6 +113,9 @@ export const useHooks = () => {
 
     // 条件注册 estim provider（需解锁）
     registerEstimIfUnlocked()
+
+    // 条件注册 buttplug provider（需解锁）
+    registerButtplugIfUnlocked()
 
     initializeHooks()
     subscribeEventBus()

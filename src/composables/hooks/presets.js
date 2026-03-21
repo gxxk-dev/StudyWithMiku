@@ -117,6 +117,64 @@ export const ESTIM_PRESETS = [
 ]
 
 /**
+ * Buttplug.io 预设
+ */
+export const BUTTPLUG_PRESETS = [
+  {
+    name: '专注振动提醒',
+    description: '专注期间每 10 分钟振动提醒',
+    hook: {
+      name: '专注振动提醒',
+      provider: HookProvider.BUTTPLUG,
+      trigger: HookTrigger.FOCUS_TICK,
+      tickInterval: 600,
+      action: {
+        type: 'vibrate',
+        speed: 30
+      }
+    }
+  },
+  {
+    name: '暂停惩罚振动',
+    description: '暂停专注时全力振动',
+    hook: {
+      name: '暂停惩罚振动',
+      provider: HookProvider.BUTTPLUG,
+      trigger: HookTrigger.FOCUS_PAUSE,
+      action: {
+        type: 'vibrate',
+        speed: 100
+      }
+    }
+  },
+  {
+    name: '完成奖励振动',
+    description: '完成番茄钟后中等振动',
+    hook: {
+      name: '完成奖励振动',
+      provider: HookProvider.BUTTPLUG,
+      trigger: HookTrigger.FOCUS_COMPLETED,
+      action: {
+        type: 'vibrate',
+        speed: 60
+      }
+    }
+  },
+  {
+    name: '休息停止设备',
+    description: '休息开始时停止设备',
+    hook: {
+      name: '休息停止设备',
+      provider: HookProvider.BUTTPLUG,
+      trigger: HookTrigger.BREAK_START,
+      action: {
+        type: 'stop'
+      }
+    }
+  }
+]
+
+/**
  * 通知/提示音预设
  */
 export const GENERAL_PRESETS = [
